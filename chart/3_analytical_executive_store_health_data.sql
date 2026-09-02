@@ -453,8 +453,8 @@ VALUES (
     ),
     daily AS (
         SELECT f.bucket,
-               COALESCE(SUM(li.original_unit_price * li.quantity), 0) AS gross_sales,
-               COALESCE(SUM(li.total_discount_amount), 0) AS discount_amount
+               COALESCE(SUM(li.total_discount_amount), 0) AS discount_amount,
+               COALESCE(SUM(li.original_total_amount), 0) AS original_amount
         FROM public.fact_order_line_items li
         JOIN filtered_orders f ON f.id = li.order_id
         GROUP BY f.bucket
@@ -468,7 +468,7 @@ VALUES (
            END AS period,
            df.bucket,
            ROUND(COALESCE(d.discount_amount, 0), 2) AS discount_amount,
-           ROUND(100 * d.discount_amount / NULLIF(d.gross_sales, 0), 2) AS discount_rate
+           ROUND(100 * d.discount_amount / NULLIF(d.original_amount, 0), 2) AS discount_rate
     FROM date_filler df
     CROSS JOIN date_params dp
     LEFT JOIN daily d ON d.bucket = df.bucket
@@ -781,7 +781,7 @@ OFFSET COALESCE(:offset, 0)
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
           AND o.cancelled_at IS NULL
-          AND o.fulfillment_status IS DISTINCT FROM 'FULFILLED'
+          AND o.fulfillmentstatus IS DISTINCT FROM 'FULFILLED'
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -822,7 +822,7 @@ OFFSET COALESCE(:offset, 0)
     /*date_granularity_cte*/
     filtered_orders AS (
         SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket,
-               o.fulfillment_status,
+               o.fulfillmentstatus,
                COALESCE(o.current_total_price, 0) AS order_value
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
@@ -834,11 +834,11 @@ OFFSET COALESCE(:offset, 0)
     ),
     daily AS (
         SELECT f.bucket,
-               SUM(f.order_value) FILTER (WHERE f.fulfillment_status = 'FULFILLED') AS fulfilled,
-               SUM(f.order_value) FILTER (WHERE f.fulfillment_status = 'PARTIALLY_FULFILLED') AS partial,
+               SUM(f.order_value) FILTER (WHERE f.fulfillmentstatus = 'FULFILLED') AS fulfilled,
+               SUM(f.order_value) FILTER (WHERE f.fulfillmentstatus = 'PARTIALLY_FULFILLED') AS partial,
                SUM(f.order_value) FILTER (
-                   WHERE f.fulfillment_status IS DISTINCT FROM 'FULFILLED'
-                     AND f.fulfillment_status IS DISTINCT FROM 'PARTIALLY_FULFILLED') AS unfulfilled
+                   WHERE f.fulfillmentstatus IS DISTINCT FROM 'FULFILLED'
+                     AND f.fulfillmentstatus IS DISTINCT FROM 'PARTIALLY_FULFILLED') AS unfulfilled
         FROM filtered_orders f
         GROUP BY f.bucket
     )
@@ -1031,7 +1031,7 @@ OFFSET COALESCE(:offset, 0)
     '019fff82-e31a-7553-af0b-2fc2d407e2cb',
     'Top Customer Segments',
     'Executive Store Health/Customer & Channel/PLOT/Top Customer Segments',
-    '
+    $$
     WITH
     filtered_orders AS (
         SELECT o.id,
@@ -1065,8 +1065,8 @@ OFFSET COALESCE(:offset, 0)
     FROM segments s
     ORDER BY s.revenue DESC
     LIMIT COALESCE(:limit, 10)
-    OFFSET COALESCE(:offset, 0)
-    ',
+OFFSET COALESCE(:offset, 0)
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1155,7 +1155,8 @@ OFFSET COALESCE(:offset, 0)
     channel_lines AS (
         SELECT co.channel,
                SUM(li.original_unit_price * li.quantity) AS gross_sales,
-               SUM(li.discounted_total_amount) AS discounted
+               SUM(li.total_discount_amount) AS discounted,
+               SUM(li.original_total_amount) AS original_amount
         FROM public.fact_order_line_items li
         JOIN channel_orders co ON co.id = li.order_id
         GROUP BY co.channel
@@ -1172,14 +1173,14 @@ OFFSET COALESCE(:offset, 0)
            ct.orders AS orders,
            ROUND(ct.net_sales / NULLIF(ct.orders, 0), 2) AS aov,
            ROUND(100 * COALESCE(cr.refunded, 0) / NULLIF(cl.gross_sales, 0), 2) AS refund_rate,
-           ROUND(100 * (cl.gross_sales - COALESCE(cl.discounted, 0)) / NULLIF(cl.gross_sales, 0), 2) AS discount_rate,
+           ROUND(100 * COALESCE(cl.discounted, 0)/ NULLIF(cl.original_amount, 0), 2) AS discount_rate,
            COUNT(*) OVER() AS total_records
     FROM channel_totals ct
     LEFT JOIN channel_lines cl ON cl.channel IS NOT DISTINCT FROM ct.channel
     LEFT JOIN channel_refunds cr ON cr.channel IS NOT DISTINCT FROM ct.channel
     ORDER BY ct.net_sales DESC
     LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
+    OFFSET COALESCE(:offset, 0)
     $$,
     NULL,
     'TABLE',
@@ -1245,32 +1246,11 @@ VALUES (
         JOIN scoped_orders s ON s.id = li.order_id
         LEFT JOIN variant_cost vc ON vc.variant_id = li.product_variant_id
     ),
-    scoped_payouts AS (
-        SELECT * FROM (
-            SELECT ((w.cur_start IS NULL OR p.issued_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR p.issued_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND p.issued_at::date BETWEEN w.prv_start AND w.prv_end)          AS is_prior,
-                   COALESCE((p.net->>'amount')::numeric, 0) AS amount
-            FROM public.dim_payouts p
-            CROSS JOIN windows w
-            WHERE p.seller_id = :shopId
-              AND p.status IN ('IN_TRANSIT', 'SCHEDULED')
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    pending_payouts AS (
-        SELECT COALESCE(SUM(amount) FILTER (WHERE is_current), 0) AS cur_payouts,
-               COALESCE(SUM(amount) FILTER (WHERE is_prior),   0) AS prv_payouts
-        FROM scoped_payouts
-    ),
     computed AS (
         SELECT ot.cur_net_sales - ct.cur_cogs AS cur_margin,
-               ot.prv_net_sales - ct.prv_cogs AS prv_margin,
-               pp.cur_payouts, pp.prv_payouts
+               ot.prv_net_sales - ct.prv_cogs AS prv_margin
         FROM order_totals ot
         CROSS JOIN cogs_totals ct
-        CROSS JOIN pending_payouts pp
     )
     SELECT ROUND(c.cur_margin, 2) AS gross_margin_estimate,
            ROUND(100 * (c.cur_margin - c.prv_margin)
@@ -1280,7 +1260,7 @@ VALUES (
     NULL,
     'KPI',
     60,
-    'Estimated gross margin and pending in-transit payout amounts vs prior period.',
+    'Estimated gross margin vs prior period.',
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
@@ -1345,7 +1325,7 @@ OFFSET COALESCE(:offset, 0)
     $$
     WITH
     filtered_fees AS (
-        SELECT COALESCE(t.gateway, t.manual_payment_gateway) AS gateway,
+        SELECT COALESCE(NULLIF(t.gateway, ''), 'unknown')  AS gateway,
                ROUND(SUM(COALESCE(t.transaction_fee, 0)), 2) AS fee_amount,
                ROUND(100 * SUM(COALESCE(t.transaction_fee, 0)) / NULLIF(SUM(COALESCE(t.amount, 0)), 0), 2) AS fee_rate
         FROM public.fact_order_transactions t
@@ -1358,13 +1338,13 @@ OFFSET COALESCE(:offset, 0)
           AND t.status = 'SUCCESS'
           AND (:currentStartDate IS NULL OR t.processed_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR t.processed_at::date <= :currentEndDate::date)
-        GROUP BY COALESCE(t.gateway, t.manual_payment_gateway)
+        GROUP BY 1
     )
     SELECT gateway, fee_amount, fee_rate
     FROM filtered_fees
     ORDER BY fee_amount DESC
     LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
+    OFFSET COALESCE(:offset, 0)
     $$,
     NULL,
     'PLOT',

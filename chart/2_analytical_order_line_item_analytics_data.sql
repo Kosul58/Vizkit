@@ -16,7 +16,7 @@ VALUES (
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)          AS is_prior,
                    li.quantity AS units,
-                   COALESCE(li.original_total_amount, li.original_unit_price * li.quantity, 0) AS gross_sales,
+                   COALESCE(li.original_total_amount, 0) AS gross_sales,
                    COALESCE(li.discounted_total_amount, 0) AS net_sales
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id
@@ -256,7 +256,7 @@ OFFSET COALESCE(:offset, 0)
         SELECT li.product_variant_id,
                li.quantity AS units,
                COALESCE(li.unfulfilled_quantity, 0) AS unfulfilled_units,
-               COALESCE(li.original_total_amount, li.original_unit_price * li.quantity, 0) AS gross_sales,
+               COALESCE(li.original_total_amount, 0) AS gross_sales,
                COALESCE(li.discounted_total_amount, 0) AS net_sales,
                COALESCE(li.total_discount_amount, 0) AS discounts
         FROM public.fact_order_line_items li
@@ -310,7 +310,7 @@ OFFSET COALESCE(:offset, 0)
         SELECT li.order_id,
                li.product_variant_id,
                li.quantity AS units,
-               COALESCE(li.original_total_amount, li.original_unit_price * li.quantity, 0) AS gross_sales,
+               COALESCE(li.original_total_amount, 0) AS gross_sales,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id
@@ -383,7 +383,7 @@ VALUES (
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)          AS is_prior,
                    COALESCE(li.total_discount_amount, 0) AS discounts,
-                   COALESCE(li.original_total_amount, li.original_unit_price * li.quantity, 0) AS original_amount
+                   COALESCE(li.original_total_amount, 0) AS original_amount
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id
             WHERE o.seller_id = :shopId
@@ -480,7 +480,7 @@ OFFSET COALESCE(:offset, 0)
         SELECT li.id AS line_id,
                li.product_variant_id,
                o.id AS order_id,
-               COALESCE(li.original_total_amount, li.original_unit_price * li.quantity, 0) AS original_amount,
+               COALESCE(li.original_total_amount, 0) AS original_amount,
                COALESCE(li.discounted_total_amount, 0) AS discounted_amount,
                COALESCE(li.total_discount_amount, 0) AS discount_amount
         FROM public.fact_order_line_items li
@@ -691,7 +691,7 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date))  AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)          AS is_prior,
-                   li.quantity - COALESCE(li.current_quantity, li.quantity) AS removed_units,
+                   li.quantity - li.current_quantity AS removed_units,
                    COALESCE(li.refundable_quantity, 0) AS refundable_units
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id
@@ -739,7 +739,7 @@ VALUES (
     '
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
-               li.quantity - COALESCE(li.current_quantity, li.quantity) AS removed_units
+               li.quantity - li.current_quantity AS removed_units
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
@@ -782,8 +782,8 @@ OFFSET COALESCE(:offset, 0)
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                li.quantity AS ordered_units,
-               COALESCE(li.current_quantity, li.quantity) AS current_units,
-               li.quantity - COALESCE(li.current_quantity, li.quantity) AS removed_units,
+               li.current_quantity AS current_units,
+               li.quantity - li.current_quantity AS removed_units,
                COALESCE(li.refundable_quantity, 0) AS refundable_units
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id
@@ -1068,7 +1068,7 @@ OFFSET COALESCE(:offset, 0)
     '
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
-               COALESCE(li.original_total_amount, li.original_unit_price * li.quantity, 0) AS gross_sales,
+               COALESCE(li.original_total_amount, 0) AS gross_sales,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id
@@ -1114,7 +1114,7 @@ OFFSET COALESCE(:offset, 0)
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                li.quantity AS units,
-               COALESCE(li.original_total_amount, li.original_unit_price * li.quantity, 0) AS gross_sales,
+               COALESCE(li.original_total_amount, 0) AS gross_sales,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id
@@ -1387,7 +1387,7 @@ OFFSET COALESCE(:offset, 0)
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                li.quantity AS units,
-               COALESCE(li.original_total_amount, li.original_unit_price * li.quantity, 0) AS gross_sales,
+               COALESCE(li.original_total_amount, 0) AS gross_sales,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id
