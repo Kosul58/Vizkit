@@ -1036,9 +1036,9 @@ OFFSET COALESCE(:offset, 0)
     filtered_orders AS (
         SELECT o.id,
                COALESCE(
-                   o.shipping_address #>> ''{country}'',
-                   o.shipping_address #>> ''{province}'',
-                   o.shipping_address #>> ''{city}''
+                   o.shipping_address #>> '{country}',
+                   o.shipping_address #>> '{province}',
+                   o.shipping_address #>> '{city}'
                ) AS segment,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
@@ -1065,7 +1065,7 @@ OFFSET COALESCE(:offset, 0)
     FROM segments s
     ORDER BY s.revenue DESC
     LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
+    OFFSET COALESCE(:offset, 0)
     $$,
     NULL,
     'PLOT',

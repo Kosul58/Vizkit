@@ -752,43 +752,11 @@ VALUES (
     'Payments & Transactions/Payment Health & Reliability/PLOT/Failed / Pending Payment Trend',
     $$
     WITH
-    date_params AS (
-        SELECT
-            g,
-            CASE WHEN g = DAY   THEN date_trunc(day,   :currentStartDate::date)
-                 WHEN g = WEEK  THEN date_trunc(week,  :currentStartDate::date)
-                 WHEN g = MONTH THEN date_trunc(month, :currentStartDate::date)
-                 WHEN g = YEAR  THEN date_trunc(year,  :currentStartDate::date)
-            END AS start_bucket,
-            CASE WHEN g = DAY   THEN date_trunc(day,   :currentEndDate::date)
-                 WHEN g = WEEK  THEN date_trunc(week,  :currentEndDate::date)
-                 WHEN g = MONTH THEN date_trunc(month, :currentEndDate::date)
-                 WHEN g = YEAR  THEN date_trunc(year,  :currentEndDate::date)
-            END AS end_bucket,
-            CASE WHEN g = DAY   THEN interval 1 day
-                 WHEN g = WEEK  THEN interval 1 week
-                 WHEN g = MONTH THEN interval 1 month
-                 WHEN g = YEAR  THEN interval 1 year
-            END AS step
-        FROM (
-            SELECT COALESCE(
-                NULLIF(:granularity, ),
-                CASE WHEN (:currentEndDate::date - :currentStartDate::date) > 730 THEN YEAR
-                     WHEN (:currentEndDate::date - :currentStartDate::date) > 180 THEN MONTH
-                     WHEN (:currentEndDate::date - :currentStartDate::date) > 31  THEN WEEK
-                     ELSE DAY
-                END
-            ) AS g
-        ) sub
-    ),
-    date_filler AS (
-        SELECT generate_series(dp.start_bucket, dp.end_bucket, dp.step) AS bucket
-        FROM date_params dp
-    ),
+    /*date_granularity_cte*/
     scoped_txn AS (
         SELECT date_trunc(LOWER(dp.g), COALESCE(t.processed_at, t.created_at)) AS bucket,
-               (UPPER(t.status) IN (FAILURE, ERROR))             AS is_failed,
-               (UPPER(t.status) IN (PENDING, AWAITING_RESPONSE)) AS is_pending
+               (UPPER(t.status) IN ('FAILURE', 'ERROR'))             AS is_failed,
+               (UPPER(t.status) IN ('PENDING', 'AWAITING_RESPONSE')) AS is_pending
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id
         CROSS JOIN date_params dp
@@ -807,10 +775,10 @@ VALUES (
         GROUP BY s.bucket
     )
     SELECT to_char(df.bucket,
-               CASE WHEN dp.g = DAY   THEN Mon DD, YYYY
-                    WHEN dp.g = WEEK  THEN Mon DD, YYYY
-                    WHEN dp.g = MONTH THEN Mon YYYY
-                    WHEN dp.g = YEAR  THEN YYYY
+               CASE WHEN dp.g = 'DAY'   THEN 'Mon DD, YYYY'
+                    WHEN dp.g = 'WEEK'  THEN 'Mon DD, YYYY'
+                    WHEN dp.g = 'MONTH' THEN 'Mon YYYY'
+                    WHEN dp.g = 'YEAR'  THEN 'YYYY'
                END
            ) AS period,
            df.bucket,
@@ -833,7 +801,11 @@ VALUES (
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }
       },
-      "excludeExtraParams": true
+      "excludeExtraParams": true,
+      "conditionalSegments": [
+        { "provider": "DATE_GRANULARITY_CTE", "condition": "hasFilter:startDate", "placeholder": "/*date_granularity_cte*/",
+          "args": { "startDateParam": "currentStartDate", "endDateParam": "currentEndDate", "granularityParam": "granularity" } }
+      ]
     }'
 ),
 (
