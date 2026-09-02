@@ -3,7 +3,7 @@
 ----changeset deepankar.sharma:RW-45-1
 --comment seed Customer Overview tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff9a-1dfa-7ef3-8402-c7e413fe686d',
     'Customer KPIs',
@@ -16,7 +16,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
     ),
     scoped_orders AS (
@@ -30,7 +30,7 @@ VALUES (
             CROSS JOIN windows w
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
               AND o.customer_id IS NOT NULL
         ) t
         WHERE t.is_current OR t.is_prior
@@ -125,7 +125,7 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND c.created_at IS NOT NULL
           AND c.created_at >= dp.start_bucket
           AND c.created_at <= :currentEndDate::date
@@ -184,7 +184,7 @@ ORDER BY df.bucket ASC
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
           AND o.created_at >= dp.start_bucket
           AND o.created_at <= :currentEndDate::date
@@ -195,7 +195,7 @@ ORDER BY df.bucket ASC
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NULL
           AND o.created_at >= dp.start_bucket
           AND o.created_at <= :currentEndDate::date
@@ -262,7 +262,7 @@ ORDER BY df.bucket ASC
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -327,7 +327,7 @@ ORDER BY df.bucket ASC
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
     ),
     guest_orders AS (
@@ -336,7 +336,7 @@ ORDER BY df.bucket ASC
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NULL
     ),
     classified AS (
@@ -413,7 +413,7 @@ ORDER BY df.bucket ASC
 --changeset deepankar.sharma:RW-45-2
 --comment seed Customer Revenue & Value tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff9a-1dfb-7067-a154-101db904ec65',
     'Customer Value KPIs',
@@ -435,7 +435,7 @@ VALUES (
             CROSS JOIN windows w
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
               AND o.customer_id IS NOT NULL
         ) t
         WHERE t.is_current OR t.is_prior
@@ -539,7 +539,7 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
           AND o.created_at >= dp.start_bucket
           AND o.created_at <= :currentEndDate::date
@@ -553,7 +553,7 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NULL
           AND o.created_at >= dp.start_bucket
           AND o.created_at <= :currentEndDate::date
@@ -618,7 +618,7 @@ ORDER BY df.bucket ASC
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -631,7 +631,7 @@ ORDER BY df.bucket ASC
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
         GROUP BY o.customer_id
     ),
@@ -698,7 +698,7 @@ ORDER BY df.bucket ASC
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -746,7 +746,7 @@ OFFSET COALESCE(:offset, 0)
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -793,7 +793,7 @@ OFFSET COALESCE(:offset, 0)
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -848,7 +848,7 @@ OFFSET COALESCE(:offset, 0)
 --changeset deepankar.sharma:RW-45-3
 --comment seed Customer Retention & Loyalty tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff9a-1dfb-756f-bf31-02577fcf2164',
     'Orders per Customer Distribution',
@@ -859,7 +859,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -906,7 +906,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
     ),
     first_order AS (
@@ -976,7 +976,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
     ),
     first_order AS (
@@ -1039,7 +1039,7 @@ OFFSET COALESCE(:offset, 0)
 --changeset deepankar.sharma:RW-45-4
 --comment seed Customer Risk & Refund Analysis tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff9a-1dfb-7d94-805d-a1062b8c8565',
     'Refund-Risk Customers',
@@ -1059,7 +1059,7 @@ VALUES (
             CROSS JOIN windows w
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
               AND o.customer_id IS NOT NULL
         ) t
         WHERE t.is_current OR t.is_prior
@@ -1140,7 +1140,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -1170,7 +1170,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
         GROUP BY o.customer_id
     ),
@@ -1240,7 +1240,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -1307,7 +1307,7 @@ OFFSET COALESCE(:offset, 0)
 --changeset deepankar.sharma:RW-45-5
 --comment seed Customer Geography & Segmentation tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff9a-1dfb-71fd-9571-3b8eee00748e',
     'New vs Repeat Customer Revenue',
@@ -1324,7 +1324,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
     ),
     guest_orders AS (
@@ -1335,7 +1335,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NULL
     ),
     scoped_known AS (
@@ -1425,7 +1425,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -1470,7 +1470,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -1515,7 +1515,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -1553,7 +1553,7 @@ VALUES (
 --changeset deepankar.sharma:RW-45-6
 --comment seed Customer Operations & Compliance tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff9a-1dfb-71d9-baa2-c69257c65184',
     'Operations & Compliance KPIs',
@@ -1566,7 +1566,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
     ),
     anchors AS (
@@ -1688,7 +1688,7 @@ VALUES (
         JOIN public.dim_customers c ON c.id = o.customer_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1730,7 +1730,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
     ),
     anchor AS (
@@ -1789,7 +1789,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
     ),
     anchor AS (
@@ -1851,7 +1851,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -1900,7 +1900,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)

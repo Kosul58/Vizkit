@@ -3,7 +3,7 @@
 --changeset saugat:RW-48-1
 --comment seed Location Overview tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff9a-1dfc-7913-b680-280fa241f5c5',
     'Location Overview KPIs',
@@ -253,7 +253,7 @@ OFFSET COALESCE(:offset, 0)
 --changeset saugat:RW-48-2
 --comment seed Inventory Health by Location tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff9a-1dfc-78bc-b6ad-abdbad79f1e3',
     'Stock Status KPIs',
@@ -479,7 +479,7 @@ OFFSET COALESCE(:offset, 0)
 --changeset saugat:RW-48-3
 --comment seed Replenishment & Stock Risk tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff9a-1dfc-7cb8-9c5e-132d1a372cbe',
     'Replenishment KPIs',
@@ -703,7 +703,6 @@ OFFSET COALESCE(:offset, 0)
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
         GROUP BY li.product_variant_id
     ),
     level_rows AS (
@@ -813,7 +812,7 @@ OFFSET COALESCE(:offset, 0)
 --changeset saugat:RW-48-4
 --comment seed Fulfillment & Operational Risk tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff9a-1dfd-7e79-83d1-5b9094a2b62e',
     'Fulfillment Risk KPIs',
@@ -942,7 +941,7 @@ OFFSET COALESCE(:offset, 0)
 --changeset saugat:RW-48-5
 --comment seed Inventory Value & Asset Management tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff9a-1dfd-73f8-99c8-cf67c8421b51',
     'Inventory Value KPIs',
@@ -1117,7 +1116,7 @@ OFFSET COALESCE(:offset, 0)
 --changeset saugat:RW-48-6
 --comment seed Location Governance & Special Operations tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff9a-1dfd-7dde-b41a-49261098371d',
     'Location Governance KPIs',

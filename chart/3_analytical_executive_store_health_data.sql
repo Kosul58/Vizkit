@@ -3,7 +3,7 @@
 --changeset saugat:RW-34-1
 --comment seed revenue overview tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff82-e31a-79f2-bf5a-2d2fb3884362',
     'Revenue KPIs',
@@ -25,7 +25,7 @@ VALUES (
             CROSS JOIN windows w
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -104,7 +104,7 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.created_at >= dp.start_bucket
           AND o.created_at <= dp.end_bucket
     ),
@@ -116,7 +116,7 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND r.created_at >= dp.start_bucket
           AND r.created_at <= dp.end_bucket
     ),
@@ -190,7 +190,7 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.created_at >= dp.start_bucket
           AND o.created_at <= dp.end_bucket
     ),
@@ -216,7 +216,7 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND r.created_at >= dp.start_bucket
           AND r.created_at <= dp.end_bucket
     ),
@@ -288,7 +288,7 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.created_at >= dp.start_bucket
           AND o.created_at <= dp.end_bucket
     ),
@@ -337,7 +337,7 @@ VALUES (
 --changeset saugat:RW-34-2
 --comment seed discount and refund tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff82-e31a-7689-b215-209e686ffcc3',
     'Discount & Refund KPIs',
@@ -356,7 +356,7 @@ VALUES (
             CROSS JOIN windows w
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -384,7 +384,7 @@ VALUES (
             CROSS JOIN windows w
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -447,7 +447,7 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.created_at >= dp.start_bucket
           AND o.created_at <= dp.end_bucket
     ),
@@ -508,7 +508,7 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND r.created_at >= dp.start_bucket
           AND r.created_at <= dp.end_bucket
     ),
@@ -566,7 +566,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = r.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR r.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR r.created_at::date <= :currentEndDate::date)
         GROUP BY r.order_id
@@ -632,7 +632,7 @@ OFFSET COALESCE(:offset, 0)
 --changeset saugat:RW-34-3
 --comment seed inventory and opeartions tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff82-e31a-7d0f-a3ed-86fca428844f',
     'Inventory & Operations KPIs',
@@ -653,7 +653,7 @@ VALUES (
             CROSS JOIN windows w
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -780,7 +780,7 @@ OFFSET COALESCE(:offset, 0)
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.fulfillmentstatus IS DISTINCT FROM 'FULFILLED'
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -828,7 +828,7 @@ OFFSET COALESCE(:offset, 0)
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.created_at >= dp.start_bucket
           AND o.created_at <= dp.end_bucket
     ),
@@ -889,7 +889,7 @@ OFFSET COALESCE(:offset, 0)
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -969,7 +969,7 @@ OFFSET COALESCE(:offset, 0)
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.created_at >= dp.start_bucket
           AND o.created_at <= dp.end_bucket
     ),
@@ -979,7 +979,7 @@ OFFSET COALESCE(:offset, 0)
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
         GROUP BY o.customer_id
     ),
@@ -1046,7 +1046,7 @@ OFFSET COALESCE(:offset, 0)
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1097,7 +1097,7 @@ OFFSET COALESCE(:offset, 0)
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
-      AND o.cancelled_at IS NULL
+      
       AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
 )
@@ -1141,7 +1141,7 @@ OFFSET COALESCE(:offset, 0)
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1202,7 +1202,7 @@ OFFSET COALESCE(:offset, 0)
 --changeset saugat:RW-34-5
 --comment seed payment and business risk tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff82-e31a-7d26-8130-686674870f58',
     'Payments & Risk KPIs',
@@ -1222,7 +1222,7 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -1290,7 +1290,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = tt.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND tt.test = FALSE
           AND (:currentStartDate IS NULL OR tt.processed_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR tt.processed_at::date <= :currentEndDate::date)
@@ -1332,7 +1332,7 @@ OFFSET COALESCE(:offset, 0)
         JOIN public.fact_order_headers o ON o.id = t.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND t.test = FALSE
           AND t.kind = 'SALE'
           AND t.status = 'SUCCESS'

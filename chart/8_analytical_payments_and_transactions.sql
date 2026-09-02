@@ -1,4 +1,4 @@
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fffa3-ddd3-7369-b2f8-35100851f1f5',
     'Payment Overview KPIs',
@@ -21,7 +21,7 @@ VALUES (
             JOIN public.fact_order_headers o ON o.id = t.order_id
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
               AND t.test = FALSE
         ) x
         WHERE x.is_current OR x.is_prior
@@ -51,7 +51,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = tt.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND tt.test = FALSE
           AND (:currentStartDate::date IS NULL OR tt.processed_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR tt.processed_at::date <= :currentEndDate::date)
@@ -103,33 +103,33 @@ VALUES (
     '019fffa3-ddd3-72e3-a14e-782dfd330b5b',
     'Payment Amount Trend',
     'Payments & Transactions/Payment Overview/PLOT/Payment Amount Trend',
-    '
+    $$
     WITH
     date_params AS (
         SELECT
             g,
-            CASE WHEN g = ''DAY''   THEN date_trunc(''day'',   :currentStartDate::date)
-                 WHEN g = ''WEEK''  THEN date_trunc(''week'',  :currentStartDate::date)
-                 WHEN g = ''MONTH'' THEN date_trunc(''month'', :currentStartDate::date)
-                 WHEN g = ''YEAR''  THEN date_trunc(''year'',  :currentStartDate::date)
+            CASE WHEN g = 'DAY'   THEN date_trunc('day',   :currentStartDate::date)
+                 WHEN g = 'WEEK'  THEN date_trunc('week',  :currentStartDate::date)
+                 WHEN g = 'MONTH' THEN date_trunc('month', :currentStartDate::date)
+                 WHEN g = 'YEAR'  THEN date_trunc('year',  :currentStartDate::date)
             END AS start_bucket,
-            CASE WHEN g = ''DAY''   THEN date_trunc(''day'',   :currentEndDate::date)
-                 WHEN g = ''WEEK''  THEN date_trunc(''week'',  :currentEndDate::date)
-                 WHEN g = ''MONTH'' THEN date_trunc(''month'', :currentEndDate::date)
-                 WHEN g = ''YEAR''  THEN date_trunc(''year'',  :currentEndDate::date)
+            CASE WHEN g = 'DAY'   THEN date_trunc('day',   :currentEndDate::date)
+                 WHEN g = 'WEEK'  THEN date_trunc('week',  :currentEndDate::date)
+                 WHEN g = 'MONTH' THEN date_trunc('month', :currentEndDate::date)
+                 WHEN g = 'YEAR'  THEN date_trunc('year',  :currentEndDate::date)
             END AS end_bucket,
-            CASE WHEN g = ''DAY''   THEN interval ''1 day''
-                 WHEN g = ''WEEK''  THEN interval ''1 week''
-                 WHEN g = ''MONTH'' THEN interval ''1 month''
-                 WHEN g = ''YEAR''  THEN interval ''1 year''
+            CASE WHEN g = 'DAY'   THEN interval '1 day'
+                 WHEN g = 'WEEK'  THEN interval '1 week'
+                 WHEN g = 'MONTH' THEN interval '1 month'
+                 WHEN g = 'YEAR'  THEN interval '1 year'
             END AS step
         FROM (
             SELECT COALESCE(
-                NULLIF(:granularity, ''''),
-                CASE WHEN (:currentEndDate::date - :currentStartDate::date) > 730 THEN ''YEAR''
-                     WHEN (:currentEndDate::date - :currentStartDate::date) > 180 THEN ''MONTH''
-                     WHEN (:currentEndDate::date - :currentStartDate::date) > 31  THEN ''WEEK''
-                     ELSE ''DAY''
+                NULLIF(:granularity, ''),
+                CASE WHEN (:currentEndDate::date - :currentStartDate::date) > 730 THEN 'YEAR'
+                     WHEN (:currentEndDate::date - :currentStartDate::date) > 180 THEN 'MONTH'
+                     WHEN (:currentEndDate::date - :currentStartDate::date) > 31  THEN 'WEEK'
+                     ELSE 'DAY'
                 END
             ) AS g
         ) sub
@@ -141,16 +141,16 @@ VALUES (
     scoped_txn AS (
         SELECT date_trunc(LOWER(dp.g), COALESCE(t.processed_at, t.created_at)) AS bucket,
                COALESCE(t.amount, 0) AS amount,
-               (UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
-            AND UPPER(t.status) = ''SUCCESS'') AS is_payment,
-               (UPPER(t.kind) = ''REFUND''
-            AND UPPER(t.status) = ''SUCCESS'') AS is_refund
+               (UPPER(t.kind) IN ('SALE', 'CAPTURE')
+            AND UPPER(t.status) = 'SUCCESS') AS is_payment,
+               (UPPER(t.kind) = 'REFUND'
+            AND UPPER(t.status) = 'SUCCESS') AS is_refund
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND t.test = FALSE
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
           AND COALESCE(t.processed_at, t.created_at) <= :currentEndDate::date
@@ -163,10 +163,10 @@ VALUES (
         GROUP BY s.bucket
     )
     SELECT to_char(df.bucket,
-               CASE WHEN dp.g = ''DAY''   THEN ''Mon DD, YYYY''
-                    WHEN dp.g = ''WEEK''  THEN ''Mon DD, YYYY''
-                    WHEN dp.g = ''MONTH'' THEN ''Mon YYYY''
-                    WHEN dp.g = ''YEAR''  THEN ''YYYY''
+               CASE WHEN dp.g = 'DAY'   THEN 'Mon DD, YYYY'
+                    WHEN dp.g = 'WEEK'  THEN 'Mon DD, YYYY'
+                    WHEN dp.g = 'MONTH' THEN 'Mon YYYY'
+                    WHEN dp.g = 'YEAR'  THEN 'YYYY'
                END
            ) AS period,
            df.bucket,
@@ -177,7 +177,7 @@ VALUES (
     CROSS JOIN date_params dp
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -205,7 +205,7 @@ VALUES (
     JOIN public.fact_order_headers o ON o.id = tt.order_id
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
-      AND o.cancelled_at IS NULL
+      
       AND tt.test = FALSE
       AND (:currentStartDate IS NULL OR tt.processed_at::date >= :currentStartDate::date)
       AND (:currentEndDate IS NULL OR tt.processed_at::date <= :currentEndDate::date)
@@ -244,7 +244,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = t.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND t.test = FALSE
           AND UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
           AND UPPER(t.status) = ''SUCCESS''
@@ -295,7 +295,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = t.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND t.test = FALSE
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
@@ -341,7 +341,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
     ),
     scoped_tender AS (
         SELECT tt.order_id,
@@ -422,7 +422,7 @@ VALUES (
 --changeset saugat:RW-41-2
 --comment seed Payment Costs & Gateway Performance tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fffa3-ddd3-7a0f-9e52-a5fff7b2b20f',
     'Payment Cost KPIs',
@@ -440,7 +440,7 @@ VALUES (
             JOIN public.fact_order_headers o ON o.id = t.order_id
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
               AND t.test = FALSE
               AND UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
               AND UPPER(t.status) = ''SUCCESS''
@@ -488,33 +488,33 @@ VALUES (
     '019fffa3-ddd3-7597-a973-629f58d62294',
     'Transaction Fee Trend',
     'Payments & Transactions/Payment Costs & Gateway Performance/PLOT/Transaction Fee Trend',
-    '
+    $$
     WITH
     date_params AS (
         SELECT
             g,
-            CASE WHEN g = ''DAY''   THEN date_trunc(''day'',   :currentStartDate::date)
-                 WHEN g = ''WEEK''  THEN date_trunc(''week'',  :currentStartDate::date)
-                 WHEN g = ''MONTH'' THEN date_trunc(''month'', :currentStartDate::date)
-                 WHEN g = ''YEAR''  THEN date_trunc(''year'',  :currentStartDate::date)
+            CASE WHEN g = 'DAY'   THEN date_trunc('day',   :currentStartDate::date)
+                 WHEN g = 'WEEK'  THEN date_trunc('week',  :currentStartDate::date)
+                 WHEN g = 'MONTH' THEN date_trunc('month', :currentStartDate::date)
+                 WHEN g = 'YEAR'  THEN date_trunc('year',  :currentStartDate::date)
             END AS start_bucket,
-            CASE WHEN g = ''DAY''   THEN date_trunc(''day'',   :currentEndDate::date)
-                 WHEN g = ''WEEK''  THEN date_trunc(''week'',  :currentEndDate::date)
-                 WHEN g = ''MONTH'' THEN date_trunc(''month'', :currentEndDate::date)
-                 WHEN g = ''YEAR''  THEN date_trunc(''year'',  :currentEndDate::date)
+            CASE WHEN g = 'DAY'   THEN date_trunc('day',   :currentEndDate::date)
+                 WHEN g = 'WEEK'  THEN date_trunc('week',  :currentEndDate::date)
+                 WHEN g = 'MONTH' THEN date_trunc('month', :currentEndDate::date)
+                 WHEN g = 'YEAR'  THEN date_trunc('year',  :currentEndDate::date)
             END AS end_bucket,
-            CASE WHEN g = ''DAY''   THEN interval ''1 day''
-                 WHEN g = ''WEEK''  THEN interval ''1 week''
-                 WHEN g = ''MONTH'' THEN interval ''1 month''
-                 WHEN g = ''YEAR''  THEN interval ''1 year''
+            CASE WHEN g = 'DAY'   THEN interval '1 day'
+                 WHEN g = 'WEEK'  THEN interval '1 week'
+                 WHEN g = 'MONTH' THEN interval '1 month'
+                 WHEN g = 'YEAR'  THEN interval '1 year'
             END AS step
         FROM (
             SELECT COALESCE(
-                NULLIF(:granularity, ''''),
-                CASE WHEN (:currentEndDate::date - :currentStartDate::date) > 730 THEN ''YEAR''
-                     WHEN (:currentEndDate::date - :currentStartDate::date) > 180 THEN ''MONTH''
-                     WHEN (:currentEndDate::date - :currentStartDate::date) > 31  THEN ''WEEK''
-                     ELSE ''DAY''
+                NULLIF(:granularity, ''),
+                CASE WHEN (:currentEndDate::date - :currentStartDate::date) > 730 THEN 'YEAR'
+                     WHEN (:currentEndDate::date - :currentStartDate::date) > 180 THEN 'MONTH'
+                     WHEN (:currentEndDate::date - :currentStartDate::date) > 31  THEN 'WEEK'
+                     ELSE 'DAY'
                 END
             ) AS g
         ) sub
@@ -532,10 +532,10 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND t.test = FALSE
-          AND UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
-          AND UPPER(t.status) = ''SUCCESS''
+          AND UPPER(t.kind) IN ('SALE', 'CAPTURE')
+          AND UPPER(t.status) = 'SUCCESS'
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
           AND COALESCE(t.processed_at, t.created_at) <= :currentEndDate::date
     ),
@@ -547,10 +547,10 @@ VALUES (
         GROUP BY s.bucket
     )
     SELECT to_char(df.bucket,
-               CASE WHEN dp.g = ''DAY''   THEN ''Mon DD, YYYY''
-                    WHEN dp.g = ''WEEK''  THEN ''Mon DD, YYYY''
-                    WHEN dp.g = ''MONTH'' THEN ''Mon YYYY''
-                    WHEN dp.g = ''YEAR''  THEN ''YYYY''
+               CASE WHEN dp.g = 'DAY'   THEN 'Mon DD, YYYY'
+                    WHEN dp.g = 'WEEK'  THEN 'Mon DD, YYYY'
+                    WHEN dp.g = 'MONTH' THEN 'Mon YYYY'
+                    WHEN dp.g = 'YEAR'  THEN 'YYYY'
                END
            ) AS period,
            df.bucket,
@@ -560,7 +560,7 @@ VALUES (
     CROSS JOIN date_params dp
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -593,7 +593,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = t.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND t.test = FALSE
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
@@ -638,7 +638,7 @@ VALUES (
 --changeset saugat:RW-41-3
 --comment seed Payment Health & Reliability tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fffa3-ddd3-7684-970a-205ebbac5a02',
     'Payment Health KPIs',
@@ -657,7 +657,7 @@ VALUES (
             JOIN public.fact_order_headers o ON o.id = t.order_id
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
               AND t.test = FALSE
         ) x
         WHERE x.is_current OR x.is_prior
@@ -717,7 +717,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = t.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND t.test = FALSE
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
@@ -750,33 +750,33 @@ VALUES (
     '019fffa3-ddd3-73c3-a7d0-1e7c6562c512',
     'Failed / Pending Payment Trend',
     'Payments & Transactions/Payment Health & Reliability/PLOT/Failed / Pending Payment Trend',
-    '
+    $$
     WITH
     date_params AS (
         SELECT
             g,
-            CASE WHEN g = ''DAY''   THEN date_trunc(''day'',   :currentStartDate::date)
-                 WHEN g = ''WEEK''  THEN date_trunc(''week'',  :currentStartDate::date)
-                 WHEN g = ''MONTH'' THEN date_trunc(''month'', :currentStartDate::date)
-                 WHEN g = ''YEAR''  THEN date_trunc(''year'',  :currentStartDate::date)
+            CASE WHEN g = DAY   THEN date_trunc(day,   :currentStartDate::date)
+                 WHEN g = WEEK  THEN date_trunc(week,  :currentStartDate::date)
+                 WHEN g = MONTH THEN date_trunc(month, :currentStartDate::date)
+                 WHEN g = YEAR  THEN date_trunc(year,  :currentStartDate::date)
             END AS start_bucket,
-            CASE WHEN g = ''DAY''   THEN date_trunc(''day'',   :currentEndDate::date)
-                 WHEN g = ''WEEK''  THEN date_trunc(''week'',  :currentEndDate::date)
-                 WHEN g = ''MONTH'' THEN date_trunc(''month'', :currentEndDate::date)
-                 WHEN g = ''YEAR''  THEN date_trunc(''year'',  :currentEndDate::date)
+            CASE WHEN g = DAY   THEN date_trunc(day,   :currentEndDate::date)
+                 WHEN g = WEEK  THEN date_trunc(week,  :currentEndDate::date)
+                 WHEN g = MONTH THEN date_trunc(month, :currentEndDate::date)
+                 WHEN g = YEAR  THEN date_trunc(year,  :currentEndDate::date)
             END AS end_bucket,
-            CASE WHEN g = ''DAY''   THEN interval ''1 day''
-                 WHEN g = ''WEEK''  THEN interval ''1 week''
-                 WHEN g = ''MONTH'' THEN interval ''1 month''
-                 WHEN g = ''YEAR''  THEN interval ''1 year''
+            CASE WHEN g = DAY   THEN interval 1 day
+                 WHEN g = WEEK  THEN interval 1 week
+                 WHEN g = MONTH THEN interval 1 month
+                 WHEN g = YEAR  THEN interval 1 year
             END AS step
         FROM (
             SELECT COALESCE(
-                NULLIF(:granularity, ''''),
-                CASE WHEN (:currentEndDate::date - :currentStartDate::date) > 730 THEN ''YEAR''
-                     WHEN (:currentEndDate::date - :currentStartDate::date) > 180 THEN ''MONTH''
-                     WHEN (:currentEndDate::date - :currentStartDate::date) > 31  THEN ''WEEK''
-                     ELSE ''DAY''
+                NULLIF(:granularity, ),
+                CASE WHEN (:currentEndDate::date - :currentStartDate::date) > 730 THEN YEAR
+                     WHEN (:currentEndDate::date - :currentStartDate::date) > 180 THEN MONTH
+                     WHEN (:currentEndDate::date - :currentStartDate::date) > 31  THEN WEEK
+                     ELSE DAY
                 END
             ) AS g
         ) sub
@@ -787,14 +787,14 @@ VALUES (
     ),
     scoped_txn AS (
         SELECT date_trunc(LOWER(dp.g), COALESCE(t.processed_at, t.created_at)) AS bucket,
-               (UPPER(t.status) IN (''FAILURE'', ''ERROR''))             AS is_failed,
-               (UPPER(t.status) IN (''PENDING'', ''AWAITING_RESPONSE'')) AS is_pending
+               (UPPER(t.status) IN (FAILURE, ERROR))             AS is_failed,
+               (UPPER(t.status) IN (PENDING, AWAITING_RESPONSE)) AS is_pending
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND t.test = FALSE
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
           AND COALESCE(t.processed_at, t.created_at) <= :currentEndDate::date
@@ -807,10 +807,10 @@ VALUES (
         GROUP BY s.bucket
     )
     SELECT to_char(df.bucket,
-               CASE WHEN dp.g = ''DAY''   THEN ''Mon DD, YYYY''
-                    WHEN dp.g = ''WEEK''  THEN ''Mon DD, YYYY''
-                    WHEN dp.g = ''MONTH'' THEN ''Mon YYYY''
-                    WHEN dp.g = ''YEAR''  THEN ''YYYY''
+               CASE WHEN dp.g = DAY   THEN Mon DD, YYYY
+                    WHEN dp.g = WEEK  THEN Mon DD, YYYY
+                    WHEN dp.g = MONTH THEN Mon YYYY
+                    WHEN dp.g = YEAR  THEN YYYY
                END
            ) AS period,
            df.bucket,
@@ -820,7 +820,7 @@ VALUES (
     CROSS JOIN date_params dp
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -854,7 +854,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = t.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND t.test = FALSE
           AND UPPER(t.status) IN (''FAILURE'', ''ERROR'', ''PENDING'', ''AWAITING_RESPONSE'')
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
@@ -895,7 +895,7 @@ VALUES (
 --changeset saugat:RW-41-4
 --comment seed Reconciliation & Refund Payments tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fffa3-ddd3-72af-89f6-f1ea24b39173',
     'Refund & Reconciliation KPIs',
@@ -917,7 +917,7 @@ VALUES (
             JOIN public.fact_order_headers o ON o.id = t.order_id
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
               AND t.test = FALSE
         ) x
         WHERE x.is_current OR x.is_prior
@@ -962,33 +962,33 @@ VALUES (
     '019fffa3-ddd3-7db7-8dbd-baf76c474af1',
     'Sales vs Payments Reconciliation',
     'Payments & Transactions/Reconciliation & Refund Payments/PLOT/Sales vs Payments Reconciliation',
-    '
+    $$
     WITH
     date_params AS (
         SELECT
             g,
-            CASE WHEN g = ''DAY''   THEN date_trunc(''day'',   :currentStartDate::date)
-                 WHEN g = ''WEEK''  THEN date_trunc(''week'',  :currentStartDate::date)
-                 WHEN g = ''MONTH'' THEN date_trunc(''month'', :currentStartDate::date)
-                 WHEN g = ''YEAR''  THEN date_trunc(''year'',  :currentStartDate::date)
+            CASE WHEN g = 'DAY'   THEN date_trunc('day',   :currentStartDate::date)
+                 WHEN g = 'WEEK'  THEN date_trunc('week',  :currentStartDate::date)
+                 WHEN g = 'MONTH' THEN date_trunc('month', :currentStartDate::date)
+                 WHEN g = 'YEAR'  THEN date_trunc('year',  :currentStartDate::date)
             END AS start_bucket,
-            CASE WHEN g = ''DAY''   THEN date_trunc(''day'',   :currentEndDate::date)
-                 WHEN g = ''WEEK''  THEN date_trunc(''week'',  :currentEndDate::date)
-                 WHEN g = ''MONTH'' THEN date_trunc(''month'', :currentEndDate::date)
-                 WHEN g = ''YEAR''  THEN date_trunc(''year'',  :currentEndDate::date)
+            CASE WHEN g = 'DAY'   THEN date_trunc('day',   :currentEndDate::date)
+                 WHEN g = 'WEEK'  THEN date_trunc('week',  :currentEndDate::date)
+                 WHEN g = 'MONTH' THEN date_trunc('month', :currentEndDate::date)
+                 WHEN g = 'YEAR'  THEN date_trunc('year',  :currentEndDate::date)
             END AS end_bucket,
-            CASE WHEN g = ''DAY''   THEN interval ''1 day''
-                 WHEN g = ''WEEK''  THEN interval ''1 week''
-                 WHEN g = ''MONTH'' THEN interval ''1 month''
-                 WHEN g = ''YEAR''  THEN interval ''1 year''
+            CASE WHEN g = 'DAY'   THEN interval '1 day'
+                 WHEN g = 'WEEK'  THEN interval '1 week'
+                 WHEN g = 'MONTH' THEN interval '1 month'
+                 WHEN g = 'YEAR'  THEN interval '1 year'
             END AS step
         FROM (
             SELECT COALESCE(
-                NULLIF(:granularity, ''''),
-                CASE WHEN (:currentEndDate::date - :currentStartDate::date) > 730 THEN ''YEAR''
-                     WHEN (:currentEndDate::date - :currentStartDate::date) > 180 THEN ''MONTH''
-                     WHEN (:currentEndDate::date - :currentStartDate::date) > 31  THEN ''WEEK''
-                     ELSE ''DAY''
+                NULLIF(:granularity, ''),
+                CASE WHEN (:currentEndDate::date - :currentStartDate::date) > 730 THEN 'YEAR'
+                     WHEN (:currentEndDate::date - :currentStartDate::date) > 180 THEN 'MONTH'
+                     WHEN (:currentEndDate::date - :currentStartDate::date) > 31  THEN 'WEEK'
+                     ELSE 'DAY'
                 END
             ) AS g
         ) sub
@@ -1005,7 +1005,7 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.created_at >= dp.start_bucket
           AND o.created_at <= :currentEndDate::date
     ),
@@ -1019,15 +1019,15 @@ VALUES (
         FROM public.fact_order_transactions t
         JOIN filtered_orders f ON f.id = t.order_id
         WHERE t.test = FALSE
-          AND UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
-          AND UPPER(t.status) = ''SUCCESS''
+          AND UPPER(t.kind) IN ('SALE', 'CAPTURE')
+          AND UPPER(t.status) = 'SUCCESS'
         GROUP BY f.bucket
     )
     SELECT to_char(df.bucket,
-               CASE WHEN dp.g = ''DAY''   THEN ''Mon DD, YYYY''
-                    WHEN dp.g = ''WEEK''  THEN ''Mon DD, YYYY''
-                    WHEN dp.g = ''MONTH'' THEN ''Mon YYYY''
-                    WHEN dp.g = ''YEAR''  THEN ''YYYY''
+               CASE WHEN dp.g = 'DAY'   THEN 'Mon DD, YYYY'
+                    WHEN dp.g = 'WEEK'  THEN 'Mon DD, YYYY'
+                    WHEN dp.g = 'MONTH' THEN 'Mon YYYY'
+                    WHEN dp.g = 'YEAR'  THEN 'YYYY'
                END
            ) AS period,
            df.bucket,
@@ -1038,7 +1038,7 @@ VALUES (
     LEFT JOIN daily_orders d ON d.bucket = df.bucket
     LEFT JOIN daily_captured p ON p.bucket = df.bucket
     ORDER BY df.bucket ASC
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1058,33 +1058,33 @@ VALUES (
     '019fffa3-ddd3-726f-b9ab-c57314c5f5e1',
     'Refund Transaction Trend',
     'Payments & Transactions/Reconciliation & Refund Payments/PLOT/Refund Transaction Trend',
-    '
+    $$
     WITH
     date_params AS (
         SELECT
             g,
-            CASE WHEN g = ''DAY''   THEN date_trunc(''day'',   :currentStartDate::date)
-                 WHEN g = ''WEEK''  THEN date_trunc(''week'',  :currentStartDate::date)
-                 WHEN g = ''MONTH'' THEN date_trunc(''month'', :currentStartDate::date)
-                 WHEN g = ''YEAR''  THEN date_trunc(''year'',  :currentStartDate::date)
+            CASE WHEN g = 'DAY'   THEN date_trunc('day',   :currentStartDate::date)
+                 WHEN g = 'WEEK'  THEN date_trunc('week',  :currentStartDate::date)
+                 WHEN g = 'MONTH' THEN date_trunc('month', :currentStartDate::date)
+                 WHEN g = 'YEAR'  THEN date_trunc('year',  :currentStartDate::date)
             END AS start_bucket,
-            CASE WHEN g = ''DAY''   THEN date_trunc(''day'',   :currentEndDate::date)
-                 WHEN g = ''WEEK''  THEN date_trunc(''week'',  :currentEndDate::date)
-                 WHEN g = ''MONTH'' THEN date_trunc(''month'', :currentEndDate::date)
-                 WHEN g = ''YEAR''  THEN date_trunc(''year'',  :currentEndDate::date)
+            CASE WHEN g = 'DAY'   THEN date_trunc('day',   :currentEndDate::date)
+                 WHEN g = 'WEEK'  THEN date_trunc('week',  :currentEndDate::date)
+                 WHEN g = 'MONTH' THEN date_trunc('month', :currentEndDate::date)
+                 WHEN g = 'YEAR'  THEN date_trunc('year',  :currentEndDate::date)
             END AS end_bucket,
-            CASE WHEN g = ''DAY''   THEN interval ''1 day''
-                 WHEN g = ''WEEK''  THEN interval ''1 week''
-                 WHEN g = ''MONTH'' THEN interval ''1 month''
-                 WHEN g = ''YEAR''  THEN interval ''1 year''
+            CASE WHEN g = 'DAY'   THEN interval '1 day'
+                 WHEN g = 'WEEK'  THEN interval '1 week'
+                 WHEN g = 'MONTH' THEN interval '1 month'
+                 WHEN g = 'YEAR'  THEN interval '1 year'
             END AS step
         FROM (
             SELECT COALESCE(
-                NULLIF(:granularity, ''''),
-                CASE WHEN (:currentEndDate::date - :currentStartDate::date) > 730 THEN ''YEAR''
-                     WHEN (:currentEndDate::date - :currentStartDate::date) > 180 THEN ''MONTH''
-                     WHEN (:currentEndDate::date - :currentStartDate::date) > 31  THEN ''WEEK''
-                     ELSE ''DAY''
+                NULLIF(:granularity, ''),
+                CASE WHEN (:currentEndDate::date - :currentStartDate::date) > 730 THEN 'YEAR'
+                     WHEN (:currentEndDate::date - :currentStartDate::date) > 180 THEN 'MONTH'
+                     WHEN (:currentEndDate::date - :currentStartDate::date) > 31  THEN 'WEEK'
+                     ELSE 'DAY'
                 END
             ) AS g
         ) sub
@@ -1101,10 +1101,10 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND t.test = FALSE
-          AND UPPER(t.kind) = ''REFUND''
-          AND UPPER(t.status) = ''SUCCESS''
+          AND UPPER(t.kind) = 'REFUND'
+          AND UPPER(t.status) = 'SUCCESS'
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
           AND COALESCE(t.processed_at, t.created_at) <= :currentEndDate::date
     ),
@@ -1116,10 +1116,10 @@ VALUES (
         GROUP BY s.bucket
     )
     SELECT to_char(df.bucket,
-               CASE WHEN dp.g = ''DAY''   THEN ''Mon DD, YYYY''
-                    WHEN dp.g = ''WEEK''  THEN ''Mon DD, YYYY''
-                    WHEN dp.g = ''MONTH'' THEN ''Mon YYYY''
-                    WHEN dp.g = ''YEAR''  THEN ''YYYY''
+               CASE WHEN dp.g = 'DAY'   THEN 'Mon DD, YYYY'
+                    WHEN dp.g = 'WEEK'  THEN 'Mon DD, YYYY'
+                    WHEN dp.g = 'MONTH' THEN 'Mon YYYY'
+                    WHEN dp.g = 'YEAR'  THEN 'YYYY'
                END
            ) AS period,
            df.bucket,
@@ -1129,7 +1129,7 @@ VALUES (
     CROSS JOIN date_params dp
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1158,7 +1158,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1235,7 +1235,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = t.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND t.test = FALSE
           AND UPPER(t.kind) = ''REFUND''
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
@@ -1274,12 +1274,12 @@ VALUES (
 --changeset saugat:RW-41-5
 --comment seed Authorization & Payment Risk tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fffa3-ddd3-7db2-8979-6ceed49ee742',
     'Authorization Risk KPI',
     'Payments & Transactions/Authorization & Payment Risk/KPI/Authorization Risk KPI',
-    '
+    $$
     WITH scoped_txn AS (
         SELECT * FROM (
             SELECT t.order_id,
@@ -1288,15 +1288,15 @@ VALUES (
                    (:priorStartDate::date IS NOT NULL
                 AND COALESCE(t.processed_at, t.created_at)::date BETWEEN :priorStartDate::date AND :priorEndDate::date)          AS is_prior,
                    COALESCE(t.amount, 0) AS amount,
-                   (UPPER(t.kind) IN (''AUTHORIZATION'', ''EMV_AUTHORIZATION'')
-                AND UPPER(t.status) = ''SUCCESS'') AS is_authorized,
-                   (UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
-                AND UPPER(t.status) = ''SUCCESS'') AS is_captured
+                   (UPPER(t.kind) IN ('AUTHORIZATION', 'EMV_AUTHORIZATION')
+                AND UPPER(t.status) = 'SUCCESS') AS is_authorized,
+                   (UPPER(t.kind) IN ('SALE', 'CAPTURE')
+                AND UPPER(t.status) = 'SUCCESS') AS is_captured
             FROM public.fact_order_transactions t
             JOIN public.fact_order_headers o ON o.id = t.order_id
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
               AND t.test = FALSE
         ) x
         WHERE x.is_current OR x.is_prior
@@ -1319,7 +1319,7 @@ VALUES (
            ROUND(100 * (c.cur_uncaptured - c.prv_uncaptured)
                  / NULLIF(ABS(c.prv_uncaptured), 0), 2) AS uncaptured_amount_divergence
     FROM computed c
-    ',
+    $$,
     NULL,
     'KPI',
     60,
@@ -1340,21 +1340,21 @@ VALUES (
     '019fffa3-ddd3-72e7-921a-5c061dedb213',
     'Authorization vs Capture',
     'Payments & Transactions/Authorization & Payment Risk/PLOT/Authorization vs Capture',
-    '
+    $$
     WITH scoped_txn AS (
         SELECT t.order_id,
-               INITCAP(REPLACE(COALESCE(t.gateway, ''Unknown''),
+               INITCAP(REPLACE(COALESCE(t.gateway, 'Unknown'),
                                CHR(95), CHR(32))) AS gateway,
                COALESCE(t.amount, 0) AS amount,
-               (UPPER(t.kind) IN (''AUTHORIZATION'', ''EMV_AUTHORIZATION'')
-            AND UPPER(t.status) = ''SUCCESS'') AS is_authorized,
-               (UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
-            AND UPPER(t.status) = ''SUCCESS'') AS is_captured
+               (UPPER(t.kind) IN ('AUTHORIZATION', 'EMV_AUTHORIZATION')
+            AND UPPER(t.status) = 'SUCCESS') AS is_authorized,
+               (UPPER(t.kind) IN ('SALE', 'CAPTURE')
+            AND UPPER(t.status) = 'SUCCESS') AS is_captured
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND t.test = FALSE
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
@@ -1382,7 +1382,7 @@ VALUES (
     FROM gateway_totals gt
     ORDER BY gt.captured_amount DESC, gt.gateway ASC
     LIMIT :limit OFFSET :offset
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1403,7 +1403,7 @@ VALUES (
     '019fffa3-ddd3-7fa3-835b-cd566678e1df',
     'Authorization Capture Report',
     'Payments & Transactions/Authorization & Payment Risk/TABLE/Authorization Capture Report',
-    '
+    $$
     WITH filtered_orders AS (
         SELECT o.id,
                o.created_at,
@@ -1411,18 +1411,18 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
     order_txn AS (
         SELECT t.order_id,
                COALESCE(SUM(COALESCE(t.amount, 0)) FILTER (
-                   WHERE UPPER(t.kind) IN (''AUTHORIZATION'', ''EMV_AUTHORIZATION'')
-                     AND UPPER(t.status) = ''SUCCESS''), 0) AS authorized_amount,
+                   WHERE UPPER(t.kind) IN ('AUTHORIZATION', 'EMV_AUTHORIZATION')
+                     AND UPPER(t.status) = 'SUCCESS'), 0) AS authorized_amount,
                COALESCE(SUM(COALESCE(t.amount, 0)) FILTER (
-                   WHERE UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
-                     AND UPPER(t.status) = ''SUCCESS''), 0) AS captured_amount
+                   WHERE UPPER(t.kind) IN ('SALE', 'CAPTURE')
+                     AND UPPER(t.status) = 'SUCCESS'), 0) AS captured_amount
         FROM public.fact_order_transactions t
         JOIN filtered_orders f ON f.id = t.order_id
         WHERE t.test = FALSE
@@ -1432,25 +1432,25 @@ VALUES (
         SELECT DISTINCT ON (g.order_id) g.order_id, g.gateway
         FROM (
             SELECT t.order_id,
-                   INITCAP(REPLACE(COALESCE(t.gateway, ''Unknown''),
+                   INITCAP(REPLACE(COALESCE(t.gateway, 'Unknown'),
                                    CHR(95), CHR(32))) AS gateway,
                    SUM(COALESCE(t.amount, 0)) AS amount
             FROM public.fact_order_transactions t
             JOIN filtered_orders f ON f.id = t.order_id
             WHERE t.test = FALSE
             GROUP BY t.order_id,
-                     INITCAP(REPLACE(COALESCE(t.gateway, ''Unknown''),
+                     INITCAP(REPLACE(COALESCE(t.gateway, 'Unknown'),
                                      CHR(95), CHR(32)))
         ) g
         ORDER BY g.order_id, g.amount DESC, g.gateway ASC
     )
-    SELECT COALESCE(f.id, ''Unknown'') AS order_id,
+    SELECT COALESCE(f.id, 'Unknown') AS order_id,
            ROUND(COALESCE(ot.authorized_amount, 0), 2) AS authorized_amount,
            ROUND(COALESCE(ot.captured_amount, 0), 2) AS captured_amount,
            ROUND(GREATEST(COALESCE(ot.authorized_amount, 0)
                           - COALESCE(ot.captured_amount, 0), 0), 2) AS uncaptured_amount,
-           COALESCE(f.financial_status, ''UNKNOWN'') AS status,
-           COALESCE(og.gateway, ''Unknown'') AS gateway,
+           COALESCE(f.financial_status, 'UNKNOWN') AS status,
+           COALESCE(og.gateway, 'Unknown') AS gateway,
            COUNT(*) OVER() AS total_records
     FROM filtered_orders f
     LEFT JOIN order_txn ot ON ot.order_id = f.id
@@ -1459,7 +1459,7 @@ VALUES (
                       - COALESCE(ot.captured_amount, 0), 0) DESC,
              f.created_at DESC, f.id
     LIMIT :limit OFFSET :offset
-    ',
+    $$,
     NULL,
     'TABLE',
     60,
@@ -1480,7 +1480,7 @@ VALUES (
 --changeset saugat:RW-41-6
 --comment seed POS & Alternative Payment Operations tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fffa3-ddd3-7fcb-9184-cba9c41c659c',
     'POS & Alternative Payment KPIs',
@@ -1501,7 +1501,7 @@ VALUES (
             JOIN public.fact_order_headers o ON o.id = t.order_id
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
               AND t.test = FALSE
         ) x
         WHERE x.is_current OR x.is_prior
@@ -1520,7 +1520,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = tt.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND tt.test = FALSE
           AND tt.transaction_credit_card_company IS NOT NULL
           AND (:currentStartDate::date IS NULL OR tt.processed_at::date >= :currentStartDate::date)
@@ -1571,7 +1571,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = t.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND t.test = FALSE
           AND UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
           AND UPPER(t.status) = ''SUCCESS''
@@ -1614,7 +1614,7 @@ VALUES (
     JOIN public.dim_inventory_locations loc ON loc.id = t.location_id
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
-      AND o.cancelled_at IS NULL
+      
       AND t.test = FALSE
       AND UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
       AND UPPER(t.status) = ''SUCCESS''
@@ -1651,7 +1651,7 @@ VALUES (
     JOIN public.fact_order_headers o ON o.id = tt.order_id
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
-      AND o.cancelled_at IS NULL
+      
       AND tt.test = FALSE
       AND tt.transaction_credit_card_company IS NOT NULL
       AND (:currentStartDate IS NULL OR tt.processed_at::date >= :currentStartDate::date)
@@ -1723,7 +1723,7 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND t.test = FALSE
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
           AND COALESCE(t.processed_at, t.created_at) <= :currentEndDate::date
@@ -1778,7 +1778,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = t.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND t.test = FALSE
           AND t.manual_payment_gateway IS true
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
@@ -1820,7 +1820,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
     ),
     pos_txn AS (
         SELECT t.order_id,
@@ -1910,7 +1910,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
     ),
     scoped_tender AS (
         SELECT tt.order_id,

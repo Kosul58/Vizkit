@@ -3,7 +3,7 @@
 --changeset saugat:RW-46-1
 --comment seed Channel Performance tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fffa2-0f80-7a28-bd46-3540650afb5d',
     'Channel Performance KPIs',
@@ -27,7 +27,7 @@ VALUES (
             CROSS JOIN windows w
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -114,7 +114,7 @@ VALUES (
         LEFT JOIN order_app app ON app.id = o.order_app_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -154,7 +154,7 @@ OFFSET COALESCE(:offset, 0)
         LEFT JOIN order_app app ON app.id = o.order_app_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -197,7 +197,7 @@ OFFSET COALESCE(:offset, 0)
         LEFT JOIN order_app app ON app.id = o.order_app_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -247,7 +247,7 @@ OFFSET COALESCE(:offset, 0)
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.created_at >= dp.start_bucket
           AND o.created_at <= :currentEndDate::date
     ),
@@ -318,7 +318,7 @@ OFFSET COALESCE(:offset, 0)
         LEFT JOIN order_app app ON app.id = o.order_app_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -396,7 +396,7 @@ OFFSET COALESCE(:offset, 0)
         LEFT JOIN order_app app ON app.id = o.order_app_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -449,7 +449,7 @@ OFFSET COALESCE(:offset, 0)
 --changeset saugat:RW-46-2
 --comment seed Channel Quality & Profitability tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fffa2-0f80-7819-9ed6-49cfe9e1ccfc',
     'Channel Quality KPIs',
@@ -473,7 +473,7 @@ VALUES (
             CROSS JOIN windows w
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -552,7 +552,7 @@ VALUES (
         LEFT JOIN order_app app ON app.id = o.order_app_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -630,7 +630,7 @@ VALUES (
         LEFT JOIN order_app app ON app.id = o.order_app_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -672,7 +672,7 @@ OFFSET COALESCE(:offset, 0)
         LEFT JOIN order_app app ON app.id = o.order_app_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -728,7 +728,7 @@ OFFSET COALESCE(:offset, 0)
         LEFT JOIN order_app app ON app.id = o.order_app_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -777,7 +777,7 @@ OFFSET COALESCE(:offset, 0)
         LEFT JOIN order_app app ON app.id = o.order_app_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -845,7 +845,7 @@ OFFSET COALESCE(:offset, 0)
         LEFT JOIN order_app app ON app.id = o.order_app_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -920,7 +920,7 @@ OFFSET COALESCE(:offset, 0)
 --changeset saugat:RW-46-3
 --comment seed Marketing Attribution tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fffa2-0f80-7d69-850d-7e635d094b1d',
     'Marketing Attribution KPIs',
@@ -954,7 +954,7 @@ VALUES (
             CROSS JOIN windows w
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -1048,7 +1048,7 @@ VALUES (
         FROM orders o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -1091,7 +1091,7 @@ OFFSET COALESCE(:offset, 0)
         FROM orders o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1150,7 +1150,7 @@ OFFSET COALESCE(:offset, 0)
         FROM orders o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -1192,7 +1192,7 @@ OFFSET COALESCE(:offset, 0)
         FROM orders o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1262,7 +1262,7 @@ OFFSET COALESCE(:offset, 0)
         FROM orders o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1348,7 +1348,7 @@ OFFSET COALESCE(:offset, 0)
         FROM orders o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -1387,7 +1387,7 @@ OFFSET COALESCE(:offset, 0)
 --changeset saugat:RW-46-4
 --comment seed Attribution Health tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fffa2-0f80-7305-bd5d-53ae0ca111f1',
     'Orders Without Attribution',
@@ -1421,7 +1421,7 @@ VALUES (
             CROSS JOIN windows w
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -1486,7 +1486,7 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.created_at >= dp.start_bucket
           AND o.created_at <= :currentEndDate::date
     ),
@@ -1563,7 +1563,7 @@ VALUES (
         LEFT JOIN order_app app ON app.id = o.order_app_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -1600,7 +1600,7 @@ OFFSET COALESCE(:offset, 0)
 --changeset saugat:RW-46-5
 --comment seed Customer Quality tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fffa2-0f80-7c9f-a6df-cc1624af3cd2',
     'Channel Customer Quality Report',
@@ -1618,7 +1618,7 @@ VALUES (
         LEFT JOIN order_app app ON app.id = o.order_app_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -1706,7 +1706,7 @@ OFFSET COALESCE(:offset, 0)
 --changeset saugat:RW-46-6
 --comment seed Operations & Fulfillment tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fffa2-0f80-787c-ab20-d084e6171e29',
     'Channel Operations KPIs',
@@ -1726,7 +1726,7 @@ VALUES (
             CROSS JOIN windows w
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -1785,7 +1785,7 @@ VALUES (
         LEFT JOIN order_app app ON app.id = o.order_app_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1842,7 +1842,7 @@ OFFSET COALESCE(:offset, 0)
         LEFT JOIN sh_address a ON a.id = o.shipping_address_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -1889,7 +1889,7 @@ OFFSET COALESCE(:offset, 0)
         LEFT JOIN order_app app ON app.id = o.order_app_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),

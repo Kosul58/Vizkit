@@ -3,7 +3,7 @@
 --changeset saugat:RW-37-1
 --comment seed Inventory Health tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff82-e31e-7982-a4ad-54e5b0b51284',
     'Inventory Health KPIs',
@@ -39,7 +39,7 @@ VALUES (
             CROSS JOIN windows w
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -185,7 +185,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
@@ -247,7 +247,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
@@ -348,7 +348,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -378,7 +378,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
@@ -419,7 +419,7 @@ VALUES (
 --changeset saugat:RW-37-2
 --comment seed Replenishment & Stock Risk tab
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff82-e31e-72ff-b56a-7858f69bc0bf',
     'Replenishment & Stock Risk KPIs',
@@ -428,8 +428,8 @@ VALUES (
     WITH
     /*comparison_window_cte*/
     period AS (
-        SELECT GREATEST(COALESCE(w.cur_end, (SELECT MAX(o.created_at::date) FROM public.fact_order_headers o WHERE o.seller_id = :shopId AND o.test = FALSE AND o.cancelled_at IS NULL))
-                      - COALESCE(w.cur_start, (SELECT MIN(o.created_at::date) FROM public.fact_order_headers o WHERE o.seller_id = :shopId AND o.test = FALSE AND o.cancelled_at IS NULL)) + 1, 1) AS cur_days,
+        SELECT GREATEST(COALESCE(w.cur_end, (SELECT MAX(o.created_at::date) FROM public.fact_order_headers o WHERE o.seller_id = :shopId AND o.test = FALSE ))
+                      - COALESCE(w.cur_start, (SELECT MIN(o.created_at::date) FROM public.fact_order_headers o WHERE o.seller_id = :shopId AND o.test = FALSE )) + 1, 1) AS cur_days,
                GREATEST(w.prv_end - w.prv_start + 1, 1) AS prv_days
         FROM windows w
     ),
@@ -461,7 +461,7 @@ VALUES (
             CROSS JOIN windows w
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -550,7 +550,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -583,7 +583,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
@@ -640,7 +640,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -670,7 +670,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
@@ -718,7 +718,7 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND o.created_at >= dp.start_bucket
           AND o.created_at <= dp.end_bucket
         GROUP BY date_trunc(LOWER(dp.g), o.created_at)
@@ -790,7 +790,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -824,7 +824,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
@@ -876,7 +876,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -892,7 +892,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
         GROUP BY li.product_variant_id
     ),
     recent_velocity AS (
@@ -903,7 +903,7 @@ VALUES (
         CROSS JOIN period per
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id, per.days_in_period
@@ -958,7 +958,7 @@ VALUES (
 --changeset saugat:RW-37-3
 --comment seed Inventory Value & Capital Management tab (P0/P1)
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff82-e31e-744a-b513-00f6ebae2e7e',
     'Inventory Value & Capital KPIs',
@@ -992,7 +992,7 @@ VALUES (
             CROSS JOIN windows w
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -1118,7 +1118,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
@@ -1222,7 +1222,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
         GROUP BY li.product_variant_id
     ),
     period_sales AS (
@@ -1231,7 +1231,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
@@ -1271,7 +1271,7 @@ VALUES (
 --changeset saugat:RW-37-4
 --comment seed Fulfillment & Demand tab (P0/P1)
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff82-e31e-76cf-8717-df6af72da7c4',
     'Fulfillment & Demand KPIs',
@@ -1298,7 +1298,7 @@ VALUES (
             CROSS JOIN windows w
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
-              AND o.cancelled_at IS NULL
+              
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -1356,7 +1356,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -1402,7 +1402,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND li.unfulfilled_quantity > 0
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -1466,7 +1466,7 @@ VALUES (
 --changeset saugat:RW-37-5
 --comment seed Locations & Operations tab (P0/P1)
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff82-e31e-766d-bf1f-31a4dc974d0b',
     'Locations & Operations KPIs',
@@ -1613,7 +1613,7 @@ VALUES (
 --changeset saugat:RW-37-6
 --comment seed Vendor & Collection Analysis tab (P1/P2, no KPI cards)
 
-INSERT INTO chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff82-e31e-7444-b17e-549809be2b6b',
     'Inventory Value by Vendor',
@@ -1750,7 +1750,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
@@ -1796,7 +1796,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1832,7 +1832,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.cancelled_at IS NULL
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
