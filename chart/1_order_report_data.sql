@@ -495,6 +495,7 @@ VALUES (
                o.id AS order_id,
                o.created_at,
                o.customer_id,
+               o.attribution_displayname,
                o.source_name,
                o.financialStatus AS financial_status,
                o.fulfillmentStatus AS fulfillment_status,
@@ -517,7 +518,7 @@ VALUES (
            CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
                 THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
                 ELSE COALESCE(c.email, 'Guest') END AS customer,
-           COALESCE(f.source_name, 'unknown') AS channel,
+           COALESCE(f.attribution_displayname, f.source_name, 'unknown') AS channel,
            f.source_name AS source,
            f.financial_status,
            f.fulfillment_status,
@@ -762,6 +763,7 @@ VALUES (
                o.id AS order_id,
                o.cancelled_at,
                o.customer_id,
+               o.attribution_displayname,
                o.source_name,
                COALESCE(o.original_total_price, 0) AS original_value
         FROM public.fact_order_headers o
@@ -778,7 +780,7 @@ VALUES (
                 THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
                 ELSE COALESCE(c.email, 'Guest') END AS customer,
            f.source_name AS source,
-           COALESCE(f.source_name, 'unknown') AS channel,
+           COALESCE(f.attribution_displayname,f.source_name, 'unknown') AS channel,
            COUNT(*) OVER() AS total_records
     FROM filtered_orders f
     LEFT JOIN public.dim_customers c ON c.id = f.customer_id
@@ -1209,6 +1211,7 @@ VALUES (
     $$
     WITH filtered_orders AS (
         SELECT o.id,
+              o.attribution_displayname,
                o.source_name,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
@@ -1220,7 +1223,7 @@ VALUES (
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
     SELECT
-        COALESCE(f.source_name, 'unknown') AS name,
+        COALESCE(f.attribution_displayname, f.source_name, 'unknown') AS name,
         ROUND(SUM(f.net_sales), 2) AS net_sales,
         COUNT(*) AS orders
     FROM filtered_orders f

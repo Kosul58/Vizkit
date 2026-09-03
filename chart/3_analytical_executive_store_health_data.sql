@@ -308,7 +308,7 @@ VALUES (
            END AS period,
            df.bucket,
            COALESCE(d.order_count, 0) AS order_count,
-           d.aov AS aov
+           COALESCE(d.aov, 0) AS aov
     FROM date_filler df
     CROSS JOIN date_params dp
     LEFT JOIN daily d ON d.bucket = df.bucket

@@ -19,7 +19,7 @@ VALUES (
 '019fffa2-0f80-7a28-bd46-3540650afb5d',
         'Channel Performance KPIs',
         'Sales Channel Attribution/Channel Performance/KPI/Channel Performance KPIs',
-        '
+        $$
     WITH
     /*comparison_window_cte*/
     scoped_orders AS (
@@ -32,7 +32,7 @@ COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    '' Unattributed ''
+    'Unattributed'
 ) AS channel,
                    COALESCE(o.current_total_price, 0)
                      - COALESCE(o.current_total_tax, 0)
@@ -88,10 +88,12 @@ AND o.test = FALSE
            c.cur_aov AS channel_aov,
            ROUND(100 * (c.cur_aov - c.prv_aov)
                  / NULLIF(ABS(c.prv_aov), 0), 2) AS channel_aov_divergence,
-           COALESCE((SELECT channel FROM top_revenue), ''No data'') AS top_revenue_channel,
-           COALESCE((SELECT channel FROM top_aov), ''No data'') AS top_aov_channel
+           COALESCE(tr.channel, 'No data') AS top_revenue_channel,
+           COALESCE(ta.channel, 'No data') AS top_aov_channel
     FROM computed c
-    ',
+    LEFT JOIN top_revenue tr ON TRUE
+    LEFT JOIN top_aov     ta ON TRUE
+    $$,
 NULL,
         'KPI',
         60,
