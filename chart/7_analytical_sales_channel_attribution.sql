@@ -568,7 +568,7 @@ NULL,
 (
         '019fffa2-0f80-77bd-8a78-95f23c54470b',
         'Channel Quality Matrix',
-        'Sales Channel Attribution/Channel Quality & Profitability/PLOT/Channel Quality Matrix',
+        'Sales Channel Attribution/Channel Quality & Profitability/TABLE/Channel Quality Matrix',
         $$
     WITH
     channel_orders AS (

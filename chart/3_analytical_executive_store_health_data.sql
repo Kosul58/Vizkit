@@ -6,71 +6,22 @@
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff82-e31a-79f2-bf5a-2d2fb3884362',
-    'Revenue KPIs',
-    'Executive Store Health/Revenue Overview/KPI/Revenue KPIs',
+    'Net Sales',
+    'Executive Store Health/Revenue Overview/KPI/Net Sales',
     $$
-    WITH
-    /*comparison_window_cte*/
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT o.id,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
-            FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    order_totals AS (
-        SELECT COUNT(*) FILTER (WHERE is_current) AS cur_orders,
-               COUNT(*) FILTER (WHERE is_prior)   AS prv_orders,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_current), 0) AS cur_net_sales,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_prior),   0) AS prv_net_sales
-        FROM scoped_orders
-    ),
-    line_item_totals AS (
-        SELECT COALESCE(SUM(li.original_unit_price * li.quantity)
-                        FILTER (WHERE s.is_current), 0) AS cur_gross_sales,
-               COALESCE(SUM(li.original_unit_price * li.quantity)
-                        FILTER (WHERE s.is_prior),   0) AS prv_gross_sales
-        FROM public.fact_order_line_items li
-        JOIN scoped_orders s ON s.id = li.order_id
-    ),
-    computed AS (
-        SELECT ot.cur_net_sales, ot.prv_net_sales,
-               ot.cur_orders, ot.prv_orders,
-               lt.cur_gross_sales, lt.prv_gross_sales,
-               ROUND(ot.cur_net_sales / NULLIF(ot.cur_orders, 0), 2) AS cur_aov,
-               ROUND(ot.prv_net_sales / NULLIF(ot.prv_orders, 0), 2) AS prv_aov
-        FROM order_totals ot
-        CROSS JOIN line_item_totals lt
-    )
-    SELECT ROUND(c.cur_net_sales, 2) AS net_sales,
-           ROUND(100 * (c.cur_net_sales - c.prv_net_sales)
-                 / NULLIF(ABS(c.prv_net_sales), 0), 2) AS net_sales_divergence,
-           ROUND(c.cur_gross_sales, 2) AS gross_sales,
-           ROUND(100 * (c.cur_gross_sales - c.prv_gross_sales)
-                 / NULLIF(ABS(c.prv_gross_sales), 0), 2) AS gross_sales_divergence,
-           c.cur_orders AS orders,
-           ROUND(100 * (c.cur_orders - c.prv_orders)
-                 / NULLIF(ABS(c.prv_orders), 0), 2) AS orders_divergence,
-           c.cur_aov AS average_order_value,
-           ROUND(100 * (c.cur_aov - c.prv_aov)
-                 / NULLIF(ABS(c.prv_aov), 0), 2) AS average_order_value_divergence
-    FROM computed c
+    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_total_price, 0)
+                            - COALESCE(o.current_total_tax, 0)
+                            - COALESCE(o.current_shipping_price, 0)), 0), 2) AS net_sales
+    FROM public.fact_order_headers o
+    WHERE o.seller_id = :shopId
+      AND o.test = FALSE
+      AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+      AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
     NULL,
     'KPI',
     60,
-    'Key revenue performance metrics including net sales, gross sales, order volume, and AOV vs prior period.',
+    'Net sales (order total less tax and shipping) for the selected period vs the prior period.',
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
@@ -80,11 +31,95 @@ VALUES (
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
         "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
       },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
+      "excludeExtraParams": true
+    }'
+),
+(
+    '019fff82-e31a-7a01-8f01-1a2b3c4d0001',
+    'Gross Sales',
+    'Executive Store Health/Revenue Overview/KPI/Gross Sales',
+    $$
+    SELECT ROUND(COALESCE(SUM(li.original_unit_price * li.quantity), 0), 2) AS gross_sales
+    FROM public.fact_order_line_items li
+    JOIN public.fact_order_headers o ON o.id = li.order_id
+    WHERE o.seller_id = :shopId
+      AND o.test = FALSE
+      AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+      AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+    $$,
+    NULL,
+    'KPI',
+    60,
+    'Gross sales (line item unit price x quantity, before discounts) for the selected period vs the prior period.',
+    '{
+      "filterMappings": {
+        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
+        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
+        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
+        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
+        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
+        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
+      },
+      "excludeExtraParams": true
+    }'
+),
+(
+    '019fff82-e31a-7a02-8f02-1a2b3c4d0002',
+    'Orders',
+    'Executive Store Health/Revenue Overview/KPI/Orders',
+    $$
+    SELECT COUNT(*) AS orders
+    FROM public.fact_order_headers o
+    WHERE o.seller_id = :shopId
+      AND o.test = FALSE
+      AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+      AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+    $$,
+    NULL,
+    'KPI',
+    60,
+    'Total order volume for the selected period vs the prior period.',
+    '{
+      "filterMappings": {
+        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
+        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
+        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
+        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
+        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
+        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
+      },
+      "excludeExtraParams": true
+    }'
+),
+(
+    '019fff82-e31a-7a03-8f03-1a2b3c4d0003',
+    'Average Order Value',
+    'Executive Store Health/Revenue Overview/KPI/Average Order Value',
+    $$
+    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_total_price, 0)
+                            - COALESCE(o.current_total_tax, 0)
+                            - COALESCE(o.current_shipping_price, 0)), 0)
+                 / NULLIF(COUNT(*), 0), 2) AS average_order_value
+    FROM public.fact_order_headers o
+    WHERE o.seller_id = :shopId
+      AND o.test = FALSE
+      AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+      AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+    $$,
+    NULL,
+    'KPI',
+    60,
+    'Average order value (net sales per order) for the selected period vs the prior period.',
+    '{
+      "filterMappings": {
+        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
+        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
+        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
+        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
+        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
+        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
+      },
+      "excludeExtraParams": true
     }'
 ),
 (
