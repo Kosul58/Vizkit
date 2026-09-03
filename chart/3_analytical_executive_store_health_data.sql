@@ -1093,7 +1093,7 @@ OFFSET COALESCE(:offset, 0)
            COALESCE(o.current_total_price, 0)
              - COALESCE(o.current_total_tax, 0)
              - COALESCE(o.current_shipping_price, 0) AS net_sales,
-           o.source_name AS channel
+           COALESCE(o.attribution_displayname, o.source_name) AS channel
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
@@ -1137,7 +1137,7 @@ OFFSET COALESCE(:offset, 0)
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
                  - COALESCE(o.current_shipping_price, 0) AS net_sales,
-               COALESCE(o.source_name, 'unknown') AS channel
+               COALESCE(o.attribution_displayname, o.source_name, 'unknown') AS channel
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE

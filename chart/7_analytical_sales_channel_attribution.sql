@@ -566,82 +566,71 @@ NULL,
     }'
 ),
 (
-'019fffa2-0f80-77bd-8a78-95f23c54470b',
+        '019fffa2-0f80-77bd-8a78-95f23c54470b',
         'Channel Quality Matrix',
         'Sales Channel Attribution/Channel Quality & Profitability/PLOT/Channel Quality Matrix',
-        '
-    WITH filtered_orders AS (
+        $$
+    WITH
+    channel_orders AS (
         SELECT o.id,
-COALESCE(
-    o.attribution_displayname,
-    o.order_app_name,
-    o.source_name,
-    '' Unattributed ''
-) AS channel,
-               COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales,
-               COALESCE(o.total_discounts_amount, 0) AS discounts,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
-FROM public.fact_order_headers o
+                 - COALESCE(o.current_shipping_price, 0) AS net_sales,
+               COALESCE(o.attribution_displayname, o.source_name, 'unknown') AS channel
+        FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+          AND o.test = FALSE
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
+    channel_totals AS (
+        SELECT co.channel,
+               SUM(co.net_sales) AS net_sales,
+               COUNT(*) AS orders
+        FROM channel_orders co
+        GROUP BY co.channel
+    ),
+    channel_lines AS (
+        SELECT co.channel,
+               SUM(li.original_unit_price * li.quantity) AS gross_sales,
+               SUM(li.total_discount_amount) AS discounted,
+               SUM(li.original_total_amount) AS original_amount
+        FROM public.fact_order_line_items li
+        JOIN channel_orders co ON co.id = li.order_id
+        GROUP BY co.channel
+    ),
     channel_refunds AS (
-        SELECT f.channel,
+        SELECT co.channel,
                SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
-FROM public.fact_order_refunds r
-        JOIN filtered_orders f ON f.id = r.order_id
-        GROUP BY f.channel
-    ),
-    channel_agg AS (
-        SELECT f.channel,
-               SUM(f.net_sales) AS net_sales,
-               SUM(f.net_sales) / NULLIF(COUNT(*), 0) AS aov,
-               SUM(f.gross_sales) AS gross_sales,
-               SUM(f.discounts) AS discounts
-        FROM filtered_orders f
-        GROUP BY f.channel
-    ),
-    channel_metrics AS (
-        SELECT ca.channel,
-               ca.net_sales,
-               ca.aov,
-               COALESCE(100 * COALESCE(cr.refunded, 0) / NULLIF(ca.gross_sales, 0), 0) AS refund_rate,
-               COALESCE(100 * ca.discounts / NULLIF(ca.gross_sales, 0), 0) AS discount_rate
-        FROM channel_agg ca
-        LEFT JOIN channel_refunds cr ON cr.channel IS NOT DISTINCT FROM ca.channel
-    ),
-    ranges AS (
-        SELECT cm.channel, cm.net_sales, cm.aov, cm.refund_rate, cm.discount_rate,
-               MIN(cm.net_sales)    OVER () AS min_net, MAX(cm.net_sales)    OVER () AS max_net,
-               MIN(cm.aov)          OVER () AS min_aov, MAX(cm.aov)          OVER () AS max_aov,
-               MIN(cm.refund_rate)  OVER () AS min_rr,  MAX(cm.refund_rate)  OVER () AS max_rr,
-               MIN(cm.discount_rate) OVER () AS min_dr, MAX(cm.discount_rate) OVER () AS max_dr
-        FROM channel_metrics cm
+        FROM public.fact_order_refunds r
+        JOIN channel_orders co ON co.id = r.order_id
+        GROUP BY co.channel
     )
-    SELECT r.channel AS channel,
-           COALESCE(ROUND(100 * (r.net_sales - r.min_net)
-                          / NULLIF(r.max_net - r.min_net, 0)), 100) AS "Revenue",
-           COALESCE(ROUND(100 * (r.aov - r.min_aov)
-                          / NULLIF(r.max_aov - r.min_aov, 0)), 100) AS "AOV",
-           COALESCE(ROUND(100 * (r.max_rr - r.refund_rate)
-                          / NULLIF(r.max_rr - r.min_rr, 0)), 100) AS "Low Refund Rate",
-           COALESCE(ROUND(100 * (r.max_dr - r.discount_rate)
-                          / NULLIF(r.max_dr - r.min_dr, 0)), 100) AS "Low Discount Rate"
-    FROM ranges r
-    ORDER BY r.net_sales DESC, r.channel ASC
-    ',
+    SELECT ct.channel AS channel,
+           ROUND(ct.net_sales, 2) AS net_sales,
+           ct.orders AS orders,
+           ROUND(ct.net_sales / NULLIF(ct.orders, 0), 2) AS aov,
+           ROUND(100 * COALESCE(cr.refunded, 0) / NULLIF(cl.gross_sales, 0), 2) AS refund_rate,
+           ROUND(100 * COALESCE(cl.discounted, 0)/ NULLIF(cl.original_amount, 0), 2) AS discount_rate,
+           COUNT(*) OVER() AS total_records
+    FROM channel_totals ct
+    LEFT JOIN channel_lines cl ON cl.channel IS NOT DISTINCT FROM ct.channel
+    LEFT JOIN channel_refunds cr ON cr.channel IS NOT DISTINCT FROM ct.channel
+    ORDER BY ct.net_sales DESC
+    LIMIT COALESCE(:limit, 10)
+    OFFSET COALESCE(:offset, 0)
+    $$,
 NULL,
-        'PLOT',
+        'TABLE',
         60,
         'Normalized quality index matrix comparing revenue, AOV, low refund rate, and low discount rate across channels.',
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
+        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
+        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
