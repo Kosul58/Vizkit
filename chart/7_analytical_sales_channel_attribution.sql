@@ -121,7 +121,7 @@ NULL,
         '
     WITH filtered_orders AS (
 SELECT COALESCE(
-        o.attribution_displayname, o.order_app_name, o.source_name, '' Unattributed ''
+        o.attribution_displayname, o.order_app_name, o.source_name, ''Unattributed''
     ) AS channel,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
@@ -163,7 +163,7 @@ NULL,
         '
     WITH filtered_orders AS (
 SELECT COALESCE(
-        o.attribution_displayname, o.order_app_name, o.source_name, '' Unattributed ''
+        o.attribution_displayname, o.order_app_name, o.source_name, ''Unattributed''
     ) AS channel
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
@@ -202,7 +202,7 @@ NULL,
         '
     WITH filtered_orders AS (
 SELECT COALESCE(
-        o.attribution_displayname, o.order_app_name, o.source_name, '' Unattributed ''
+        o.attribution_displayname, o.order_app_name, o.source_name, ''Unattributed''
     ) AS channel,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
@@ -238,69 +238,75 @@ NULL,
     }'
 ),
 (
-'019fffa2-0f80-777c-ae56-782c587a8bde',
+    '019fffa2-0f80-777c-ae56-782c587a8bde',
         'Channel Revenue Trend',
         'Sales Channel Attribution/Channel Performance/PLOT/Channel Revenue Trend',
-        '
+        $$
     WITH
     /*date_granularity_cte*/
     filtered_orders AS (
-        SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket,
-               CASE WHEN LOWER(o.source_name) = ''web'' THEN 1
-                    WHEN LOWER(o.source_name) = ''pos'' THEN 2
-                    WHEN LOWER(o.source_name) IN (''mobile'', ''iphone'', ''android'') THEN 3
-                    WHEN LOWER(o.source_name) IN (''social'', ''facebook'', ''instagram'',
-                                                  ''pinterest'', ''tiktok'') THEN 4
-                    ELSE 5 END AS channel_bucket,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
-FROM public.fact_order_headers o
-        CROSS JOIN date_params dp
-        WHERE o.seller_id = :shopId
-AND o.test = FALSE
-          AND o.created_at >= dp.start_bucket
-          AND o.created_at <= :currentEndDate::date
+        SELECT t.bucket,
+               t.net_sales,
+               CASE WHEN t.channel_name IS NULL                                       THEN 5
+                    WHEN LOWER(t.channel_name) IN ('Online Store')          THEN 1
+                    WHEN LOWER(t.channel_name) IN ('Point of Sale')         THEN 2
+                    WHEN LOWER(t.channel_name) IN ('Shop')            THEN 3
+                    ELSE 4 END AS channel_bucket
+        FROM (
+            SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket,
+                   COALESCE(NULLIF(TRIM(o.attribution_displayname), ''),
+                            NULLIF(TRIM(o.order_app_name), ''),
+                            NULLIF(TRIM(o.source_name), '')) AS channel_name,
+                   COALESCE(o.current_total_price, 0)
+                     - COALESCE(o.current_total_tax, 0)
+                     - COALESCE(o.current_shipping_price, 0) AS net_sales
+            FROM public.fact_order_headers o
+            CROSS JOIN date_params dp
+            WHERE o.seller_id = :shopId
+              AND o.test = FALSE
+              AND o.created_at >= dp.start_bucket
+              AND o.created_at <= :currentEndDate::date
+        ) t
     ),
     daily AS (
         SELECT f.bucket,
                SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 1) AS online_store,
                SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 2) AS point_of_sale,
-               SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 3) AS mobile,
-               SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 4) AS social,
-               SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 5) AS other
+               SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 3) AS shop,
+               SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 4) AS other,
+               SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 5) AS unattributed
         FROM filtered_orders f
         GROUP BY f.bucket
     )
 SELECT
     CASE
-        WHEN dp.g = '' DAY '' THEN to_char(df.bucket, '' Mon DD '')
-        WHEN dp.g = '' WEEK '' THEN to_char(df.bucket, '' Mon DD '')
-        WHEN dp.g = '' MONTH '' THEN to_char(df.bucket, '' Mon YYYY '')
-        WHEN dp.g = '' QUARTER '' THEN '' Q '' || EXTRACT(
+        WHEN dp.g = 'DAY' THEN to_char(df.bucket, 'Mon DD')
+        WHEN dp.g = 'WEEK' THEN to_char(df.bucket, 'Mon DD')
+        WHEN dp.g = 'MONTH' THEN to_char(df.bucket, 'Mon YYYY')
+        WHEN dp.g = 'QUARTER' THEN 'Q' || EXTRACT(
             QUARTER
             FROM df.bucket
-        )::int || '' '' || EXTRACT(
+        )::int || ' ' || EXTRACT(
             YEAR
             FROM df.bucket
         )::int
-        WHEN dp.g = '' YEAR '' THEN to_char(df.bucket, '' YYYY '')
+        WHEN dp.g = 'YEAR' THEN to_char(df.bucket, 'YYYY')
     END AS period,
            df.bucket,
            ROUND(COALESCE(d.online_store, 0), 2) AS "Online Store",
            ROUND(COALESCE(d.point_of_sale, 0), 2) AS "Point of Sale",
-           ROUND(COALESCE(d.mobile, 0), 2) AS "Mobile",
-           ROUND(COALESCE(d.social, 0), 2) AS "Social",
-           ROUND(COALESCE(d.other, 0), 2) AS "Other"
+           ROUND(COALESCE(d.shop, 0), 2) AS "Shop",
+           ROUND(COALESCE(d.other, 0), 2) AS "Other",
+           ROUND(COALESCE(d.unattributed, 0), 2) AS "Unattributed"
     FROM date_filler df
     CROSS JOIN date_params dp
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
-    ',
+    $$,
 NULL,
         'PLOT',
         60,
-        'Revenue trend across major sales channels grouped by dynamic date granularity.',
+        'Revenue trend by sales channel, grouped by dynamic date granularity. Channels come from the order attribution display name; Other Channels holds any named channel outside the first three, and Unattributed holds orders carrying no channel information at all.',
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -327,7 +333,7 @@ COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    '' Unattributed ''
+    ''Unattributed''
 ) AS channel,
                o.source_name AS source_name,
 o.order_app_name AS app_name,
@@ -407,7 +413,7 @@ COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    '' Unattributed ''
+    ''Unattributed''
 ) AS channel,
 o.order_app_name AS app_name,
                COALESCE(o.total_price, o.current_total_price, 0) AS order_total,
@@ -644,7 +650,7 @@ NULL,
         '
     WITH filtered_orders AS (
 SELECT COALESCE(
-        o.attribution_displayname, o.order_app_name, o.source_name, '' Unattributed ''
+        o.attribution_displayname, o.order_app_name, o.source_name, ''Unattributed''
     ) AS channel,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
@@ -690,7 +696,7 @@ COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    '' Unattributed ''
+    ''Unattributed''
 ) AS channel,
                COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales
 FROM public.fact_order_headers o
@@ -744,7 +750,7 @@ NULL,
         '
     WITH filtered_orders AS (
 SELECT COALESCE(
-        o.attribution_displayname, o.order_app_name, o.source_name, '' Unattributed ''
+        o.attribution_displayname, o.order_app_name, o.source_name, ''Unattributed''
     ) AS channel,
                COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales,
                COALESCE(o.total_discounts_amount, 0) AS discounts
@@ -790,7 +796,7 @@ COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    '' Unattributed ''
+    ''Unattributed''
 ) AS channel,
 o.fulfillmentStatus AS fulfillment_status,
                COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales,
@@ -866,7 +872,7 @@ COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    '' Unattributed ''
+    ''Unattributed''
 ) AS channel,
                COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales
 FROM public.fact_order_headers o
@@ -1494,17 +1500,17 @@ AND o.test = FALSE
     )
 SELECT
     CASE
-        WHEN dp.g = '' DAY '' THEN to_char(df.bucket, '' Mon DD '')
-        WHEN dp.g = '' WEEK '' THEN to_char(df.bucket, '' Mon DD '')
-        WHEN dp.g = '' MONTH '' THEN to_char(df.bucket, '' Mon YYYY '')
-        WHEN dp.g = '' QUARTER '' THEN '' Q '' || EXTRACT(
+        WHEN dp.g = ''DAY'' THEN to_char(df.bucket, ''Mon DD'')
+        WHEN dp.g = ''WEEK'' THEN to_char(df.bucket, ''Mon DD'')
+        WHEN dp.g = ''MONTH'' THEN to_char(df.bucket, ''Mon YYYY'')
+        WHEN dp.g = ''QUARTER'' THEN ''Q'' || EXTRACT(
             QUARTER
             FROM df.bucket
         )::int || '' '' || EXTRACT(
             YEAR
             FROM df.bucket
         )::int
-        WHEN dp.g = '' YEAR '' THEN to_char(df.bucket, '' YYYY '')
+        WHEN dp.g = ''YEAR'' THEN to_char(df.bucket, ''YYYY'')
     END AS period,
            df.bucket,
            COALESCE(d.unattributed_orders, 0) AS unattributed_orders
@@ -1544,7 +1550,7 @@ COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    '' Unattributed ''
+    ''Unattributed''
 ) AS channel,
                (NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,source}''), '''') IS NULL
             AND NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,medium}''), '''') IS NULL
@@ -1619,7 +1625,7 @@ COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    '' Unattributed ''
+    ''Unattributed''
 ) AS channel,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
@@ -1801,7 +1807,7 @@ COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    '' Unattributed ''
+    ''Unattributed''
 ) AS channel
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
@@ -1846,45 +1852,51 @@ NULL,
 '019fffa2-0f80-7234-9907-dd1623f04383',
         'Channel Geography Mix',
         'Sales Channel Attribution/Operations & Fulfillment/PLOT/Channel Geography Mix',
-        '
+        $$
     WITH filtered_orders AS (
-SELECT COALESCE(
-                   o.shipping_address #>> ''{country}'',
-                   o.shipping_address #>> ''{province}'',
-                   o.shipping_address #>> ''{city}'',
-                   ''Unknown''
-               ) AS country,
-               CASE WHEN LOWER(o.source_name) = ''web'' THEN 1
-                    WHEN LOWER(o.source_name) = ''pos'' THEN 2
-                    WHEN LOWER(o.source_name) IN (''mobile'', ''iphone'', ''android'') THEN 3
-                    WHEN LOWER(o.source_name) IN (''social'', ''facebook'', ''instagram'',
-                                                  ''pinterest'', ''tiktok'') THEN 4
-                    ELSE 5 END AS channel_bucket,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
-FROM public.fact_order_headers o
-        WHERE o.seller_id = :shopId
-AND o.test = FALSE
-          AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
-          AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+        SELECT t.country,
+               t.net_sales,
+               CASE WHEN t.channel_name IS NULL                                       THEN 5
+                    WHEN LOWER(t.channel_name) IN ('Online Store')          THEN 1
+                    WHEN LOWER(t.channel_name) IN ('Point of Sale')         THEN 2
+                    WHEN LOWER(t.channel_name) IN ('Shop')            THEN 3
+                    ELSE 4 END AS channel_bucket
+        FROM (
+            SELECT COALESCE(
+                       o.shipping_address #>> '{country}',
+                       o.shipping_address #>> '{province}',
+                       o.shipping_address #>> '{city}',
+                       'Unknown'
+                   ) AS country,
+                   COALESCE(NULLIF(TRIM(o.attribution_displayname), ''),
+                            NULLIF(TRIM(o.order_app_name), ''),
+                            NULLIF(TRIM(o.source_name), '')) AS channel_name,
+                   COALESCE(o.current_total_price, 0)
+                     - COALESCE(o.current_total_tax, 0)
+                     - COALESCE(o.current_shipping_price, 0) AS net_sales
+            FROM public.fact_order_headers o
+            WHERE o.seller_id = :shopId
+              AND o.test = FALSE
+              AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
+              AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+        ) t
     )
     SELECT f.country AS country,
            ROUND(COALESCE(SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 1), 0), 2) AS "Online Store",
            ROUND(COALESCE(SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 2), 0), 2) AS "Point of Sale",
-           ROUND(COALESCE(SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 3), 0), 2) AS "Mobile",
-           ROUND(COALESCE(SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 4), 0), 2) AS "Social",
-           ROUND(COALESCE(SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 5), 0), 2) AS "Other"
+           ROUND(COALESCE(SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 3), 0), 2) AS "Shop",
+           ROUND(COALESCE(SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 4), 0), 2) AS "Other",
+           ROUND(COALESCE(SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 5), 0), 2) AS "Unattributed"
     FROM filtered_orders f
     GROUP BY f.country
     ORDER BY SUM(f.net_sales) DESC, f.country ASC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 NULL,
         'PLOT',
         60,
-        'Revenue breakdown per destination country across sales channel categories.',
+        'Revenue breakdown per destination country across sales channels, taken from the order attribution display name. Other Channels holds any named channel outside the first three, and Unattributed holds orders carrying no channel information at all.',
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -1901,7 +1913,7 @@ NULL,
 '019fffa2-0f80-7abe-96ab-bc331790de2d',
         'Channel Fulfillment Report',
         'Sales Channel Attribution/Operations & Fulfillment/TABLE/Channel Fulfillment Report',
-        '
+        $$
     WITH filtered_orders AS (
         SELECT o.id,
                o.created_at,
@@ -1910,7 +1922,7 @@ COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    '' Unattributed ''
+    'Unattributed'
 ) AS channel
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
@@ -1938,9 +1950,9 @@ FROM public.fact_order_line_items li
            COUNT(*) AS unfulfilled_orders,
            ROUND(SUM(b.unfulfilled_value), 2) AS unfulfilled_value,
            COUNT(*) FILTER (
-               WHERE UPPER(b.fulfillment_status) = ''UNFULFILLED'') AS fully_unfulfilled,
+               WHERE UPPER(b.fulfillment_status) = 'UNFULFILLED') AS fully_unfulfilled,
            COUNT(*) FILTER (
-               WHERE UPPER(b.fulfillment_status) = ''PARTIALLY_FULFILLED'') AS partially_fulfilled,
+               WHERE UPPER(b.fulfillment_status) = 'PARTIALLY_FULFILLED') AS partially_fulfilled,
            ROUND(AVG(b.aging_days), 1) AS avg_aging_days,
            MAX(b.aging_days) AS max_aging_days,
            COUNT(*) OVER() AS total_records
@@ -1949,7 +1961,7 @@ FROM public.fact_order_line_items li
     ORDER BY SUM(b.unfulfilled_value) DESC, b.channel ASC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 NULL,
         'TABLE',
         60,

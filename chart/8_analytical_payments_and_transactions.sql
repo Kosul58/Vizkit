@@ -197,9 +197,8 @@ VALUES (
     '019fffa3-ddd3-7b3c-9f95-309dbdb57dfe',
     'Payment Method Mix',
     'Payments & Transactions/Payment Overview/PLOT/Payment Method Mix',
-    '
-    SELECT INITCAP(REPLACE(COALESCE(tt.payment_method, ''Unattributed''),
-                           CHR(95), CHR(32))) AS payment_method,
+    $$
+    SELECT COALESCE(tt.payment_method, 'Unattributed') AS payment_method,
            ROUND(SUM(COALESCE(tt.amount, 0)), 2) AS "Payment Amount"
     FROM public.dim_tender_transactions tt
     JOIN public.fact_order_headers o ON o.id = tt.order_id
@@ -211,8 +210,8 @@ VALUES (
       AND (:currentEndDate IS NULL OR tt.processed_at::date <= :currentEndDate::date)
     GROUP BY 1
     ORDER BY SUM(COALESCE(tt.amount, 0)) DESC, 1 ASC
-    LIMIT :limit OFFSET :offset
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -233,21 +232,18 @@ VALUES (
     '019fffa3-ddd3-752f-9af4-6c1f2cb046f1',
     'Gateway Performance',
     'Payments & Transactions/Payment Overview/PLOT/Gateway Performance',
-    '' ||
-    '
+    $$
    WITH scoped_txn AS (
-        SELECT INITCAP(REPLACE(COALESCE(t.gateway, ''Unknown''),
-                               CHR(95), CHR(32))) AS gateway,
+        SELECT COALESCE(t.gateway, 'Unknown') AS gateway,
                COALESCE(t.amount, 0) AS amount,
                COALESCE(t.transaction_fee, 0) AS fee
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
           AND t.test = FALSE
-          AND UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
-          AND UPPER(t.status) = ''SUCCESS''
+          AND t.kind IN ('SALE', 'CAPTURE')
+          AND t.status = 'SUCCESS'
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     )
@@ -257,8 +253,8 @@ VALUES (
     FROM scoped_txn s
     GROUP BY s.gateway
     ORDER BY SUM(s.amount) DESC, s.gateway ASC
-    LIMIT :limit OFFSET :offset
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1353,7 +1349,7 @@ VALUES (
            ROUND(gt.uncaptured_amount, 2) AS uncaptured_amount
     FROM gateway_totals gt
     ORDER BY gt.captured_amount DESC, gt.gateway ASC
-    LIMIT :limit OFFSET :offset
+    LIMIT 20
     $$,
     NULL,
     'PLOT',
@@ -1578,8 +1574,8 @@ VALUES (
     '019fffa3-ddd3-79b5-978e-90241244259a',
     'POS Payments by Location',
     'Payments & Transactions/POS & Alternative Payment Operations/PLOT/POS Payments by Location',
-    '
-    SELECT COALESCE(loc.name, ''Unknown'') AS location,
+    $$
+    SELECT COALESCE(loc.name, 'Unknown') AS location,
            ROUND(SUM(COALESCE(t.amount, 0)), 2) AS payment_amount
     FROM public.fact_order_transactions t
     JOIN public.fact_order_headers o ON o.id = t.order_id
@@ -1588,14 +1584,14 @@ VALUES (
       AND o.test = FALSE
       
       AND t.test = FALSE
-      AND UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
-      AND UPPER(t.status) = ''SUCCESS''
+      AND UPPER(t.kind) IN ('SALE', 'CAPTURE')
+      AND UPPER(t.status) = 'SUCCESS'
       AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
       AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
-    GROUP BY COALESCE(loc.name, ''Unknown'')
+    GROUP BY COALESCE(loc.name, 'Unknown')
     ORDER BY SUM(COALESCE(t.amount, 0)) DESC, 1 ASC
-    LIMIT :limit OFFSET :offset
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1617,7 +1613,7 @@ VALUES (
     'Card Brand Mix',
     'Payments & Transactions/POS & Alternative Payment Operations/PLOT/Card Brand Mix',
     '
-    SELECT INITCAP(REPLACE(tt.transaction_credit_card_company, CHR(95), CHR(32))) AS card_brand,
+    SELECT tt.transaction_credit_card_company AS card_brand,
            ROUND(SUM(COALESCE(tt.amount, 0)), 2) AS "Card Payment Amount"
     FROM public.dim_tender_transactions tt
     JOIN public.fact_order_headers o ON o.id = tt.order_id
@@ -1630,7 +1626,7 @@ VALUES (
       AND (:currentEndDate IS NULL OR tt.processed_at::date <= :currentEndDate::date)
     GROUP BY 1
     ORDER BY SUM(COALESCE(tt.amount, 0)) DESC, 1 ASC
-    LIMIT :limit OFFSET :offset
+    LIMIT 20
     ',
     NULL,
     'PLOT',

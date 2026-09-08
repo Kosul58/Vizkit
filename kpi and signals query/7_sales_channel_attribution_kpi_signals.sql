@@ -111,9 +111,9 @@ VALUES (
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY 1
     )
-    SELECT COALESCE((SELECT channel FROM channel_current
+    SELECT ROUND(COALESCE((SELECT net_sales FROM channel_current
                      ORDER BY net_sales DESC NULLS LAST, channel ASC
-                     LIMIT 1), 'No data') AS top_revenue_channel
+                     LIMIT 1), 0), 2) AS top_revenue_channel
     $$,
     NULL,
     'KPI',
@@ -152,9 +152,9 @@ VALUES (
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY 1
     )
-    SELECT COALESCE((SELECT channel FROM channel_current
+    SELECT ROUND(COALESCE((SELECT aov FROM channel_current
                      ORDER BY aov DESC NULLS LAST, channel ASC
-                     LIMIT 1), 'No data') AS top_aov_channel
+                     LIMIT 1), 0), 2) AS top_aov_channel
     $$,
     NULL,
     'KPI',

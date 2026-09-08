@@ -924,7 +924,6 @@ OFFSET COALESCE(:offset, 0)
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -941,7 +940,7 @@ OFFSET COALESCE(:offset, 0)
     ),
     variant_stock AS (
         SELECT pv.id AS variant_id,
-               SUM(COALESCE(lvl.available_quantity, lvl.on_hand_quantity, 0)) AS available
+               SUM(GREATEST(lvl.available_quantity, lvl.on_hand_quantity, 0)) AS available
         FROM public.dim_inventory_levels lvl
         JOIN public.dim_inventory_items ii ON ii.id = lvl.inventory_item_id
         JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
@@ -952,7 +951,7 @@ OFFSET COALESCE(:offset, 0)
         SELECT COALESCE(p.title, pv.sku, pv.id) AS product,
                st.available AS available_stock,
                COALESCE(vs.units_sold, 0) AS units_sold,
-               ROUND(st.available / NULLIF(COALESCE(vs.units_sold, 0)::numeric / w.days, 0), 1) AS days_of_cover
+               ROUND(st.available / NULLIF(COALESCE(vs.units_sold, 0)::numeric / w.days, 0)) AS days_of_cover
         FROM variant_stock st
         JOIN public.dim_product_variants pv ON pv.id = st.variant_id
         LEFT JOIN public.dim_products p ON p.id = pv.product_id
@@ -967,7 +966,7 @@ OFFSET COALESCE(:offset, 0)
     FROM ranked r
     ORDER BY r.days_of_cover ASC NULLS LAST
     LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
+    OFFSET COALESCE(:offset, 0)
     $$,
     NULL,
     'PLOT',

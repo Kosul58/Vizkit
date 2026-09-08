@@ -55,7 +55,7 @@ VALUES (
                  AS total_inventory_units,
                COALESCE(SUM(si.available_quantity), 0) AS available_stock,
                COUNT(*) FILTER (WHERE si.available_quantity > 0 AND si.any_location_low) AS low_stock_skus,
-               COUNT(*) FILTER (WHERE si.available_quantity = 0) AS out_of_stock_skus,
+               COUNT(*) FILTER (WHERE si.available_quantity <= 0) AS out_of_stock_skus,
                COALESCE(SUM(s.cur_units), 0) AS cur_units,
                COALESCE(SUM(s.prv_units), 0) AS prv_units
          FROM sku_inventory si
@@ -111,32 +111,33 @@ VALUES (
     '019fff82-e31e-7a30-9953-eb452bce7b85',
     'Stock Status Mix',
     'Product & Inventory Health/Inventory Health/PLOT/Stock Status Mix',
-    '
+    $$
     WITH sku_inventory AS (
-        SELECT ii.id AS inventory_item_id,
+        SELECT pv.id AS variant_id,
                SUM(COALESCE(il.available_quantity, 0)) AS available_quantity,
-               MAX(COALESCE(il.safety_stock_quantity, 0)) AS safety_per_location,
-               BOOL_OR(COALESCE(il.available_quantity, 0)
-                       <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
+               SUM(COALESCE(il.safety_stock_quantity, 0)) AS safety_total
         FROM public.dim_inventory_items ii
+        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
         JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
         WHERE ii.seller_id = :shopId
           AND il.seller_id = :shopId
           AND il.is_active = TRUE
-        GROUP BY ii.id
+        GROUP BY pv.id
     ),
     classified AS (
         SELECT
             CASE
-                WHEN available_quantity = 0 THEN ''Out of Stock''
-                WHEN any_location_low THEN ''Low Stock''
-                WHEN available_quantity > (safety_per_location * 3) THEN ''Overstock''
-                ELSE ''In Stock''
+                WHEN si.available_quantity <= 0                          THEN 'Out of Stock'
+                WHEN si.safety_total > 0
+                 AND si.available_quantity <= si.safety_total            THEN 'Low Stock'
+                WHEN si.safety_total > 0
+                 AND si.available_quantity > si.safety_total * 3         THEN 'Overstock'
+                ELSE 'In Stock'
             END AS status
-        FROM sku_inventory
+        FROM sku_inventory si
     ),
     bands(ord, status) AS (
-        VALUES (1, ''In Stock''), (2, ''Low Stock''), (3, ''Out of Stock''), (4, ''Overstock'')
+        VALUES (1, 'In Stock'), (2, 'Low Stock'), (3, 'Out of Stock'), (4, 'Overstock')
     )
     SELECT b.status AS name,
            COUNT(c.status) AS sku_count
@@ -144,7 +145,7 @@ VALUES (
     LEFT JOIN classified c ON c.status = b.status
     GROUP BY b.ord, b.status
     ORDER BY b.ord
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -283,7 +284,7 @@ VALUES (
     '019fff82-e31e-7c6d-8384-a1140a90563f',
     'Inventory Health Report',
     'Product & Inventory Health/Inventory Health/TABLE/Inventory Health Report',
-    '
+    $$
     WITH level_rows AS (
         SELECT COALESCE(pv.sku, ii.sku) AS sku,
                p.title AS product,
@@ -293,10 +294,14 @@ VALUES (
                il.reserved_quantity,
                il.safety_stock_quantity,
                CASE
-                   WHEN il.available_quantity = 0 THEN ''Out of Stock''
-                   WHEN il.available_quantity <= il.safety_stock_quantity THEN ''Low Stock''
-                   WHEN il.available_quantity > (il.safety_stock_quantity * 3) THEN ''Overstock''
-                   ELSE ''In Stock''
+                   WHEN COALESCE(il.available_quantity, 0) <= 0                   THEN 'Out of Stock'
+                   WHEN COALESCE(il.safety_stock_quantity, 0) > 0
+                    AND COALESCE(il.available_quantity, 0)
+                        <= COALESCE(il.safety_stock_quantity, 0)                  THEN 'Low Stock'
+                   WHEN COALESCE(il.safety_stock_quantity, 0) > 0
+                    AND COALESCE(il.available_quantity, 0)
+                        > COALESCE(il.safety_stock_quantity, 0) * 3               THEN 'Overstock'
+                   ELSE 'In Stock'
                END AS stock_status
         FROM public.dim_inventory_levels il
         JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
@@ -309,7 +314,7 @@ VALUES (
     )
     SELECT sku,
            product,
-           COALESCE(location, ''Unknown'') AS location,
+           COALESCE(location, 'Unknown') AS location,
            available_quantity,
            committed_quantity,
            reserved_quantity,
@@ -320,7 +325,7 @@ VALUES (
     ORDER BY available_quantity ASC, sku, location
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
     60,
@@ -342,7 +347,7 @@ VALUES (
     'Fast-Moving SKU Report',
     'Product & Inventory Health/Inventory Health/TABLE/Fast-Moving SKU Report',
     '
-    WITH sales_window AS (
+        WITH sales_window AS (
         SELECT MIN(o.created_at::date) AS min_day,
                MAX(o.created_at::date) AS max_day
         FROM public.fact_order_headers o
@@ -389,7 +394,7 @@ VALUES (
            ROUND(100.0 * s.units_sold
                  / NULLIF(COALESCE(si.available_quantity, 0) + s.units_sold, 0), 2) AS sell_through_rate,
            COALESCE(si.available_quantity, 0) AS available_stock,
-           ROUND(COALESCE(si.available_quantity, 0)
+           ROUND(GREATEST(si.available_quantity, 0)
                  / NULLIF(s.units_sold::numeric / per.days_in_period, 0), 1) AS stock_coverage_days,
            COUNT(*) OVER() AS total_records
     FROM sales s
@@ -402,7 +407,7 @@ VALUES (
     NULL,
     'TABLE',
     60,
-    'Report ranking fast-moving SKUs by units sold, sell-through rate %, and stock coverage days.',
+    'Report ranking fast-moving SKUs by units sold and sell-through rate for the selected period, with days of stock cover as of today.',
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
@@ -564,7 +569,7 @@ VALUES (
                COALESCE(pv.sku, ii.sku) AS sku,
                p.title AS product_title,
                pv.price,
-               SUM(COALESCE(il.available_quantity, 0)) AS available_quantity,
+               SUM(GREATEST(il.available_quantity, 0)) AS available_quantity,
                BOOL_OR(COALESCE(il.available_quantity, 0)
                        <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
         FROM public.dim_inventory_items ii
@@ -594,7 +599,7 @@ VALUES (
                     ELSE si.variant_id::text END AS name,
                ROUND(
                    (COALESCE(s.units_sold, 0)::numeric / per.days_in_period)
-                     * GREATEST(7 - si.available_quantity
+                     * GREATEST(14 - si.available_quantity
                          / NULLIF(COALESCE(s.units_sold, 0)::numeric / per.days_in_period, 0), 0)
                      * COALESCE(si.price, 0),
                    2
@@ -653,7 +658,7 @@ VALUES (
         SELECT pv.id AS variant_id,
                COALESCE(pv.sku, ii.sku) AS sku,
                p.title AS product_title,
-               SUM(COALESCE(il.available_quantity, 0)) AS available_quantity
+               SUM(GREATEST(il.available_quantity, 0)) AS available_quantity
         FROM public.dim_inventory_items ii
         JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
         JOIN public.dim_products p ON p.id = pv.product_id
@@ -804,8 +809,8 @@ VALUES (
                COALESCE(pv.sku, ii.sku) AS sku,
                p.title AS product,
                pv.price,
-               SUM(COALESCE(il.available_quantity, 0)) AS available_quantity,
-               MAX(COALESCE(il.safety_stock_quantity, 0)) AS safety_stock_quantity,
+               SUM(GREATEST(il.available_quantity, 0)) AS available_quantity,
+               MAX(GREATEST(il.safety_stock_quantity, 0)) AS safety_stock_quantity,
                BOOL_OR(COALESCE(il.available_quantity, 0)
                        <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
         FROM public.dim_inventory_items ii
@@ -892,7 +897,6 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
         GROUP BY li.product_variant_id
     ),
     recent_velocity AS (
@@ -903,7 +907,6 @@ VALUES (
         CROSS JOIN period per
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id, per.days_in_period
@@ -926,7 +929,7 @@ VALUES (
            p.title AS product,
            p.vendor AS vendor,
            sh.last_sold_at::date::text AS last_sold_date,
-           ROUND(COALESCE(rv.units_per_day, 0) * COALESCE(pv.price, 0) * 7, 2) AS lost_revenue_proxy,
+           ROUND(COALESCE(rv.units_per_day, 0) * COALESCE(pv.price, 0) * 14, 2) AS lost_revenue_proxy,
            ss.location AS location,
            COUNT(*) OVER() AS total_records
     FROM sku_stock ss

@@ -113,7 +113,7 @@ VALUES (
           AND il.is_active = TRUE
         GROUP BY pv.id
     )
-    SELECT COUNT(*) FILTER (WHERE available_quantity = 0) AS out_of_stock_skus
+    SELECT COUNT(*) FILTER (WHERE available_quantity <= 0) AS out_of_stock_skus
     FROM sku_inventory
     $$,
     NULL,
@@ -201,7 +201,7 @@ VALUES (
     sku_inventory AS (
         SELECT pv.id AS variant_id,
                pv.price,
-               SUM(COALESCE(il.available_quantity, 0)) AS available_quantity,
+               SUM(GREATEST(il.available_quantity, 0)) AS available_quantity,
                BOOL_OR(COALESCE(il.available_quantity, 0)
                        <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
         FROM public.dim_inventory_items ii
@@ -235,7 +235,7 @@ VALUES (
     SELECT ROUND(COALESCE(SUM(
                CASE WHEN any_location_low
                     THEN per_day
-                         * GREATEST(7 - available_quantity / NULLIF(per_day, 0), 0)
+                         * GREATEST(14 - available_quantity / NULLIF(per_day, 0), 0)
                          * COALESCE(price, 0)
                     ELSE 0 END), 0), 2) AS low_stock_revenue_risk
     FROM velocity
@@ -628,147 +628,6 @@ VALUES (
     SELECT c.prv_rate AS previous_value,
            ROUND(100 * (c.cur_rate - c.prv_rate)
                  / NULLIF(ABS(c.prv_rate), 0), 2) AS divergence
-    FROM computed c
-    $$
-),
-(
-    '019fff82-e31e-7fa2-8f92-5a2b3c4d1002',
-    '01a066fd-069a-7c3c-8bab-ec8e0da32825',
-    'low_stock_revenue_risk',
-    $$
-    WITH period AS (
-        SELECT GREATEST(COALESCE(:currentEndDate::date,
-                                 (SELECT MAX(o.created_at::date) FROM public.fact_order_headers o
-                                  WHERE o.seller_id = :shopId AND o.test = FALSE))
-                      - COALESCE(:currentStartDate::date,
-                                 (SELECT MIN(o.created_at::date) FROM public.fact_order_headers o
-                                  WHERE o.seller_id = :shopId AND o.test = FALSE)) + 1, 1) AS cur_days,
-               GREATEST(:priorEndDate::date - :priorStartDate::date + 1, 1) AS prv_days
-    ),
-    sku_inventory AS (
-        SELECT pv.id AS variant_id,
-               pv.price,
-               SUM(COALESCE(il.available_quantity, 0)) AS available_quantity,
-               BOOL_OR(COALESCE(il.available_quantity, 0)
-                       <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
-        FROM public.dim_inventory_items ii
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
-        WHERE ii.seller_id = :shopId
-          AND il.seller_id = :shopId
-          AND il.is_active = TRUE
-        GROUP BY pv.id, pv.price
-    ),
-    sales AS (
-        SELECT product_variant_id,
-               COALESCE(SUM(quantity) FILTER (WHERE is_current), 0) AS cur_units,
-               COALESCE(SUM(quantity) FILTER (WHERE is_prior),   0) AS prv_units
-        FROM (
-            SELECT li.product_variant_id,
-                   li.quantity,
-                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
-            FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-        ) t
-        WHERE t.is_current OR t.is_prior
-        GROUP BY product_variant_id
-    ),
-    velocity AS (
-        SELECT si.price,
-               si.available_quantity,
-               si.any_location_low,
-               COALESCE(s.cur_units, 0)::numeric / per.cur_days AS cur_per_day,
-               COALESCE(s.prv_units, 0)::numeric / per.prv_days AS prv_per_day
-        FROM sku_inventory si
-        CROSS JOIN period per
-        LEFT JOIN sales s ON s.product_variant_id = si.variant_id
-    ),
-    computed AS (
-        SELECT ROUND(COALESCE(SUM(
-                   CASE WHEN any_location_low
-                        THEN cur_per_day
-                             * GREATEST(7 - available_quantity / NULLIF(cur_per_day, 0), 0)
-                             * COALESCE(price, 0)
-                        ELSE 0 END), 0), 2) AS cur_value,
-               ROUND(COALESCE(SUM(
-                   CASE WHEN any_location_low
-                        THEN prv_per_day
-                             * GREATEST(7 - available_quantity / NULLIF(prv_per_day, 0), 0)
-                             * COALESCE(price, 0)
-                        ELSE 0 END), 0), 2) AS prv_value
-        FROM velocity
-    )
-    SELECT c.prv_value AS previous_value,
-           ROUND(100 * (c.cur_value - c.prv_value)
-                 / NULLIF(ABS(c.prv_value), 0), 2) AS divergence
-    FROM computed c
-    $$
-),
-(
-    '019fff82-e31e-7fa3-8f93-5a2b3c4d1003',
-    '01a066fd-069a-74e3-bc1c-df8cb3a99329',
-    'stock_coverage_days',
-    $$
-    WITH period AS (
-        SELECT GREATEST(COALESCE(:currentEndDate::date,
-                                 (SELECT MAX(o.created_at::date) FROM public.fact_order_headers o
-                                  WHERE o.seller_id = :shopId AND o.test = FALSE))
-                      - COALESCE(:currentStartDate::date,
-                                 (SELECT MIN(o.created_at::date) FROM public.fact_order_headers o
-                                  WHERE o.seller_id = :shopId AND o.test = FALSE)) + 1, 1) AS cur_days,
-               GREATEST(:priorEndDate::date - :priorStartDate::date + 1, 1) AS prv_days
-    ),
-    sku_inventory AS (
-        SELECT pv.id AS variant_id,
-               SUM(COALESCE(il.available_quantity, 0)) AS available_quantity
-        FROM public.dim_inventory_items ii
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
-        WHERE ii.seller_id = :shopId
-          AND il.seller_id = :shopId
-          AND il.is_active = TRUE
-        GROUP BY pv.id
-    ),
-    sales AS (
-        SELECT product_variant_id,
-               COALESCE(SUM(quantity) FILTER (WHERE is_current), 0) AS cur_units,
-               COALESCE(SUM(quantity) FILTER (WHERE is_prior),   0) AS prv_units
-        FROM (
-            SELECT li.product_variant_id,
-                   li.quantity,
-                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
-            FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-        ) t
-        WHERE t.is_current OR t.is_prior
-        GROUP BY product_variant_id
-    ),
-    velocity AS (
-        SELECT si.available_quantity,
-               COALESCE(s.cur_units, 0)::numeric / per.cur_days AS cur_per_day,
-               COALESCE(s.prv_units, 0)::numeric / per.prv_days AS prv_per_day
-        FROM sku_inventory si
-        CROSS JOIN period per
-        LEFT JOIN sales s ON s.product_variant_id = si.variant_id
-    ),
-    computed AS (
-        SELECT ROUND(SUM(available_quantity) / NULLIF(SUM(cur_per_day), 0), 1) AS cur_cover,
-               ROUND(SUM(available_quantity) / NULLIF(SUM(prv_per_day), 0), 1) AS prv_cover
-        FROM velocity
-    )
-    SELECT c.prv_cover AS previous_value,
-           ROUND(100 * (c.cur_cover - c.prv_cover)
-                 / NULLIF(ABS(c.prv_cover), 0), 2) AS divergence
     FROM computed c
     $$
 ),

@@ -123,10 +123,10 @@ VALUES (
           AND (:currentStartDate::date IS NULL OR tt.processed_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR tt.processed_at::date <= :currentEndDate::date)
     )
-    SELECT COALESCE((SELECT method FROM scoped_tender
+    SELECT ROUND(COALESCE((SELECT SUM(amount) FROM scoped_tender
                      GROUP BY method
                      ORDER BY SUM(amount) DESC NULLS LAST, method ASC
-                     LIMIT 1), 'No data') AS top_payment_method
+                     LIMIT 1), 0), 2) AS top_payment_method
     $$,
     NULL,
     'KPI',
@@ -165,10 +165,10 @@ VALUES (
           AND (:currentEndDate::date   IS NULL
                OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     )
-    SELECT COALESCE((SELECT gateway FROM scoped_txn
+    SELECT ROUND(COALESCE((SELECT SUM(amount) FROM scoped_txn
                      GROUP BY gateway
                      ORDER BY SUM(amount) DESC NULLS LAST, gateway ASC
-                     LIMIT 1), 'No data') AS top_gateway
+                     LIMIT 1), 0), 2) AS top_gateway
     $$,
     NULL,
     'KPI',
@@ -617,10 +617,10 @@ VALUES (
           AND (:currentStartDate::date IS NULL OR tt.processed_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR tt.processed_at::date <= :currentEndDate::date)
     )
-    SELECT COALESCE((SELECT card_brand FROM scoped_tender
+    SELECT ROUND(COALESCE((SELECT SUM(amount) FROM scoped_tender
                      GROUP BY card_brand
                      ORDER BY SUM(amount) DESC NULLS LAST, card_brand ASC
-                     LIMIT 1), 'No data') AS top_card_brand
+                     LIMIT 1), 0), 2) AS top_card_brand
     $$,
     NULL,
     'KPI',

@@ -1122,55 +1122,82 @@ VALUES (
     WITH
     /*date_granularity_cte*/
     customer_order_ranks AS (
-        SELECT o.id,
-               date_trunc(LOWER(dp.g), o.created_at) AS bucket,
-               ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
-        FROM public.fact_order_headers o
-        CROSS JOIN date_params dp
-        WHERE o.seller_id = :shopId
-          AND o.test = FALSE
-          AND o.customer_id IS NOT NULL
-          AND o.created_at >= dp.start_bucket
-          AND o.created_at <= dp.end_bucket
-    ),
-    guest_orders AS (
-        SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket
-        FROM public.fact_order_headers o
-        CROSS JOIN date_params dp
-        WHERE o.seller_id = :shopId
-          AND o.test = FALSE
-          AND o.customer_id IS NULL
-          AND o.created_at >= dp.start_bucket
-          AND o.created_at <= dp.end_bucket
-    ),
-    daily AS (
-        SELECT r.bucket,
-               COUNT(*) FILTER (WHERE r.order_rank = 1) AS new_orders,
-               COUNT(*) FILTER (WHERE r.order_rank > 1) AS repeat_orders
-        FROM customer_order_ranks r
-        GROUP BY r.bucket
-    ),
-    daily_guests AS (
-        SELECT g.bucket,
-               COUNT(*) AS guest_new_orders
-        FROM guest_orders g
-        GROUP BY g.bucket
-    )
-    SELECT CASE
-               WHEN dp.g = 'DAY'     THEN to_char(df.bucket, 'Mon DD')
-               WHEN dp.g = 'WEEK'    THEN to_char(df.bucket, 'Mon DD')
-               WHEN dp.g = 'MONTH'   THEN to_char(df.bucket, 'Mon YYYY')
-               WHEN dp.g = 'QUARTER' THEN 'Q' || EXTRACT(QUARTER FROM df.bucket)::int || ' ' || EXTRACT(YEAR FROM df.bucket)::int
-               WHEN dp.g = 'YEAR'    THEN to_char(df.bucket, 'YYYY')
-           END AS period,
-           df.bucket,
-           COALESCE(d.new_orders, 0) + COALESCE(g.guest_new_orders, 0) AS new_orders,
-           COALESCE(d.repeat_orders, 0) AS repeat_orders
-    FROM date_filler df
+    SELECT
+        o.id,
+        o.customer_id,
+        o.created_at,
+        date_trunc(LOWER(dp.g), o.created_at) AS bucket,
+        ROW_NUMBER() OVER (
+            PARTITION BY o.customer_id
+            ORDER BY o.created_at ASC, o.id ASC
+        ) AS order_rank
+    FROM public.fact_order_headers o
     CROSS JOIN date_params dp
-    LEFT JOIN daily d ON d.bucket = df.bucket
-    LEFT JOIN daily_guests g ON g.bucket = df.bucket
-    ORDER BY df.bucket ASC
+    WHERE o.seller_id = :shopId
+      AND o.test = FALSE
+      AND o.customer_id IS NOT NULL
+      AND o.created_at <= dp.end_bucket
+),
+guest_orders AS (
+    SELECT
+        date_trunc(LOWER(dp.g), o.created_at) AS bucket
+    FROM public.fact_order_headers o
+    CROSS JOIN date_params dp
+    WHERE o.seller_id = :shopId
+      AND o.test = FALSE
+      AND o.customer_id IS NULL
+      AND o.created_at >= dp.start_bucket
+      AND o.created_at <= dp.end_bucket
+),
+daily AS (
+    SELECT
+        r.bucket,
+        COUNT(*) FILTER (
+            WHERE r.order_rank = 1
+        ) AS new_orders,
+        COUNT(*) FILTER (
+            WHERE r.order_rank > 1
+        ) AS repeat_orders
+    FROM customer_order_ranks r
+    CROSS JOIN date_params dp
+    WHERE r.created_at >= dp.start_bucket
+      AND r.created_at <= dp.end_bucket
+    GROUP BY r.bucket
+),
+daily_guests AS (
+    SELECT
+        g.bucket,
+        COUNT(*) AS guest_new_orders
+    FROM guest_orders g
+    GROUP BY g.bucket
+)
+SELECT
+    CASE
+        WHEN dp.g = 'DAY'
+            THEN to_char(df.bucket, 'Mon DD')
+        WHEN dp.g = 'WEEK'
+            THEN to_char(df.bucket, 'Mon DD')
+        WHEN dp.g = 'MONTH'
+            THEN to_char(df.bucket, 'Mon YYYY')
+        WHEN dp.g = 'QUARTER'
+            THEN 'Q'
+                 || EXTRACT(QUARTER FROM df.bucket)::int
+                 || ' '
+                 || EXTRACT(YEAR FROM df.bucket)::int
+        WHEN dp.g = 'YEAR'
+            THEN to_char(df.bucket, 'YYYY')
+    END AS period,
+    df.bucket,
+    COALESCE(d.new_orders, 0)
+        + COALESCE(g.guest_new_orders, 0) AS new_orders,
+    COALESCE(d.repeat_orders, 0) AS repeat_orders
+FROM date_filler df
+CROSS JOIN date_params dp
+LEFT JOIN daily d
+    ON d.bucket = df.bucket
+LEFT JOIN daily_guests g
+    ON g.bucket = df.bucket
+ORDER BY df.bucket ASC;
     $$,
     NULL,
     'PLOT',
@@ -1253,8 +1280,9 @@ VALUES (
     'Channel Order Report',
     'Order Reports/Channels & Geography/TABLE/Channel Order Report',
     $$
-    WITH filtered_orders AS (
+   WITH filtered_orders AS (
         SELECT o.id,
+              o.attribution_displayname AS channel,
                COALESCE(o.source_name, 'unknown') AS source,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
@@ -1267,27 +1295,30 @@ VALUES (
     ),
     channel_totals AS (
         SELECT source,
+              channel,
                SUM(net_sales) AS net_sales,
                COUNT(*) AS orders
         FROM filtered_orders
-        GROUP BY source
+        GROUP BY source, channel
     ),
     channel_lines AS (
         SELECT f.source,
+                f.channel,
                SUM(li.original_unit_price * li.quantity) AS gross_sales,
                SUM(li.discounted_total_amount) AS discounted
         FROM public.fact_order_line_items li
         JOIN filtered_orders f ON f.id = li.order_id
-        GROUP BY f.source
+        GROUP BY f.channel, f.source
     ),
     channel_refunds AS (
         SELECT f.source,
+                f.channel,
                SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
         FROM public.fact_order_refunds r
         JOIN filtered_orders f ON f.id = r.order_id
-        GROUP BY f.source
+        GROUP BY f.channel, f.source
     )
-    SELECT ct.source AS channel,
+    SELECT ct.channel AS channel,
            ct.source AS source,
            ct.orders AS orders,
            ROUND(ct.net_sales, 2) AS net_sales,
@@ -1296,8 +1327,12 @@ VALUES (
            ROUND(100 * (cl.gross_sales - COALESCE(cl.discounted, 0)) / NULLIF(cl.gross_sales, 0), 2) AS discount_rate,
            COUNT(*) OVER() AS total_records
     FROM channel_totals ct
-    LEFT JOIN channel_lines cl ON cl.source IS NOT DISTINCT FROM ct.source
-    LEFT JOIN channel_refunds cr ON cr.source IS NOT DISTINCT FROM ct.source
+    LEFT JOIN channel_lines cl
+        ON cl.channel IS NOT DISTINCT FROM ct.channel
+        AND cl.source IS NOT DISTINCT FROM ct.source
+    LEFT JOIN channel_refunds cr
+        ON cr.channel IS NOT DISTINCT FROM ct.channel
+        AND cr.source IS NOT DISTINCT FROM ct.source
     ORDER BY ct.net_sales DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)

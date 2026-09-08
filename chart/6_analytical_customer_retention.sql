@@ -172,63 +172,87 @@ ORDER BY df.bucket ASC
     '019fff9a-1dfb-7513-8ee7-49b421c93f16',
     'New vs Repeat Orders',
     'Customer Retention/Customer Overview/PLOT/New vs Repeat Orders',
-    '
+    $$
     WITH
     /*date_granularity_cte*/
     customer_order_ranks AS (
-        SELECT o.id,
-               o.customer_id,
-               date_trunc(LOWER(dp.g), o.created_at) AS bucket,
-               ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
-        FROM public.fact_order_headers o
-        CROSS JOIN date_params dp
-        WHERE o.seller_id = :shopId
-          AND o.test = FALSE
-          
-          AND o.customer_id IS NOT NULL
-          AND o.created_at >= dp.start_bucket
-          AND o.created_at <= :currentEndDate::date
-    ),
-    guest_orders AS (
-        SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket
-        FROM public.fact_order_headers o
-        CROSS JOIN date_params dp
-        WHERE o.seller_id = :shopId
-          AND o.test = FALSE
-          
-          AND o.customer_id IS NULL
-          AND o.created_at >= dp.start_bucket
-          AND o.created_at <= :currentEndDate::date
-    ),
-    daily AS (
-        SELECT r.bucket,
-               COUNT(*) FILTER (WHERE r.order_rank = 1) AS new_orders,
-               COUNT(*) FILTER (WHERE r.order_rank > 1) AS repeat_orders
-        FROM customer_order_ranks r
-        GROUP BY r.bucket
-    ),
-    daily_guests AS (
-        SELECT g.bucket,
-               COUNT(*) AS guest_new_orders
-        FROM guest_orders g
-        GROUP BY g.bucket
-    )
-    SELECT CASE
-           WHEN dp.g = 'DAY'     THEN to_char(df.bucket, 'Mon DD')
-           WHEN dp.g = 'WEEK'    THEN to_char(df.bucket, 'Mon DD')
-           WHEN dp.g = 'MONTH'   THEN to_char(df.bucket, 'Mon YYYY')
-           WHEN dp.g = 'QUARTER' THEN 'Q' || EXTRACT(QUARTER FROM df.bucket)::int || ' ' || EXTRACT(YEAR FROM df.bucket)::int
-           WHEN dp.g = 'YEAR'    THEN to_char(df.bucket, 'YYYY')
-       END AS period,
-       df.bucket,
-       COALESCE(d.new_orders, 0) + COALESCE(g.guest_new_orders, 0) AS new_orders,
-       COALESCE(d.repeat_orders, 0) AS repeat_orders
+    SELECT
+        o.id,
+        o.customer_id,
+        o.created_at,
+        date_trunc(LOWER(dp.g), o.created_at) AS bucket,
+        ROW_NUMBER() OVER (
+            PARTITION BY o.customer_id
+            ORDER BY o.created_at ASC, o.id ASC
+        ) AS order_rank
+    FROM public.fact_order_headers o
+    CROSS JOIN date_params dp
+    WHERE o.seller_id = :shopId
+      AND o.test = FALSE
+      AND o.customer_id IS NOT NULL
+      AND o.created_at <= dp.end_bucket
+),
+guest_orders AS (
+    SELECT
+        date_trunc(LOWER(dp.g), o.created_at) AS bucket
+    FROM public.fact_order_headers o
+    CROSS JOIN date_params dp
+    WHERE o.seller_id = :shopId
+      AND o.test = FALSE
+      AND o.customer_id IS NULL
+      AND o.created_at >= dp.start_bucket
+      AND o.created_at <= dp.end_bucket
+),
+daily AS (
+    SELECT
+        r.bucket,
+        COUNT(*) FILTER (
+            WHERE r.order_rank = 1
+        ) AS new_orders,
+        COUNT(*) FILTER (
+            WHERE r.order_rank > 1
+        ) AS repeat_orders
+    FROM customer_order_ranks r
+    CROSS JOIN date_params dp
+    WHERE r.created_at >= dp.start_bucket
+      AND r.created_at <= dp.end_bucket
+    GROUP BY r.bucket
+),
+daily_guests AS (
+    SELECT
+        g.bucket,
+        COUNT(*) AS guest_new_orders
+    FROM guest_orders g
+    GROUP BY g.bucket
+)
+SELECT
+    CASE
+        WHEN dp.g = 'DAY'
+            THEN to_char(df.bucket, 'Mon DD')
+        WHEN dp.g = 'WEEK'
+            THEN to_char(df.bucket, 'Mon DD')
+        WHEN dp.g = 'MONTH'
+            THEN to_char(df.bucket, 'Mon YYYY')
+        WHEN dp.g = 'QUARTER'
+            THEN 'Q'
+                 || EXTRACT(QUARTER FROM df.bucket)::int
+                 || ' '
+                 || EXTRACT(YEAR FROM df.bucket)::int
+        WHEN dp.g = 'YEAR'
+            THEN to_char(df.bucket, 'YYYY')
+    END AS period,
+    df.bucket,
+    COALESCE(d.new_orders, 0)
+        + COALESCE(g.guest_new_orders, 0) AS new_orders,
+    COALESCE(d.repeat_orders, 0) AS repeat_orders
 FROM date_filler df
 CROSS JOIN date_params dp
-LEFT JOIN daily d ON d.bucket = df.bucket
-LEFT JOIN daily_guests g ON g.bucket = df.bucket
-ORDER BY df.bucket ASC
-    ',
+LEFT JOIN daily d
+    ON d.bucket = df.bucket
+LEFT JOIN daily_guests g
+    ON g.bucket = df.bucket
+ORDER BY df.bucket ASC;
+    $$,
     NULL,
     'PLOT',
     60,
@@ -524,7 +548,7 @@ VALUES (
     '019fff9a-1dfb-76a0-844c-85dcf1a54191',
     'New vs Repeat Customer Revenue',
     'Customer Retention/Customer Revenue & Value/PLOT/New vs Repeat Customer Revenue',
-    '
+    $$
     WITH
     /*date_granularity_cte*/
     customer_order_ranks AS (
@@ -585,7 +609,7 @@ CROSS JOIN date_params dp
 LEFT JOIN daily d ON d.bucket = df.bucket
 LEFT JOIN daily_guests g ON g.bucket = df.bucket
 ORDER BY df.bucket ASC
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -649,8 +673,8 @@ ORDER BY df.bucket ASC
                CASE WHEN w.req_start IS NOT NULL
                      AND s.first_order >= w.req_start
                      AND (w.req_end IS NULL OR s.first_order <= w.req_end)   THEN ''New''
-                    WHEN s.last_order < w.end_day - 60                       THEN ''At-risk''
                     WHEN v.vip_cut IS NOT NULL AND p.revenue >= v.vip_cut    THEN ''VIP''
+                    WHEN s.last_order < w.end_day - 60                       THEN ''At-risk''
                     ELSE ''Repeat'' END AS segment
         FROM per_customer p
         JOIN customer_span s ON s.customer_id = p.customer_id
@@ -937,11 +961,26 @@ VALUES (
     SELECT EXTRACT(YEAR FROM cl.cohort_month)::text || CHR(45)
              || LPAD(EXTRACT(MONTH FROM cl.cohort_month)::text, 2, CHR(48)) AS cohort,
            ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 0), 0), 2) AS "Month 0",
-           ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 1), 0), 2) AS "Month 1",
-           ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 2), 0), 2) AS "Month 2",
-           ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 3), 0), 2) AS "Month 3",
-           ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 4), 0), 2) AS "Month 4",
-           ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset >= 5), 0), 2) AS "Month 5+"
+           CASE WHEN cl.cohort_month + INTERVAL ''1 month''
+                     <= date_trunc(''month'', CURRENT_DATE)
+                THEN ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 1), 0), 2)
+                END AS "Month 1",
+           CASE WHEN cl.cohort_month + INTERVAL ''2 month''
+                     <= date_trunc(''month'', CURRENT_DATE)
+                THEN ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 2), 0), 2)
+                END AS "Month 2",
+           CASE WHEN cl.cohort_month + INTERVAL ''3 month''
+                     <= date_trunc(''month'', CURRENT_DATE)
+                THEN ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 3), 0), 2)
+                END AS "Month 3",
+           CASE WHEN cl.cohort_month + INTERVAL ''4 month''
+                     <= date_trunc(''month'', CURRENT_DATE)
+                THEN ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 4), 0), 2)
+                END AS "Month 4",
+           CASE WHEN cl.cohort_month + INTERVAL ''5 month''
+                     <= date_trunc(''month'', CURRENT_DATE)
+                THEN ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset >= 5), 0), 2)
+                END AS "Month 5+"
     FROM cohort_list cl
     LEFT JOIN cohort_totals ct ON ct.cohort_month = cl.cohort_month
     GROUP BY cl.cohort_month
@@ -950,7 +989,7 @@ VALUES (
     NULL,
     'PLOT',
     60,
-    'Monthly cohort revenue matrix tracking repeat revenue retention over 0 to 5+ months.',
+    'Monthly cohort revenue matrix tracking repeat revenue over 0 to 5+ months. Cells a cohort has not yet aged into are left empty rather than shown as zero.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -982,13 +1021,20 @@ VALUES (
     first_order AS (
         SELECT customer_id, MIN(day) AS first_day FROM ranked GROUP BY customer_id
     ),
+    cohort_params AS (
+        SELECT 90 AS observation_days  /* equal exposure window applied to every cohort */
+    ),
     cohort_members AS (
         SELECT f.customer_id,
+               f.first_day,
                make_date(EXTRACT(YEAR FROM f.first_day)::int,
                          EXTRACT(MONTH FROM f.first_day)::int, 1) AS cohort_month
         FROM first_order f
+        CROSS JOIN cohort_params cp
         WHERE (:currentStartDate IS NULL OR f.first_day >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR f.first_day <= :currentEndDate::date)
+          /* drop cohorts that have not yet had the full window to repeat */
+          AND f.first_day <= CURRENT_DATE - cp.observation_days
     ),
     cohort_size AS (
         SELECT cohort_month, COUNT(*) AS active_customers
@@ -1002,7 +1048,9 @@ VALUES (
                COUNT(DISTINCT r.customer_id) AS retained_customers
         FROM ranked r
         JOIN cohort_members m ON m.customer_id = r.customer_id
+        CROSS JOIN cohort_params cp
         WHERE r.order_rank > 1
+          AND r.day <= m.first_day + cp.observation_days
         GROUP BY m.cohort_month
     )
     SELECT EXTRACT(YEAR FROM s.cohort_month)::text || CHR(45)
@@ -1129,91 +1177,45 @@ VALUES (
     '019fff9a-1dfb-7980-9aef-d4218448b532',
     'Refund-Risk Customers by Segment',
     'Customer Retention/Customer Risk & Refund Analysis/PLOT/Refund-Risk Customers by Segment',
-    '
-    WITH scoped_orders AS (
-        SELECT o.id,
-               o.customer_id,
-               COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+    $$
+    WITH customer_first AS (
+        SELECT o.customer_id, MIN(o.created_at) AS first_at
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
           
-          AND o.customer_id IS NOT NULL
+        GROUP BY o.customer_id
+    ),
+    filtered_orders AS (
+        SELECT o.id,
+               CASE WHEN cf.first_at IS NULL OR o.created_at = cf.first_at
+                    THEN 'New' ELSE 'Repeat' END AS segment
+        FROM public.fact_order_headers o
+        LEFT JOIN customer_first cf ON cf.customer_id = o.customer_id
+        WHERE o.seller_id = :shopId
+          AND o.test = FALSE
+          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
     order_refunds AS (
-        SELECT s.id,
-               s.customer_id,
-               s.gross,
-               s.net_sales,
-               COALESCE(SUM(r.total_refunded_amount), 0) AS refunded
-        FROM scoped_orders s
-        LEFT JOIN public.fact_order_refunds r ON r.order_id = s.id
-        GROUP BY s.id, s.customer_id, s.gross, s.net_sales
+        SELECT r.order_id, SUM(r.total_refunded_amount) AS refund_amount
+        FROM public.fact_order_refunds r
+        JOIN filtered_orders f ON f.id = r.order_id
+        GROUP BY r.order_id
     ),
-    per_customer AS (
-        SELECT customer_id,
-               SUM(gross) AS gross,
-               SUM(net_sales) AS revenue,
-               SUM(refunded) AS refunded
-        FROM order_refunds
-        GROUP BY customer_id
-    ),
-    customer_span AS (
-        SELECT o.customer_id,
-               MIN(o.created_at)::date AS first_order,
-               MAX(o.created_at)::date AS last_order
-        FROM public.fact_order_headers o
-        WHERE o.seller_id = :shopId
-          AND o.test = FALSE
-          
-          AND o.customer_id IS NOT NULL
-        GROUP BY o.customer_id
-    ),
-    win AS (
-        SELECT :currentStartDate::date AS req_start,
-               :currentEndDate::date AS req_end,
-               COALESCE(:currentEndDate::date, (SELECT MAX(last_order) FROM customer_span)) AS end_day
-    ),
-    vip AS (
-        SELECT percentile_cont(0.8) WITHIN GROUP (ORDER BY revenue)::numeric AS vip_cut
-        FROM per_customer
-    ),
-    classified AS (
-        SELECT p.gross,
-               p.refunded,
-               CASE WHEN w.req_start IS NOT NULL
-                     AND s.first_order >= w.req_start
-                     AND (w.req_end IS NULL OR s.first_order <= w.req_end)   THEN ''New''
-                    WHEN s.last_order < w.end_day - 60                       THEN ''At-risk''
-                    WHEN v.vip_cut IS NOT NULL AND p.revenue >= v.vip_cut    THEN ''VIP''
-                    ELSE ''Repeat'' END AS segment
-        FROM per_customer p
-        JOIN customer_span s ON s.customer_id = p.customer_id
-        CROSS JOIN win w
-        CROSS JOIN vip v
-    ),
-    segment_totals AS (
-        SELECT segment,
-               SUM(refunded) AS refunded,
-               SUM(gross) AS gross
-        FROM classified
-        GROUP BY segment
-    ),
-    segments(segment, sort_order) AS (
-        VALUES (''New'', 1), (''At-risk'', 2), (''VIP'', 3), (''Repeat'', 4)
+    segments(ord, segment) AS (
+        VALUES (1, 'New'), (2, 'Repeat')
     )
-    SELECT sg.segment AS segment,
-           ROUND(COALESCE(st.refunded, 0), 2) AS refund_amount,
-           COALESCE(ROUND(100 * st.refunded / NULLIF(st.gross, 0), 2), 0) AS refund_rate
-    FROM segments sg
-    LEFT JOIN segment_totals st ON st.segment = sg.segment
-    ORDER BY sg.sort_order
-    ',
+    SELECT s.segment AS segment,
+           COALESCE(SUM(orf.refund_amount), 0) AS refund_amount,
+           COALESCE(ROUND(100 * COUNT(orf.order_id)::numeric / NULLIF(COUNT(f.id), 0), 2), 0) AS refund_rate
+    FROM segments s
+    LEFT JOIN filtered_orders f ON f.segment = s.segment
+    LEFT JOIN order_refunds orf ON orf.order_id = f.id
+    GROUP BY s.ord, s.segment
+    ORDER BY s.ord
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1265,10 +1267,6 @@ VALUES (
                MAX(last_refund_date) AS last_refund_date
         FROM order_refunds
         GROUP BY customer_id
-    ),
-    risk_cut AS (
-        SELECT percentile_cont(0.8) WITHIN GROUP (ORDER BY refunded)::numeric AS cut
-        FROM per_customer
     )
     SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
                 THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
@@ -1280,9 +1278,8 @@ VALUES (
            p.last_refund_date::text AS last_refund_date,
            COUNT(*) OVER() AS total_records
     FROM per_customer p
-    CROSS JOIN risk_cut x
     JOIN public.dim_customers c ON c.id = p.customer_id
-    WHERE x.cut IS NOT NULL AND p.refunded > 0 AND p.refunded >= x.cut
+    WHERE p.refunded > 0
     ORDER BY p.refunded DESC, c.id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)

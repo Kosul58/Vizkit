@@ -224,43 +224,55 @@ VALUES (
     'Low Stock Revenue Risk',
     'Executive Store Health/Inventory & Operations/KPI/Low Stock Revenue Risk',
     $$
-    WITH scoped_orders AS (
-        SELECT o.id,
-               o.created_at::date AS day
-        FROM public.fact_order_headers o
+    WITH period AS (
+        SELECT GREATEST(COALESCE(:currentEndDate::date,
+                                 (SELECT MAX(o.created_at::date) FROM public.fact_order_headers o
+                                  WHERE o.seller_id = :shopId AND o.test = FALSE))
+                      - COALESCE(:currentStartDate::date,
+                                 (SELECT MIN(o.created_at::date) FROM public.fact_order_headers o
+                                  WHERE o.seller_id = :shopId AND o.test = FALSE)) + 1, 1) AS days
+    ),
+    sku_inventory AS (
+        SELECT pv.id AS variant_id,
+               pv.price,
+               SUM(GREATEST(il.available_quantity, 0)) AS available_quantity,
+               BOOL_OR(COALESCE(il.available_quantity, 0)
+                       <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
+        FROM public.dim_inventory_items ii
+        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
+        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
+        WHERE ii.seller_id = :shopId
+          AND il.seller_id = :shopId
+          AND il.is_active = TRUE
+        GROUP BY pv.id, pv.price
+    ),
+    sales AS (
+        SELECT li.product_variant_id,
+               COALESCE(SUM(li.quantity), 0) AS units
+        FROM public.fact_order_line_items li
+        JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
-    ),
-    period AS (
-        SELECT GREATEST(COALESCE(:currentEndDate::date,   (SELECT MAX(day) FROM scoped_orders))
-                      - COALESCE(:currentStartDate::date, (SELECT MIN(day) FROM scoped_orders))
-                      + 1, 1) AS days
-    ),
-    variant_sales AS (
-        SELECT li.product_variant_id AS variant_id,
-               COALESCE(SUM(li.quantity), 0) AS units,
-               COALESCE(SUM(li.original_unit_price * li.quantity), 0) AS revenue
-        FROM public.fact_order_line_items li
-        JOIN scoped_orders s ON s.id = li.order_id
         GROUP BY li.product_variant_id
     ),
-    variant_stock AS (
-        SELECT pv.id AS variant_id,
-               SUM(COALESCE(lvl.available_quantity, lvl.on_hand_quantity, 0)) AS available
-        FROM public.dim_inventory_levels lvl
-        JOIN public.dim_inventory_items ii ON ii.id = lvl.inventory_item_id
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        WHERE lvl.seller_id = :shopId
-        GROUP BY pv.id
+    velocity AS (
+        SELECT si.price,
+               si.available_quantity,
+               si.any_location_low,
+               COALESCE(s.units, 0)::numeric / per.days AS per_day
+        FROM sku_inventory si
+        CROSS JOIN period per
+        LEFT JOIN sales s ON s.product_variant_id = si.variant_id
     )
-    SELECT ROUND(COALESCE(SUM(vs.revenue) FILTER (
-                     WHERE st.available / NULLIF(vs.units::numeric / p.days, 0) < 14), 0), 2)
-           AS low_stock_revenue_risk
-    FROM variant_sales vs
-    JOIN variant_stock st ON st.variant_id = vs.variant_id
-    CROSS JOIN period p
+    SELECT ROUND(COALESCE(SUM(
+               CASE WHEN any_location_low
+                    THEN per_day
+                         * GREATEST(14 - available_quantity / NULLIF(per_day, 0), 0)
+                         * COALESCE(price, 0)
+                    ELSE 0 END), 0), 2) AS low_stock_revenue_risk
+    FROM velocity
     $$,
     NULL,
     'KPI',
@@ -595,72 +607,6 @@ VALUES (
            ROUND(100 * (c.cur_leakage - c.prv_leakage)
                  / NULLIF(ABS(c.prv_leakage), 0), 2) AS divergence
     FROM computed c
-    $$
-),
-(
-    '019fff82-e31a-7b08-8f18-1a2b3c4d1008',
-    '01a066f6-d340-754c-9169-d19327a433d9',
-    'low_stock_revenue_risk',
-    $$
-    WITH scoped_orders AS (
-        SELECT * FROM (
-            SELECT o.id,
-                   o.created_at::date AS day,
-                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
-            FROM public.fact_order_headers o
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    period AS (
-        SELECT GREATEST(COALESCE(:currentEndDate::date,   (SELECT MAX(day) FROM scoped_orders WHERE is_current))
-                      - COALESCE(:currentStartDate::date, (SELECT MIN(day) FROM scoped_orders WHERE is_current))
-                      + 1, 1) AS cur_days,
-               GREATEST(:priorEndDate::date - :priorStartDate::date + 1, 1) AS prv_days
-    ),
-    variant_sales AS (
-        SELECT li.product_variant_id AS variant_id,
-               COALESCE(SUM(li.quantity) FILTER (WHERE s.is_current), 0) AS cur_units,
-               COALESCE(SUM(li.quantity) FILTER (WHERE s.is_prior),   0) AS prv_units,
-               COALESCE(SUM(li.original_unit_price * li.quantity)
-                        FILTER (WHERE s.is_current), 0) AS cur_revenue,
-               COALESCE(SUM(li.original_unit_price * li.quantity)
-                        FILTER (WHERE s.is_prior),   0) AS prv_revenue
-        FROM public.fact_order_line_items li
-        JOIN scoped_orders s ON s.id = li.order_id
-        GROUP BY li.product_variant_id
-    ),
-    variant_stock AS (
-        SELECT pv.id AS variant_id,
-               SUM(COALESCE(lvl.available_quantity, lvl.on_hand_quantity, 0)) AS available
-        FROM public.dim_inventory_levels lvl
-        JOIN public.dim_inventory_items ii ON ii.id = lvl.inventory_item_id
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        WHERE lvl.seller_id = :shopId
-        GROUP BY pv.id
-    ),
-    variant_risk AS (
-        SELECT vs.cur_revenue,
-               vs.prv_revenue,
-               st.available / NULLIF(vs.cur_units::numeric / p.cur_days, 0) AS cur_cover,
-               st.available / NULLIF(vs.prv_units::numeric / p.prv_days, 0) AS prv_cover
-        FROM variant_sales vs
-        JOIN variant_stock st ON st.variant_id = vs.variant_id
-        CROSS JOIN period p
-    ),
-    risk_totals AS (
-        SELECT COALESCE(SUM(cur_revenue) FILTER (WHERE cur_cover < 14), 0) AS cur_value,
-               COALESCE(SUM(prv_revenue) FILTER (WHERE prv_cover < 14), 0) AS prv_value
-        FROM variant_risk
-    )
-    SELECT ROUND(rt.prv_value, 2) AS previous_value,
-           ROUND(100 * (rt.cur_value - rt.prv_value)
-                 / NULLIF(ABS(rt.prv_value), 0), 2) AS divergence
-    FROM risk_totals rt
     $$
 ),
 (

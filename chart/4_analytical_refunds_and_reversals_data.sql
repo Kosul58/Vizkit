@@ -369,7 +369,7 @@ VALUES (
                    - COALESCE(o.current_shipping_price, 0), 2) AS net_sales,
            ROUND(ro.refunded_amount, 2) AS refunded_amount,
            ROUND(100 * ro.refunded_amount / NULLIF(g.gross_sales, 0), 2) AS refund_rate,
-           COALESCE(o.source_name, 'unknown') AS channel,
+           COALESCE(o.attribution_displayname,o.source_name, 'unknown') AS channel,
            COUNT(*) OVER() AS total_records
     FROM refunded_orders ro
     JOIN public.fact_order_headers o ON o.id = ro.order_id
@@ -758,6 +758,7 @@ VALUES (
             2
         ) AS refunded_shipping,
         COALESCE(
+            o.attribution_displayname,
             o.source_name,
             'unknown'
         ) AS channel,
@@ -1181,7 +1182,7 @@ VALUES (
     'Refunds & Reversals/Channel Customer & Geography/PLOT/Refunds by Channel',
     $$
     WITH filtered_orders AS (
-        SELECT o.id, COALESCE(o.source_name, 'unknown') AS channel
+        SELECT o.id, COALESCE(o.attribution_displayname,o.source_name, 'unknown') AS channel
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -1283,96 +1284,113 @@ VALUES (
     }'
 ),
 (
-        '019fff82-e31b-78da-a0cf-ee6e0c231283',
-        'Refunds by Geography',
-        'Refunds & Reversals/Channel Customer & Geography/PLOT/Refunds by Geography',
-        '
-  WITH filtered_orders AS (
-  SELECT
-  o.id,
-  COALESCE(
-    o.shipping_address #>> ''{country}'',
-    o.shipping_address #>> ''{province}'',
-    o.shipping_address #>> ''{city}''
-  ) AS country
-  FROM public.fact_order_headers o
-  WHERE o.seller_id = :shopId
-  AND o.test = FALSE
-  
-  AND (
-  :currentStartDate IS NULL
-  OR o.created_at::date >= :currentStartDate::date
-  )
-  AND (
-  :currentEndDate IS NULL
-  OR o.created_at::date <= :currentEndDate::date
-  )
-  ),
-  order_refunds AS (
-  SELECT
-  r.order_id,
-  SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
-  FROM public.fact_order_refunds r
-  JOIN filtered_orders f
-  ON f.id = r.order_id
-  GROUP BY r.order_id
-  ),
-  order_gross AS (
-  SELECT
-  li.order_id,
-  SUM(
-  COALESCE(
-  li.original_total_amount,
-  li.original_unit_price * li.quantity,
-  0
-  )
-  ) AS gross
-  FROM public.fact_order_line_items li
-  JOIN filtered_orders f
-  ON f.id = li.order_id
-  GROUP BY li.order_id
-  )
-  SELECT
-  f.country AS country,
-  ROUND(
-  COALESCE(SUM(orf.refunded), 0),
-  2
-  ) AS refunded_amount,
-  COALESCE(
-  ROUND(
-  100 * COALESCE(SUM(orf.refunded), 0)
-  / NULLIF(SUM(og.gross), 0),
-  2
-  ),
-  0
-  ) AS refund_rate
-  FROM filtered_orders f
-  LEFT JOIN order_refunds orf
-  ON orf.order_id = f.id
-  LEFT JOIN order_gross og
-  ON og.order_id = f.id
-  WHERE f.country IS NOT NULL
-  GROUP BY f.country
-  ORDER BY refunded_amount DESC
-  LIMIT COALESCE(:limit, 10)
-  OFFSET COALESCE(:offset, 0)
-  ',
-        NULL,
-        'PLOT',
-        60,
-        'Geographic breakdown of total refunded amounts and refund rate % per region.',
-        '{
-  "filterMappings": {
-  "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-  "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-  "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-  "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
-  "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-  "currentEndDate": { "source": "REQUEST_FILTER", "filterKey": "endDate" }
-  },
-  "excludeExtraParams": true
-  }'
+    '019fff82-e31b-78da-a0cf-ee6e0c231283',
+    'Refunds by Geography',
+    'Refunds & Reversals/Channel Customer & Geography/PLOT/Refunds by Geography',
+    '
+    WITH filtered_orders AS (
+        SELECT
+            o.id,
+            COALESCE(
+                o.shipping_address #>> ''{country}'',
+                o.shipping_address #>> ''{province}'',
+                o.shipping_address #>> ''{city}''
+            ) AS country
+        FROM public.fact_order_headers o
+        WHERE o.seller_id = :shopId
+          AND o.test = FALSE
+          AND (
+              :currentStartDate IS NULL
+              OR o.created_at::date >= :currentStartDate::date
+          )
+          AND (
+              :currentEndDate IS NULL
+              OR o.created_at::date <= :currentEndDate::date
+          )
     ),
+    order_refunds AS (
+        SELECT
+            r.order_id,
+            SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
+        FROM public.fact_order_refunds r
+        JOIN filtered_orders f
+            ON f.id = r.order_id
+        GROUP BY r.order_id
+    ),
+    order_gross AS (
+        SELECT
+            li.order_id,
+            SUM(
+                COALESCE(
+                    li.original_total_amount,
+                    li.original_unit_price * li.quantity,
+                    0
+                )
+            ) AS gross
+        FROM public.fact_order_line_items li
+        JOIN filtered_orders f
+            ON f.id = li.order_id
+        GROUP BY li.order_id
+    )
+    SELECT
+        f.country AS country,
+        ROUND(
+            COALESCE(SUM(orf.refunded), 0),
+            2
+        ) AS refunded_amount,
+        COALESCE(
+            ROUND(
+                100 * COALESCE(SUM(orf.refunded), 0)
+                / NULLIF(SUM(og.gross), 0),
+                2
+            ),
+            0
+        ) AS refund_rate
+    FROM filtered_orders f
+    LEFT JOIN order_refunds orf
+        ON orf.order_id = f.id
+    LEFT JOIN order_gross og
+        ON og.order_id = f.id
+    WHERE f.country IS NOT NULL
+    GROUP BY f.country
+    ORDER BY refunded_amount DESC
+    LIMIT COALESCE(:limit, 10)
+    OFFSET COALESCE(:offset, 0)
+    ',
+    NULL,
+    'PLOT',
+    60,
+    'Geographic breakdown of total refunded amounts and refund rate % per region.',
+    '{
+        "filterMappings": {
+            "shopId": {
+                "source": "AUTH_CONTEXT",
+                "contextKey": "shopGid"
+            },
+            "userId": {
+                "source": "AUTH_CONTEXT",
+                "contextKey": "user_id"
+            },
+            "limit": {
+                "source": "REQUEST_FILTER",
+                "filterKey": "limit"
+            },
+            "offset": {
+                "source": "REQUEST_FILTER",
+                "filterKey": "offset"
+            },
+            "currentStartDate": {
+                "source": "REQUEST_FILTER",
+                "filterKey": "startDate"
+            },
+            "currentEndDate": {
+                "source": "REQUEST_FILTER",
+                "filterKey": "endDate"
+            }
+        },
+        "excludeExtraParams": true
+    }'
+),
 (
     '019fff82-e31b-71db-8c0a-0fa0605c12d0',
     'Refunds by Payment Gateway',
@@ -1425,7 +1443,7 @@ OFFSET COALESCE(:offset, 0);
     $$
     WITH filtered_orders AS (
         SELECT o.id,
-               COALESCE(o.source_name, 'unknown') AS channel,
+               COALESCE(o.attribution_displayname,o.source_name, 'unknown') AS channel,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
                  - COALESCE(o.current_shipping_price, 0) AS net_sales

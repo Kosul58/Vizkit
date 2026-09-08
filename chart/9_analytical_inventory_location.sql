@@ -222,9 +222,11 @@ OFFSET COALESCE(:offset, 0)
            lr.reserved_quantity     AS reserved_quantity,
            lr.safety_stock_quantity AS safety_stock_quantity,
            CASE
-               WHEN lr.available_quantity = 0 THEN ''Out of Stock''
-               WHEN lr.available_quantity <= lr.safety_stock_quantity THEN ''Low Stock''
-               WHEN lr.available_quantity > lr.safety_stock_quantity * 3 THEN ''Overstock''
+               WHEN lr.available_quantity <= 0                            THEN ''Out of Stock''
+               WHEN lr.safety_stock_quantity > 0
+                AND lr.available_quantity <= lr.safety_stock_quantity     THEN ''Low Stock''
+               WHEN lr.safety_stock_quantity > 0
+                AND lr.available_quantity > lr.safety_stock_quantity * 3  THEN ''Overstock''
                ELSE ''In Stock''
            END AS stock_status,
            COUNT(*) OVER() AS total_records
@@ -354,8 +356,9 @@ OFFSET COALESCE(:offset, 0)
     )
     SELECT lr.location_name AS location,
            COUNT(*) FILTER (WHERE lr.available_quantity > 0
+                              AND lr.safety_stock_quantity > 0
                               AND lr.available_quantity <= lr.safety_stock_quantity) AS "Low Stock",
-           COUNT(*) FILTER (WHERE lr.available_quantity = 0)  AS "Out of Stock",
+           COUNT(*) FILTER (WHERE lr.available_quantity <= 0) AS "Out of Stock",
            COUNT(*) FILTER (WHERE lr.damaged_quantity > 0)    AS "Damaged",
            COUNT(*) FILTER (WHERE lr.reserved_quantity > 0)   AS "Reserved"
     FROM level_rows lr
@@ -637,12 +640,12 @@ OFFSET COALESCE(:offset, 0)
     '019fff9a-1dfc-7b18-90b7-5eaf4d0062d7',
     'Low Stock by Location Report',
     'Inventory Location/Replenishment & Stock Risk/TABLE/Low Stock by Location Report',
-    '
+    $$
     WITH level_rows AS (
         SELECT il.id AS level_id,
-               COALESCE(loc.name, ''Unknown'') AS location_name,
-               COALESCE(ii.sku, pv.sku, ''Unknown'') AS sku,
-               COALESCE(p.title, ''Unknown'') AS product,
+               COALESCE(loc.name, 'Unknown') AS location_name,
+               COALESCE(ii.sku, pv.sku, 'Unknown') AS sku,
+               COALESCE(p.title, 'Unknown') AS product,
                COALESCE(il.available_quantity, 0)    AS available_quantity,
                COALESCE(il.safety_stock_quantity, 0) AS safety_stock_quantity,
                COALESCE(il.incoming_quantity, 0)     AS incoming_quantity
@@ -663,10 +666,10 @@ OFFSET COALESCE(:offset, 0)
            lr.safety_stock_quantity AS safety_stock_quantity,
            lr.incoming_quantity     AS incoming_quantity,
            CASE
-               WHEN lr.available_quantity = 0 AND lr.incoming_quantity = 0 THEN ''Critical''
+               WHEN lr.available_quantity <= 0 AND lr.incoming_quantity = 0 THEN 'Critical'
                WHEN lr.available_quantity + lr.incoming_quantity
-                    <= lr.safety_stock_quantity THEN ''High''
-               ELSE ''Medium''
+                    <= lr.safety_stock_quantity THEN 'High'
+               ELSE 'Medium'
            END AS reorder_priority,
            COUNT(*) OVER() AS total_records
     FROM level_rows lr
@@ -674,7 +677,7 @@ OFFSET COALESCE(:offset, 0)
              lr.available_quantity ASC, lr.sku, lr.level_id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
     60,
@@ -756,12 +759,12 @@ OFFSET COALESCE(:offset, 0)
     '019fff9a-1dfd-7d7d-8b21-45a9066a365d',
     'Incoming Stock Report',
     'Inventory Location/Replenishment & Stock Risk/TABLE/Incoming Stock Report',
-    '
+    $$
     WITH level_rows AS (
         SELECT il.id AS level_id,
-               COALESCE(loc.name, ''Unknown'') AS location_name,
-               COALESCE(ii.sku, pv.sku, ''Unknown'') AS sku,
-               COALESCE(p.title, ''Unknown'') AS product,
+               COALESCE(loc.name, 'Unknown') AS location_name,
+               COALESCE(ii.sku, pv.sku, 'Unknown') AS sku,
+               COALESCE(p.title, 'Unknown') AS product,
                COALESCE(il.incoming_quantity, 0)     AS incoming_quantity,
                COALESCE(il.available_quantity, 0)    AS available_quantity,
                COALESCE(il.safety_stock_quantity, 0) AS safety_stock_quantity
@@ -781,17 +784,19 @@ OFFSET COALESCE(:offset, 0)
            lr.incoming_quantity  AS incoming_quantity,
            lr.available_quantity AS available_quantity,
            CASE
-               WHEN lr.available_quantity = 0 THEN ''Out of Stock''
-               WHEN lr.available_quantity <= lr.safety_stock_quantity THEN ''Low Stock''
-               WHEN lr.available_quantity > lr.safety_stock_quantity * 3 THEN ''Overstock''
-               ELSE ''In Stock''
+               WHEN lr.available_quantity <= 0                            THEN 'Out of Stock'
+               WHEN lr.safety_stock_quantity > 0
+                AND lr.available_quantity <= lr.safety_stock_quantity     THEN 'Low Stock'
+               WHEN lr.safety_stock_quantity > 0
+                AND lr.available_quantity > lr.safety_stock_quantity * 3  THEN 'Overstock'
+               ELSE 'In Stock'
            END AS stock_status,
            COUNT(*) OVER() AS total_records
     FROM level_rows lr
     ORDER BY lr.incoming_quantity DESC, lr.sku, lr.level_id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
     60,
@@ -882,13 +887,13 @@ OFFSET COALESCE(:offset, 0)
     '019fff9a-1dfd-79fc-a01e-4d8faeede3a4',
     'Fulfillment Risk Report',
     'Inventory Location/Fulfillment & Operational Risk/TABLE/Fulfillment Risk Report',
-    '
+    $$
     WITH level_rows AS (
         SELECT il.id AS level_id,
-               COALESCE(loc.name, ''Unknown'') AS location_name,
+               COALESCE(loc.name, 'Unknown') AS location_name,
                COALESCE(loc.has_unfulfilled_orders, FALSE) AS has_unfulfilled_orders,
-               COALESCE(ii.sku, pv.sku, ''Unknown'') AS sku,
-               COALESCE(p.title, ''Unknown'') AS product,
+               COALESCE(ii.sku, pv.sku, 'Unknown') AS sku,
+               COALESCE(p.title, 'Unknown') AS product,
                COALESCE(il.committed_quantity, 0)    AS committed_quantity,
                COALESCE(il.available_quantity, 0)    AS available_quantity,
                COALESCE(il.safety_stock_quantity, 0) AS safety_stock_quantity
@@ -906,13 +911,14 @@ OFFSET COALESCE(:offset, 0)
            lr.sku AS sku,
            lr.product AS product,
            lr.committed_quantity AS committed_quantity,
-           CASE WHEN lr.has_unfulfilled_orders THEN ''Yes'' ELSE ''No'' END
+           CASE WHEN lr.has_unfulfilled_orders THEN 'Yes' ELSE 'No' END
              AS unfulfilled_orders_flag,
            lr.available_quantity AS available_stock,
            CASE
-               WHEN lr.available_quantity = 0 THEN ''Critical''
-               WHEN lr.available_quantity <= lr.safety_stock_quantity THEN ''High''
-               ELSE ''Medium''
+               WHEN lr.available_quantity <= 0 THEN 'Critical'
+               WHEN lr.safety_stock_quantity > 0
+                AND lr.available_quantity <= lr.safety_stock_quantity THEN 'High'
+               ELSE 'Medium'
            END AS risk_level,
            COUNT(*) OVER() AS total_records
     FROM level_rows lr
@@ -920,7 +926,7 @@ OFFSET COALESCE(:offset, 0)
              lr.committed_quantity DESC, lr.sku, lr.level_id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
     60,
@@ -997,8 +1003,7 @@ VALUES (
            ROUND(lv.inventory_value, 2) AS inventory_value
     FROM location_value lv
     ORDER BY lv.inventory_value DESC, lv.location_name, lv.location_id
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
+    LIMIT 20
     ',
     NULL,
     'PLOT',
@@ -1160,10 +1165,10 @@ VALUES (
     '019fff9a-1dfd-72e6-b151-76e45937aba1',
     'Inactive Location Stock Exposure',
     'Inventory Location/Location Governance & Special Operations/PLOT/Inactive Location Stock Exposure',
-    '
+    $$
     WITH inactive_stock AS (
         SELECT loc.id AS location_id,
-               COALESCE(loc.name, ''Unknown'') AS location_name,
+               COALESCE(loc.name, 'Unknown') AS location_name,
                COALESCE(SUM(COALESCE(il.on_hand_quantity, 0)
                             * COALESCE(ii.unit_cost, 0)), 0) AS inventory_value
         FROM public.dim_inventory_locations loc
@@ -1181,7 +1186,7 @@ VALUES (
     ORDER BY i.inventory_value DESC, i.location_name, i.location_id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'PLOT',
     60,

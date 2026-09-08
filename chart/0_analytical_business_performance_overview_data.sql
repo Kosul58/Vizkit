@@ -215,13 +215,11 @@ VALUES (
         '56a463a9-99ca-4c5c-a186-cad73dd60df9',
         'Stock Status Mix',
         'Business Performance Overview/Overview/PLOT/Stock Status Mix',
-        '
+        $$
     WITH sku_inventory AS (
         SELECT pv.id AS variant_id,
                SUM(COALESCE(il.available_quantity, 0)) AS available_quantity,
-               MAX(COALESCE(il.safety_stock_quantity, 0)) AS safety_per_location,
-               BOOL_OR(COALESCE(il.available_quantity, 0)
-                       <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
+               SUM(COALESCE(il.safety_stock_quantity, 0)) AS safety_total
         FROM public.dim_product_variants pv
         JOIN public.dim_inventory_items ii ON ii.id = pv.inventory_item_id
         JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
@@ -234,15 +232,17 @@ VALUES (
     classified AS (
         SELECT
             CASE
-                WHEN available_quantity = 0 THEN ''Out of Stock''
-                WHEN any_location_low THEN ''Low Stock''
-                WHEN available_quantity > (safety_per_location * 3) THEN ''Overstock''
-                ELSE ''In Stock''
+                WHEN si.available_quantity <= 0                          THEN 'Out of Stock'
+                WHEN si.safety_total > 0
+                 AND si.available_quantity <= si.safety_total            THEN 'Low Stock'
+                WHEN si.safety_total > 0
+                 AND si.available_quantity > si.safety_total * 3         THEN 'Overstock'
+                ELSE 'In Stock'
             END AS status
-        FROM sku_inventory
+        FROM sku_inventory si
     ),
     bands(ord, status) AS (
-        VALUES (1, ''In Stock''), (2, ''Low Stock''), (3, ''Out of Stock''), (4, ''Overstock'')
+        VALUES (1, 'In Stock'), (2, 'Low Stock'), (3, 'Out of Stock'), (4, 'Overstock')
     )
     SELECT b.status AS name,
            COUNT(c.status) AS sku_count
@@ -250,11 +250,11 @@ VALUES (
     LEFT JOIN classified c ON c.status = b.status
     GROUP BY b.ord, b.status
     ORDER BY b.ord
-    ',
+    $$,
         NULL,
         'PLOT',
         60,
-        'Distribution of SKUs across stock status classifications (In Stock, Low Stock, Out of Stock, Overstock).',
+        'Distribution of SKUs across stock status classifications (In Stock, Low Stock, Out of Stock, Overstock), measured against configured safety stock summed across active locations. Where a SKU has no safety stock configured, only Out of Stock and In Stock are determinable.',
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
