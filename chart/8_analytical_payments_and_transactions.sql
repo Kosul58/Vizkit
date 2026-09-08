@@ -1,105 +1,5 @@
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fffa3-ddd3-7369-b2f8-35100851f1f5',
-    'Payment Overview KPIs',
-    'Payments & Transactions/Payment Overview/KPI/Payment Overview KPIs',
-    '
-    WITH scoped_txn AS (
-        SELECT * FROM (
-            SELECT ((:currentStartDate::date IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND COALESCE(t.processed_at, t.created_at)::date BETWEEN :priorStartDate::date AND :priorEndDate::date)          AS is_prior,
-                   COALESCE(t.amount, 0) AS amount,
-                   (UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
-                AND UPPER(t.status) = ''SUCCESS'') AS is_payment,
-                   (UPPER(t.kind) = ''REFUND''
-                AND UPPER(t.status) = ''SUCCESS'') AS is_refund,
-                   INITCAP(REPLACE(COALESCE(t.gateway, ''Unknown''),
-                                   CHR(95), CHR(32))) AS gateway
-            FROM public.fact_order_transactions t
-            JOIN public.fact_order_headers o ON o.id = t.order_id
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-              AND t.test = FALSE
-        ) x
-        WHERE x.is_current OR x.is_prior
-    ),
-    txn_totals AS (
-        SELECT COALESCE(SUM(amount) FILTER (WHERE is_current AND is_payment), 0) AS cur_payments,
-               COALESCE(SUM(amount) FILTER (WHERE is_prior   AND is_payment), 0) AS prv_payments,
-               COALESCE(SUM(amount) FILTER (WHERE is_current AND is_refund),  0) AS cur_refunds,
-               COALESCE(SUM(amount) FILTER (WHERE is_prior   AND is_refund),  0) AS prv_refunds,
-               COUNT(*) FILTER (WHERE is_current) AS cur_count,
-               COUNT(*) FILTER (WHERE is_prior)   AS prv_count
-        FROM scoped_txn
-    ),
-    top_gateway AS (
-        SELECT gateway
-        FROM scoped_txn
-        WHERE is_current AND is_payment
-        GROUP BY gateway
-        ORDER BY SUM(amount) DESC NULLS LAST, gateway ASC
-        LIMIT 1
-    ),
-    scoped_tender AS (
-        SELECT INITCAP(REPLACE(COALESCE(tt.payment_method, ''Unattributed''),
-                               CHR(95), CHR(32))) AS method,
-               COALESCE(tt.amount, 0) AS amount
-        FROM public.dim_tender_transactions tt
-        JOIN public.fact_order_headers o ON o.id = tt.order_id
-        WHERE o.seller_id = :shopId
-          AND o.test = FALSE
-          
-          AND tt.test = FALSE
-          AND (:currentStartDate::date IS NULL OR tt.processed_at::date >= :currentStartDate::date)
-          AND (:currentEndDate::date   IS NULL OR tt.processed_at::date <= :currentEndDate::date)
-    ),
-    top_method AS (
-        SELECT method
-        FROM scoped_tender
-        GROUP BY method
-        ORDER BY SUM(amount) DESC NULLS LAST, method ASC
-        LIMIT 1
-    ),
-    computed AS (
-        SELECT tot.cur_payments, tot.prv_payments,
-               tot.cur_payments - tot.cur_refunds AS cur_net,
-               tot.prv_payments - tot.prv_refunds AS prv_net,
-               tot.cur_count, tot.prv_count
-        FROM txn_totals tot
-    )
-    SELECT ROUND(c.cur_payments, 2) AS total_payment_amount,
-           ROUND(100 * (c.cur_payments - c.prv_payments)
-                 / NULLIF(ABS(c.prv_payments), 0), 2) AS total_payment_amount_divergence,
-           ROUND(c.cur_net, 2) AS net_payment_received,
-           ROUND(100 * (c.cur_net - c.prv_net)
-                 / NULLIF(ABS(c.prv_net), 0), 2) AS net_payment_received_divergence,
-           c.cur_count AS transaction_count,
-           ROUND(100.0 * (c.cur_count - c.prv_count)
-                 / NULLIF(ABS(c.prv_count), 0), 2) AS transaction_count_divergence,
-           COALESCE((SELECT method FROM top_method), ''No data'') AS top_payment_method,
-           COALESCE((SELECT gateway FROM top_gateway), ''No data'') AS top_gateway
-    FROM computed c
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Payment overview KPIs evaluating total payment amount, net payment received, transaction count, top payment method, and top gateway vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
     '019fffa3-ddd3-72e3-a14e-782dfd330b5b',
     'Payment Amount Trend',
     'Payments & Transactions/Payment Overview/PLOT/Payment Amount Trend',
@@ -193,7 +93,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa3-ddd3-7b3c-9f95-309dbdb57dfe',
     'Payment Method Mix',
     'Payments & Transactions/Payment Overview/PLOT/Payment Method Mix',
@@ -228,7 +128,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa3-ddd3-752f-9af4-6c1f2cb046f1',
     'Gateway Performance',
     'Payments & Transactions/Payment Overview/PLOT/Gateway Performance',
@@ -271,7 +171,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa3-ddd3-7057-8f69-3814f3324a8e',
     'Transaction Detail Report',
     'Payments & Transactions/Payment Overview/TABLE/Transaction Detail Report',
@@ -327,7 +227,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa3-ddd3-74f4-8b88-84aa1bf30d42',
     'Payment Method Report',
     'Payments & Transactions/Payment Overview/TABLE/Payment Method Report',
@@ -420,67 +320,6 @@ VALUES (
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fffa3-ddd3-7a0f-9e52-a5fff7b2b20f',
-    'Payment Cost KPIs',
-    'Payments & Transactions/Payment Costs & Gateway Performance/KPI/Payment Cost KPIs',
-    '
-     WITH scoped_txn AS (
-        SELECT * FROM (
-            SELECT ((:currentStartDate::date IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND COALESCE(t.processed_at, t.created_at)::date BETWEEN :priorStartDate::date AND :priorEndDate::date)          AS is_prior,
-                   COALESCE(t.amount, 0) AS amount,
-                   COALESCE(t.transaction_fee, 0) AS fee
-            FROM public.fact_order_transactions t
-            JOIN public.fact_order_headers o ON o.id = t.order_id
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-              AND t.test = FALSE
-              AND UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
-              AND UPPER(t.status) = ''SUCCESS''
-        ) x
-        WHERE x.is_current OR x.is_prior
-    ),
-    totals AS (
-        SELECT COALESCE(SUM(fee)    FILTER (WHERE is_current), 0) AS cur_fees,
-               COALESCE(SUM(fee)    FILTER (WHERE is_prior),   0) AS prv_fees,
-               COALESCE(SUM(amount) FILTER (WHERE is_current), 0) AS cur_amount,
-               COALESCE(SUM(amount) FILTER (WHERE is_prior),   0) AS prv_amount
-        FROM scoped_txn
-    ),
-    computed AS (
-        SELECT tot.cur_fees, tot.prv_fees,
-               ROUND(100 * tot.cur_fees / NULLIF(tot.cur_amount, 0), 2) AS cur_rate,
-               ROUND(100 * tot.prv_fees / NULLIF(tot.prv_amount, 0), 2) AS prv_rate
-        FROM totals tot
-    )
-    SELECT ROUND(c.cur_fees, 2) AS transaction_fees,
-           ROUND(100 * (c.cur_fees - c.prv_fees)
-                 / NULLIF(ABS(c.prv_fees), 0), 2) AS transaction_fees_divergence,
-           COALESCE(c.cur_rate, 0) AS fee_rate,
-           ROUND(100 * (c.cur_rate - c.prv_rate)
-                 / NULLIF(ABS(c.prv_rate), 0), 2) AS fee_rate_divergence
-    FROM computed c
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Payment cost KPIs evaluating transaction fees and fee rate % vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
     '019fffa3-ddd3-7597-a973-629f58d62294',
     'Transaction Fee Trend',
     'Payments & Transactions/Payment Costs & Gateway Performance/PLOT/Transaction Fee Trend',
@@ -572,7 +411,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa3-ddd3-7325-ae53-eba74722bea6',
     'Gateway Fee Report',
     'Payments & Transactions/Payment Costs & Gateway Performance/TABLE/Gateway Fee Report',
@@ -636,70 +475,6 @@ VALUES (
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fffa3-ddd3-7684-970a-205ebbac5a02',
-    'Payment Health KPIs',
-    'Payments & Transactions/Payment Health & Reliability/KPI/Payment Health KPIs',
-    '
-    WITH scoped_txn AS (
-        SELECT * FROM (
-            SELECT ((:currentStartDate::date IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND COALESCE(t.processed_at, t.created_at)::date BETWEEN :priorStartDate::date AND :priorEndDate::date)          AS is_prior,
-                   COALESCE(t.amount, 0) AS amount,
-                   (UPPER(t.status) IN (''FAILURE'', ''ERROR''))              AS is_failed,
-                   (UPPER(t.status) IN (''PENDING'', ''AWAITING_RESPONSE''))  AS is_pending
-            FROM public.fact_order_transactions t
-            JOIN public.fact_order_headers o ON o.id = t.order_id
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-              AND t.test = FALSE
-        ) x
-        WHERE x.is_current OR x.is_prior
-    ),
-    totals AS (
-        SELECT COUNT(*) FILTER (WHERE is_current AND is_failed)  AS cur_failed_count,
-               COUNT(*) FILTER (WHERE is_prior   AND is_failed)  AS prv_failed_count,
-               COUNT(*) FILTER (WHERE is_current AND is_pending) AS cur_pending_count,
-               COUNT(*) FILTER (WHERE is_prior   AND is_pending) AS prv_pending_count,
-               COALESCE(SUM(amount) FILTER (WHERE is_current AND is_failed),  0) AS cur_failed_amount,
-               COALESCE(SUM(amount) FILTER (WHERE is_prior   AND is_failed),  0) AS prv_failed_amount,
-               COALESCE(SUM(amount) FILTER (WHERE is_current AND is_pending), 0) AS cur_pending_amount,
-               COALESCE(SUM(amount) FILTER (WHERE is_prior   AND is_pending), 0) AS prv_pending_amount
-        FROM scoped_txn
-    )
-    SELECT t.cur_failed_count AS failed_transactions,
-           ROUND(100.0 * (t.cur_failed_count - t.prv_failed_count)
-                 / NULLIF(ABS(t.prv_failed_count), 0), 2) AS failed_transactions_divergence,
-           ROUND(t.cur_failed_amount, 2) AS failed_amount,
-           ROUND(100 * (t.cur_failed_amount - t.prv_failed_amount)
-                 / NULLIF(ABS(t.prv_failed_amount), 0), 2) AS failed_amount_divergence,
-           t.cur_pending_count AS pending_transactions,
-           ROUND(100.0 * (t.cur_pending_count - t.prv_pending_count)
-                 / NULLIF(ABS(t.prv_pending_count), 0), 2) AS pending_transactions_divergence,
-           ROUND(t.cur_pending_amount, 2) AS pending_amount,
-           ROUND(100 * (t.cur_pending_amount - t.prv_pending_amount)
-                 / NULLIF(ABS(t.prv_pending_amount), 0), 2) AS pending_amount_divergence
-    FROM totals t
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Payment health KPIs evaluating failed transaction count, failed dollar amount, pending transaction count, and pending dollar amount vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
     '019fffa3-ddd3-795f-a999-4897d4e273db',
     'Transaction Status Mix',
     'Payments & Transactions/Payment Health & Reliability/PLOT/Transaction Status Mix',
@@ -742,7 +517,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa3-ddd3-73c3-a7d0-1e7c6562c512',
     'Failed / Pending Payment Trend',
     'Payments & Transactions/Payment Health & Reliability/PLOT/Failed / Pending Payment Trend',
@@ -804,7 +579,7 @@ VALUES (
       ]
     }'
 ),
-(
+    (
     '019fffa3-ddd3-7be5-89dc-101e463d6bb3',
     'Failed / Pending Transactions Report',
     'Payments & Transactions/Payment Health & Reliability/TABLE/Failed / Pending Transactions Report',
@@ -865,68 +640,6 @@ VALUES (
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fffa3-ddd3-72af-89f6-f1ea24b39173',
-    'Refund & Reconciliation KPIs',
-    'Payments & Transactions/Reconciliation & Refund Payments/KPI/Refund & Reconciliation KPIs',
-    '
-    WITH scoped_txn AS (
-        SELECT * FROM (
-            SELECT ((:currentStartDate::date IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND COALESCE(t.processed_at, t.created_at)::date BETWEEN :priorStartDate::date AND :priorEndDate::date)          AS is_prior,
-                   COALESCE(t.amount, 0) AS amount,
-                   COALESCE(t.maximum_refundable_amount, 0) AS max_refundable,
-                   (UPPER(t.kind) = ''REFUND''
-                AND UPPER(t.status) = ''SUCCESS'') AS is_refund,
-                   (UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
-                AND UPPER(t.status) = ''SUCCESS'') AS is_payment
-            FROM public.fact_order_transactions t
-            JOIN public.fact_order_headers o ON o.id = t.order_id
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-              AND t.test = FALSE
-        ) x
-        WHERE x.is_current OR x.is_prior
-    ),
-    totals AS (
-        SELECT COUNT(*) FILTER (WHERE is_current AND is_refund) AS cur_refund_count,
-               COUNT(*) FILTER (WHERE is_prior   AND is_refund) AS prv_refund_count,
-               COALESCE(SUM(amount) FILTER (WHERE is_current AND is_refund), 0) AS cur_refund_amount,
-               COALESCE(SUM(amount) FILTER (WHERE is_prior   AND is_refund), 0) AS prv_refund_amount,
-               COALESCE(SUM(max_refundable) FILTER (WHERE is_current AND is_payment), 0) AS cur_max_refundable,
-               COALESCE(SUM(max_refundable) FILTER (WHERE is_prior   AND is_payment), 0) AS prv_max_refundable
-        FROM scoped_txn
-    )
-    SELECT t.cur_refund_count AS refund_transactions,
-           ROUND(100.0 * (t.cur_refund_count - t.prv_refund_count)
-                 / NULLIF(ABS(t.prv_refund_count), 0), 2) AS refund_transactions_divergence,
-           ROUND(t.cur_refund_amount, 2) AS refund_amount,
-           ROUND(100 * (t.cur_refund_amount - t.prv_refund_amount)
-                 / NULLIF(ABS(t.prv_refund_amount), 0), 2) AS refund_amount_divergence,
-           ROUND(t.cur_max_refundable, 2) AS maximum_refundable_amount,
-           ROUND(100 * (t.cur_max_refundable - t.prv_max_refundable)
-                 / NULLIF(ABS(t.prv_max_refundable), 0), 2) AS maximum_refundable_amount_divergence
-    FROM totals t
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Refund & reconciliation KPIs evaluating refund transaction count, refund dollar amount, and maximum refundable amount vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
     '019fffa3-ddd3-7db7-8dbd-baf76c474af1',
     'Sales vs Payments Reconciliation',
     'Payments & Transactions/Reconciliation & Refund Payments/PLOT/Sales vs Payments Reconciliation',
@@ -1022,7 +735,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa3-ddd3-726f-b9ab-c57314c5f5e1',
     'Refund Transaction Trend',
     'Payments & Transactions/Reconciliation & Refund Payments/PLOT/Refund Transaction Trend',
@@ -1113,7 +826,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa3-ddd3-7cbb-9fbc-b0387524b1f4',
     'Order Payment Reconciliation Report',
     'Payments & Transactions/Reconciliation & Refund Payments/TABLE/Order Payment Reconciliation Report',
@@ -1186,7 +899,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa3-ddd3-7bfd-8994-043808a9ede2',
     'Refund Transaction Report',
     'Payments & Transactions/Reconciliation & Refund Payments/TABLE/Refund Transaction Report',
@@ -1244,67 +957,6 @@ VALUES (
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fffa3-ddd3-7db2-8979-6ceed49ee742',
-    'Authorization Risk KPI',
-    'Payments & Transactions/Authorization & Payment Risk/KPI/Authorization Risk KPI',
-    $$
-    WITH scoped_txn AS (
-        SELECT * FROM (
-            SELECT t.order_id,
-                   ((:currentStartDate::date IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND COALESCE(t.processed_at, t.created_at)::date BETWEEN :priorStartDate::date AND :priorEndDate::date)          AS is_prior,
-                   COALESCE(t.amount, 0) AS amount,
-                   (UPPER(t.kind) IN ('AUTHORIZATION', 'EMV_AUTHORIZATION')
-                AND UPPER(t.status) = 'SUCCESS') AS is_authorized,
-                   (UPPER(t.kind) IN ('SALE', 'CAPTURE')
-                AND UPPER(t.status) = 'SUCCESS') AS is_captured
-            FROM public.fact_order_transactions t
-            JOIN public.fact_order_headers o ON o.id = t.order_id
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-              AND t.test = FALSE
-        ) x
-        WHERE x.is_current OR x.is_prior
-    ),
-    per_order AS (
-        SELECT s.order_id,
-               COALESCE(SUM(s.amount) FILTER (WHERE s.is_current AND s.is_authorized), 0) AS cur_authorized,
-               COALESCE(SUM(s.amount) FILTER (WHERE s.is_current AND s.is_captured),   0) AS cur_captured,
-               COALESCE(SUM(s.amount) FILTER (WHERE s.is_prior   AND s.is_authorized), 0) AS prv_authorized,
-               COALESCE(SUM(s.amount) FILTER (WHERE s.is_prior   AND s.is_captured),   0) AS prv_captured
-        FROM scoped_txn s
-        GROUP BY s.order_id
-    ),
-    computed AS (
-        SELECT COALESCE(SUM(GREATEST(p.cur_authorized - p.cur_captured, 0)), 0) AS cur_uncaptured,
-               COALESCE(SUM(GREATEST(p.prv_authorized - p.prv_captured, 0)), 0) AS prv_uncaptured
-        FROM per_order p
-    )
-    SELECT ROUND(c.cur_uncaptured, 2) AS uncaptured_amount,
-           ROUND(100 * (c.cur_uncaptured - c.prv_uncaptured)
-                 / NULLIF(ABS(c.prv_uncaptured), 0), 2) AS uncaptured_amount_divergence
-    FROM computed c
-    $$,
-    NULL,
-    'KPI',
-    60,
-    'Authorization risk KPI tracking uncaptured authorization dollar amount vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
     '019fffa3-ddd3-72e7-921a-5c061dedb213',
     'Authorization vs Capture',
     'Payments & Transactions/Authorization & Payment Risk/PLOT/Authorization vs Capture',
@@ -1367,7 +1019,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa3-ddd3-7fa3-835b-cd566678e1df',
     'Authorization Capture Report',
     'Payments & Transactions/Authorization & Payment Risk/TABLE/Authorization Capture Report',
@@ -1450,83 +1102,6 @@ VALUES (
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fffa3-ddd3-7fcb-9184-cba9c41c659c',
-    'POS & Alternative Payment KPIs',
-    'Payments & Transactions/POS & Alternative Payment Operations/KPI/POS & Alternative Payment KPIs',
-    '
-    WITH scoped_txn AS (
-        SELECT * FROM (
-            SELECT ((:currentStartDate::date IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND COALESCE(t.processed_at, t.created_at)::date BETWEEN :priorStartDate::date AND :priorEndDate::date)          AS is_prior,
-                   COALESCE(t.amount, 0) AS amount,
-                   COALESCE(t.amount_rounding, 0) AS rounding,
-                   t.manual_payment_gateway AS is_manual,
-                   (UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
-                AND UPPER(t.status) = ''SUCCESS'') AS is_payment
-            FROM public.fact_order_transactions t
-            JOIN public.fact_order_headers o ON o.id = t.order_id
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-              AND t.test = FALSE
-        ) x
-        WHERE x.is_current OR x.is_prior
-    ),
-    txn_totals AS (
-        SELECT COALESCE(SUM(amount) FILTER (WHERE is_current AND is_payment AND is_manual), 0) AS cur_manual,
-               COALESCE(SUM(amount) FILTER (WHERE is_prior   AND is_payment AND is_manual), 0) AS prv_manual,
-               COALESCE(SUM(rounding) FILTER (WHERE is_current), 0) AS cur_rounding,
-               COALESCE(SUM(rounding) FILTER (WHERE is_prior),   0) AS prv_rounding
-        FROM scoped_txn
-    ),
-    scoped_tender AS (
-        SELECT INITCAP(REPLACE(tt.transaction_credit_card_company, CHR(95), CHR(32))) AS card_brand,
-               COALESCE(tt.amount, 0) AS amount
-        FROM public.dim_tender_transactions tt
-        JOIN public.fact_order_headers o ON o.id = tt.order_id
-        WHERE o.seller_id = :shopId
-          AND o.test = FALSE
-          
-          AND tt.test = FALSE
-          AND tt.transaction_credit_card_company IS NOT NULL
-          AND (:currentStartDate::date IS NULL OR tt.processed_at::date >= :currentStartDate::date)
-          AND (:currentEndDate::date   IS NULL OR tt.processed_at::date <= :currentEndDate::date)
-    ),
-    top_brand AS (
-        SELECT card_brand
-        FROM scoped_tender
-        GROUP BY card_brand
-        ORDER BY SUM(amount) DESC NULLS LAST, card_brand ASC
-        LIMIT 1
-    )
-    SELECT ROUND(tot.cur_manual, 2) AS manual_payment_amount,
-           ROUND(100 * (tot.cur_manual - tot.prv_manual)
-                 / NULLIF(ABS(tot.prv_manual), 0), 2) AS manual_payment_amount_divergence,
-           ROUND(tot.cur_rounding, 2) AS cash_rounding_adjustment,
-           ROUND(100 * (tot.cur_rounding - tot.prv_rounding)
-                 / NULLIF(ABS(tot.prv_rounding), 0), 2) AS cash_rounding_adjustment_divergence,
-           COALESCE((SELECT card_brand FROM top_brand), ''No data'') AS top_card_brand
-    FROM txn_totals tot
-    ',
-    NULL,
-    'KPI',
-    60,
-    'POS & alternative payment KPIs evaluating manual payment volume, cash rounding adjustment amount, and top credit card brand vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
     '019fffa3-ddd3-7ac0-84ad-a47393da0230',
     'Manual vs Automated Payments',
     'Payments & Transactions/POS & Alternative Payment Operations/PLOT/Manual vs Automated Payments',
@@ -1570,7 +1145,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa3-ddd3-79b5-978e-90241244259a',
     'POS Payments by Location',
     'Payments & Transactions/POS & Alternative Payment Operations/PLOT/POS Payments by Location',
@@ -1608,7 +1183,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa3-ddd3-70da-a2b4-ba575ac4d820',
     'Card Brand Mix',
     'Payments & Transactions/POS & Alternative Payment Operations/PLOT/Card Brand Mix',
@@ -1644,7 +1219,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa3-ddd3-7803-b1ad-78780dcea258',
     'Cash Rounding Adjustments Trend',
     'Payments & Transactions/POS & Alternative Payment Operations/PLOT/Cash Rounding Adjustments Trend',
@@ -1730,7 +1305,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa3-ddd3-7b1a-a7b4-6d3cc0d9d8b7',
     'Manual Payment Report',
     'Payments & Transactions/POS & Alternative Payment Operations/TABLE/Manual Payment Report',
@@ -1778,7 +1353,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa3-ddd3-7964-b52a-a330c2f1e7a0',
     'POS Payment Report',
     'Payments & Transactions/POS & Alternative Payment Operations/TABLE/POS Payment Report',
@@ -1868,7 +1443,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa3-ddd3-7ca6-a8ff-5976abc98ff7',
     'Card Brand Report',
     'Payments & Transactions/POS & Alternative Payment Operations/TABLE/Card Brand Report',

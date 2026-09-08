@@ -5,124 +5,6 @@
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31a-79f2-bf5a-2d2fb3884362',
-    'Net Sales',
-    'Executive Store Health/Revenue Overview/KPI/Net Sales',
-    $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_total_price, 0)
-                            - COALESCE(o.current_total_tax, 0)
-                            - COALESCE(o.current_shipping_price, 0)), 0), 2) AS net_sales
-    FROM public.fact_order_headers o
-    WHERE o.seller_id = :shopId
-      AND o.test = FALSE
-      AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-      AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
-    $$,
-    NULL,
-    'KPI',
-    60,
-    'Net sales (order total less tax and shipping) for the selected period vs the prior period.',
-    '{
-      "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
-    '019fff82-e31a-7a01-8f01-1a2b3c4d0001',
-    'Gross Sales',
-    'Executive Store Health/Revenue Overview/KPI/Gross Sales',
-    $$
-    SELECT ROUND(COALESCE(SUM(li.original_unit_price * li.quantity), 0), 2) AS gross_sales
-    FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
-    WHERE o.seller_id = :shopId
-      AND o.test = FALSE
-      AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-      AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
-    $$,
-    NULL,
-    'KPI',
-    60,
-    'Gross sales (line item unit price x quantity, before discounts) for the selected period vs the prior period.',
-    '{
-      "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
-    '019fff82-e31a-7a02-8f02-1a2b3c4d0002',
-    'Orders',
-    'Executive Store Health/Revenue Overview/KPI/Orders',
-    $$
-    SELECT COUNT(*) AS orders
-    FROM public.fact_order_headers o
-    WHERE o.seller_id = :shopId
-      AND o.test = FALSE
-      AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-      AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
-    $$,
-    NULL,
-    'KPI',
-    60,
-    'Total order volume for the selected period vs the prior period.',
-    '{
-      "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
-    '019fff82-e31a-7a03-8f03-1a2b3c4d0003',
-    'Average Order Value',
-    'Executive Store Health/Revenue Overview/KPI/Average Order Value',
-    $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_total_price, 0)
-                            - COALESCE(o.current_total_tax, 0)
-                            - COALESCE(o.current_shipping_price, 0)), 0)
-                 / NULLIF(COUNT(*), 0), 2) AS average_order_value
-    FROM public.fact_order_headers o
-    WHERE o.seller_id = :shopId
-      AND o.test = FALSE
-      AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-      AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
-    $$,
-    NULL,
-    'KPI',
-    60,
-    'Average order value (net sales per order) for the selected period vs the prior period.',
-    '{
-      "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
     '019fff82-e31a-722c-8303-27002345bfd8',
     'Sales Trend',
     'Executive Store Health/Revenue Overview/PLOT/Sales Trend',
@@ -208,7 +90,7 @@ VALUES (
       ]
     }'
 ),
-(
+    (
     '019fff82-e31a-737a-a3b9-abbc1fbe6cf8',
     'Revenue Waterfall',
     'Executive Store Health/Revenue Overview/PLOT/Revenue Waterfall',
@@ -307,7 +189,7 @@ VALUES (
       ]
     }'
 ),
-( 
+    ( 
     '019fff82-e31a-7ab8-9ab6-182f18146294',
     'Orders vs AOV',
     'Executive Store Health/Revenue Overview/PLOT/Orders vs AOV',
@@ -374,101 +256,6 @@ VALUES (
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31a-7689-b215-209e686ffcc3',
-    'Discount & Refund KPIs',
-    'Executive Store Health/Discount & Refund/KPI/Discount & Refund KPIs',
-    $$
-    WITH
-    /*comparison_window_cte*/
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT o.id,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior
-            FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    line_item_totals AS (
-        SELECT COALESCE(SUM(li.original_unit_price * li.quantity)
-                        FILTER (WHERE s.is_current), 0) AS cur_gross_sales,
-               COALESCE(SUM(li.original_unit_price * li.quantity)
-                        FILTER (WHERE s.is_prior),   0) AS prv_gross_sales,
-               COALESCE(SUM(li.total_discount_amount)
-                        FILTER (WHERE s.is_current), 0) AS cur_discounts,
-               COALESCE(SUM(li.total_discount_amount)
-                        FILTER (WHERE s.is_prior),   0) AS prv_discounts
-        FROM public.fact_order_line_items li
-        JOIN scoped_orders s ON s.id = li.order_id
-    ),
-    scoped_refunds AS (
-        SELECT * FROM (
-            SELECT ((w.cur_start IS NULL OR r.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR r.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND r.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior,
-                   COALESCE(r.total_refunded_amount, 0) AS amount
-            FROM public.fact_order_refunds r
-            JOIN public.fact_order_headers o ON o.id = r.order_id
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    refund_totals AS (
-        SELECT COALESCE(SUM(amount) FILTER (WHERE is_current), 0) AS cur_refunded,
-               COALESCE(SUM(amount) FILTER (WHERE is_prior),   0) AS prv_refunded
-        FROM scoped_refunds
-    ),
-    computed AS (
-        SELECT rt.cur_refunded, rt.prv_refunded,
-               ROUND(100 * rt.cur_refunded / NULLIF(lt.cur_gross_sales, 0), 2) AS cur_refund_rate,
-               ROUND(100 * rt.prv_refunded / NULLIF(lt.prv_gross_sales, 0), 2) AS prv_refund_rate,
-               ROUND(100 * lt.cur_discounts / NULLIF(lt.cur_gross_sales, 0), 2) AS cur_leakage,
-               ROUND(100 * lt.prv_discounts / NULLIF(lt.prv_gross_sales, 0), 2) AS prv_leakage
-        FROM refund_totals rt
-        CROSS JOIN line_item_totals lt
-    )
-    SELECT ROUND(c.cur_refunded, 2) AS refunded_amount,
-           ROUND(100 * (c.cur_refunded - c.prv_refunded)
-                 / NULLIF(ABS(c.prv_refunded), 0), 2) AS refunded_amount_divergence,
-           c.cur_refund_rate AS refund_rate,
-           ROUND(100 * (c.cur_refund_rate - c.prv_refund_rate)
-                 / NULLIF(ABS(c.prv_refund_rate), 0), 2) AS refund_rate_divergence,
-           c.cur_leakage AS discount_leakage,
-           ROUND(100 * (c.cur_leakage - c.prv_leakage)
-                 / NULLIF(ABS(c.prv_leakage), 0), 2) AS discount_leakage_divergence
-    FROM computed c
-    $$,
-    NULL,
-    'KPI',
-    60,
-    'Overview metrics tracking refunded total, refund rate %, and discount revenue leakage % vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
-    }'
-),
-(
     '019fff82-e31a-7d3c-8819-c9c6b13b5e8d',
     'Discount Impact Trend',
     'Executive Store Health/Discount & Refund/PLOT/Discount Impact Trend',
@@ -528,7 +315,7 @@ VALUES (
       ]
     }'
 ),
-(
+    (
     '019fff82-e31a-7430-9b0d-7d07b54cf0a2',
     'Refund Trend',
     'Executive Store Health/Discount & Refund/PLOT/Refund Trend',
@@ -588,7 +375,7 @@ VALUES (
       ]
     }'
 ),
-(
+    (
     '019fff82-e31a-7f7d-b294-6e3cc8e3a7a7',
     'Top Refunded Products',
     'Executive Store Health/Discount & Refund/PLOT/Top Refunded Products',
@@ -669,106 +456,6 @@ OFFSET COALESCE(:offset, 0)
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31a-7d0f-a3ed-86fca428844f',
-    'Inventory & Operations KPIs',
-    'Executive Store Health/Inventory & Operations/KPI/Inventory & Operations KPIs',
-    $$
-    WITH
-    /*comparison_window_cte*/
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT o.id,
-                   o.created_at::date AS day,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior,
-                   COALESCE(o.total_outstanding_amount, 0) AS outstanding
-            FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    period AS (
-        SELECT GREATEST(COALESCE(w.cur_end, (SELECT MAX(day) FROM scoped_orders WHERE is_current))
-                      - COALESCE(w.cur_start, (SELECT MIN(day) FROM scoped_orders WHERE is_current))
-                      + 1, 1) AS cur_days,
-               GREATEST(w.prv_end - w.prv_start + 1, 1) AS prv_days
-        FROM windows w
-    ),
-    variant_sales AS (
-        SELECT li.product_variant_id AS variant_id,
-               COALESCE(SUM(li.quantity) FILTER (WHERE s.is_current), 0) AS cur_units,
-               COALESCE(SUM(li.quantity) FILTER (WHERE s.is_prior),   0) AS prv_units,
-               COALESCE(SUM(li.original_unit_price * li.quantity)
-                        FILTER (WHERE s.is_current), 0) AS cur_revenue,
-               COALESCE(SUM(li.original_unit_price * li.quantity)
-                        FILTER (WHERE s.is_prior),   0) AS prv_revenue
-        FROM public.fact_order_line_items li
-        JOIN scoped_orders s ON s.id = li.order_id
-        GROUP BY li.product_variant_id
-    ),
-    variant_stock AS (
-        SELECT pv.id AS variant_id,
-               SUM(COALESCE(lvl.available_quantity, lvl.on_hand_quantity, 0)) AS available
-        FROM public.dim_inventory_levels lvl
-        JOIN public.dim_inventory_items ii ON ii.id = lvl.inventory_item_id
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        WHERE lvl.seller_id = :shopId
-        GROUP BY pv.id
-    ),
-    variant_risk AS (
-        SELECT vs.cur_revenue,
-               vs.prv_revenue,
-               st.available / NULLIF(vs.cur_units::numeric / p.cur_days, 0) AS cur_cover,
-               st.available / NULLIF(vs.prv_units::numeric / p.prv_days, 0) AS prv_cover
-        FROM variant_sales vs
-        JOIN variant_stock st ON st.variant_id = vs.variant_id
-        CROSS JOIN period p
-    ),
-    risk_totals AS (
-        SELECT COALESCE(SUM(cur_revenue) FILTER (WHERE cur_cover < 14), 0) AS cur_risk,
-               COALESCE(SUM(prv_revenue) FILTER (WHERE prv_cover < 14), 0) AS prv_risk
-        FROM variant_risk
-    ),
-    outstanding AS (
-        SELECT COALESCE(SUM(outstanding) FILTER (WHERE is_current), 0) AS cur_outstanding,
-               COALESCE(SUM(outstanding) FILTER (WHERE is_prior),   0) AS prv_outstanding
-        FROM scoped_orders
-    )
-    SELECT ROUND(rt.cur_risk, 2) AS low_stock_revenue_risk,
-           ROUND(100 * (rt.cur_risk - rt.prv_risk)
-                 / NULLIF(ABS(rt.prv_risk), 0), 2) AS low_stock_revenue_risk_divergence,
-           ROUND(o.cur_outstanding, 2) AS outstanding_amount,
-           ROUND(100 * (o.cur_outstanding - o.prv_outstanding)
-                 / NULLIF(ABS(o.prv_outstanding), 0), 2) AS outstanding_amount_divergence
-    FROM risk_totals rt
-    CROSS JOIN outstanding o
-    $$,
-    NULL,
-    'KPI',
-    60,
-    'Metrics tracking low-stock revenue risk and total outstanding unpaid order balances.',
-    '{
-      "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
-    }'
-),
-(
     '019fff82-e31a-74eb-9293-d7aa7f1356da',
     'Stock Value by Location',
     'Executive Store Health/Inventory & Operations/PLOT/Stock Value by Location',
@@ -803,7 +490,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31a-7323-8269-e6d293ea4b07',
     'Unfulfilled Revenue Risk',
     'Executive Store Health/Inventory & Operations/PLOT/Unfulfilled Revenue Risk',
@@ -848,7 +535,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31a-71ad-8841-83e7ba0a2123',
     'Fulfillment Status Mix',
     'Executive Store Health/Inventory & Operations/PLOT/Fulfillment Status Mix',
@@ -912,7 +599,7 @@ OFFSET COALESCE(:offset, 0)
       ]
     }'
 ),
-(
+    (
     '019fff82-e31a-7561-962f-82900d935653',
     'Inventory Risk by Product',
     'Executive Store Health/Inventory & Operations/PLOT/Inventory Risk by Product',
@@ -984,7 +671,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31a-7fd2-98bd-1d94abe28a36',
     'New vs Repeat Revenue',
     'Executive Store Health/Customer & Channel/PLOT/New vs Repeat Revenue',
@@ -1061,7 +748,7 @@ OFFSET COALESCE(:offset, 0)
       ]
     }'
 ),
-(
+    (
     '019fff82-e31a-7553-af0b-2fc2d407e2cb',
     'Top Customer Segments',
     'Executive Store Health/Customer & Channel/PLOT/Top Customer Segments',
@@ -1117,7 +804,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31a-7a80-b020-11c6d77f5502',
     'Sales by Channel',
     'Executive Store Health/Customer & Channel/PLOT/Sales by Channel',
@@ -1160,7 +847,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31a-7851-94f1-b2ed33f54156',
     'Channel Quality Matrix',
     'Executive Store Health/Customer & Channel/TABLE/Channel Quality Matrix',
@@ -1238,80 +925,6 @@ OFFSET COALESCE(:offset, 0)
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31a-7d26-8130-686674870f58',
-    'Payments & Risk KPIs',
-    'Executive Store Health/Payment & Business Risk/KPI/Payments & Risk KPIs',
-    $$
-    WITH
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT o.id,
-                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date))  AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)          AS is_prior,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
-            FROM public.fact_order_headers o
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    variant_cost AS (
-        SELECT pv.id AS variant_id,
-               AVG(ii.unit_cost) AS unit_cost
-        FROM public.dim_inventory_items ii
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        WHERE ii.seller_id = :shopId
-        GROUP BY pv.id
-    ),
-    order_totals AS (
-        SELECT COALESCE(SUM(net_sales) FILTER (WHERE is_current), 0) AS cur_net_sales,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_prior),   0) AS prv_net_sales
-        FROM scoped_orders
-    ),
-    cogs_totals AS (
-        SELECT COALESCE(SUM(li.quantity * vc.unit_cost) FILTER (WHERE s.is_current), 0) AS cur_cogs,
-               COALESCE(SUM(li.quantity * vc.unit_cost) FILTER (WHERE s.is_prior),   0) AS prv_cogs
-        FROM public.fact_order_line_items li
-        JOIN scoped_orders s ON s.id = li.order_id
-        LEFT JOIN variant_cost vc ON vc.variant_id = li.product_variant_id
-    ),
-    computed AS (
-        SELECT ot.cur_net_sales - ct.cur_cogs AS cur_margin,
-               ot.prv_net_sales - ct.prv_cogs AS prv_margin
-        FROM order_totals ot
-        CROSS JOIN cogs_totals ct
-    )
-    SELECT ROUND(c.cur_margin, 2) AS gross_margin_estimate,
-           ROUND(100 * (c.cur_margin - c.prv_margin)
-                 / NULLIF(ABS(c.prv_margin), 0), 2) AS gross_margin_estimate_divergence
-    FROM computed c
-    $$,
-    NULL,
-    'KPI',
-    60,
-    'Estimated gross margin vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
-    }'
-),
-(
     '019fff82-e31a-7585-80ff-4990966674d4',
     'Payment Method Mix',
     'Executive Store Health/Payment & Business Risk/PLOT/Payment Method Mix',
@@ -1352,7 +965,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31a-7ef0-9306-64b7d8c6b62d',
     'Transaction Fee Impact',
     'Executive Store Health/Payment & Business Risk/PLOT/Transaction Fee Impact',

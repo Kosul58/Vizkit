@@ -5,45 +5,6 @@
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff9a-1dfc-7913-b680-280fa241f5c5',
-    'Location Overview KPIs',
-    'Inventory Location/Location Overview/KPI/Location Overview KPIs',
-    '
-    WITH location_totals AS (
-        SELECT COUNT(*) FILTER (WHERE loc.is_active) AS active_locations,
-               COUNT(*) FILTER (WHERE loc.has_active_inventory) AS locations_with_active_inventory
-        FROM public.dim_inventory_locations loc
-        WHERE loc.seller_id = :shopId
-    ),
-    stock_totals AS (
-        SELECT COALESCE(SUM(il.on_hand_quantity), 0) AS total_stock
-        FROM public.dim_inventory_levels il
-        WHERE il.seller_id = :shopId
-          AND il.is_active = TRUE
-    )
-    SELECT lt.active_locations AS active_locations,
-           lt.locations_with_active_inventory AS locations_with_active_inventory,
-           st.total_stock AS total_stock_across_locations
-    FROM location_totals lt
-    CROSS JOIN stock_totals st
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Location overview KPIs showing count of active locations, locations with active inventory, and total stock across locations.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
     '019fff9a-1dfc-7221-83be-9ef1db174eef',
     'Stock by Location',
     'Inventory Location/Location Overview/PLOT/Stock by Location',
@@ -88,7 +49,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfc-7a67-a13a-f4be3232af49',
     'Available Stock by Location',
     'Inventory Location/Location Overview/PLOT/Available Stock by Location',
@@ -128,7 +89,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfc-7f1c-8633-d54b46a9f55e',
     'Location Inventory Summary',
     'Inventory Location/Location Overview/TABLE/Location Inventory Summary',
@@ -189,7 +150,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfc-7fe3-864f-63a5e46aba11',
     'SKU by Location Report',
     'Inventory Location/Location Overview/TABLE/SKU by Location Report',
@@ -257,35 +218,6 @@ OFFSET COALESCE(:offset, 0)
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff9a-1dfc-78bc-b6ad-abdbad79f1e3',
-    'Stock Status KPIs',
-    'Inventory Location/Inventory Health by Location/KPI/Stock Status KPIs',
-    '
-    SELECT COALESCE(SUM(il.available_quantity), 0) AS available_stock,
-           COALESCE(SUM(il.committed_quantity), 0) AS committed_stock,
-           COALESCE(SUM(il.reserved_quantity), 0)  AS reserved_stock,
-           COALESCE(SUM(il.damaged_quantity), 0)   AS damaged_stock
-    FROM public.dim_inventory_levels il
-    WHERE il.seller_id = :shopId
-      AND il.is_active = TRUE
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Inventory health KPIs evaluating total available stock, committed stock, reserved stock, and damaged stock.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
     '019fff9a-1dfc-79fc-9640-ef363d7491af',
     'Stock Composition by Location',
     'Inventory Location/Inventory Health by Location/PLOT/Stock Composition by Location',
@@ -335,7 +267,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfc-77e4-91ed-7ffbb2ad68bb',
     'Location Stock Health Matrix',
     'Inventory Location/Inventory Health by Location/PLOT/Location Stock Health Matrix',
@@ -379,7 +311,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfc-723b-8e67-79ec0caf69e6',
     'Damaged Stock by Location',
     'Inventory Location/Inventory Health by Location/PLOT/Damaged Stock by Location',
@@ -423,7 +355,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfc-771c-a028-9b840c9feeec',
     'Damaged / QC Stock Report',
     'Inventory Location/Inventory Health by Location/TABLE/Damaged / QC Stock Report',
@@ -484,35 +416,6 @@ OFFSET COALESCE(:offset, 0)
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff9a-1dfc-7cb8-9c5e-132d1a372cbe',
-    'Replenishment KPIs',
-    'Inventory Location/Replenishment & Stock Risk/KPI/Replenishment KPIs',
-    '
-    SELECT COUNT(*) FILTER (WHERE COALESCE(il.available_quantity, 0)
-                                 <= COALESCE(il.safety_stock_quantity, 0)) AS low_stock_skus,
-           COUNT(*) FILTER (WHERE COALESCE(il.available_quantity, 0) = 0)  AS out_of_stock_skus,
-           COALESCE(SUM(il.incoming_quantity), 0) AS incoming_stock
-    FROM public.dim_inventory_levels il
-    WHERE il.seller_id = :shopId
-      AND il.is_active = TRUE
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Replenishment KPIs tracking count of low stock SKUs, out of stock SKUs, and incoming stock quantity.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
     '019fff9a-1dfc-7902-8a87-fca49495f135',
     'Low-Stock SKUs by Location',
     'Inventory Location/Replenishment & Stock Risk/PLOT/Low-Stock SKUs by Location',
@@ -553,7 +456,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfc-7c07-a554-8e4ab001e903',
     'Out-of-Stock SKUs by Location',
     'Inventory Location/Replenishment & Stock Risk/PLOT/Out-of-Stock SKUs by Location',
@@ -594,7 +497,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfc-7c2d-beb8-ea50708414ee',
     'Incoming vs Available Stock',
     'Inventory Location/Replenishment & Stock Risk/PLOT/Incoming vs Available Stock',
@@ -636,7 +539,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfc-7b18-90b7-5eaf4d0062d7',
     'Low Stock by Location Report',
     'Inventory Location/Replenishment & Stock Risk/TABLE/Low Stock by Location Report',
@@ -694,7 +597,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfc-7fc3-8116-62b95b12534e',
     'Out-of-Stock by Location Report',
     'Inventory Location/Replenishment & Stock Risk/TABLE/Out-of-Stock by Location Report',
@@ -755,7 +658,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfd-7d7d-8b21-45a9066a365d',
     'Incoming Stock Report',
     'Inventory Location/Replenishment & Stock Risk/TABLE/Incoming Stock Report',
@@ -819,31 +722,6 @@ OFFSET COALESCE(:offset, 0)
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff9a-1dfd-7e79-83d1-5b9094a2b62e',
-    'Fulfillment Risk KPIs',
-    'Inventory Location/Fulfillment & Operational Risk/KPI/Fulfillment Risk KPIs',
-    '
-    SELECT COUNT(*) FILTER (WHERE loc.has_unfulfilled_orders) AS fulfillment_risk_locations
-    FROM public.dim_inventory_locations loc
-    WHERE loc.seller_id = :shopId
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Fulfillment risk KPI tracking count of locations with pending unfulfilled orders.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
     '019fff9a-1dfd-7a0e-baaf-247a79f97951',
     'Fulfillment Risk by Location',
     'Inventory Location/Fulfillment & Operational Risk/PLOT/Fulfillment Risk by Location',
@@ -883,7 +761,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfd-79fc-a01e-4d8faeede3a4',
     'Fulfillment Risk Report',
     'Inventory Location/Fulfillment & Operational Risk/TABLE/Fulfillment Risk Report',
@@ -949,38 +827,6 @@ OFFSET COALESCE(:offset, 0)
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff9a-1dfd-73f8-99c8-cf67c8421b51',
-    'Inventory Value KPIs',
-    'Inventory Location/Inventory Value & Asset Management/KPI/Inventory Value KPIs',
-    '
-    SELECT ROUND(COALESCE(SUM(COALESCE(il.on_hand_quantity, 0)
-                              * COALESCE(ii.unit_cost, 0)), 0), 2) AS inventory_value,
-           COALESCE(SUM(COALESCE(il.damaged_quantity, 0)
-                        + COALESCE(il.quality_control_quantity, 0)
-                        + COALESCE(il.reserved_quantity, 0)), 0) AS non_sellable_stock
-    FROM public.dim_inventory_levels il
-    LEFT JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
-                               AND ii.seller_id = :shopId
-    WHERE il.seller_id = :shopId
-      AND il.is_active = TRUE
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Inventory value KPIs tracking total on-hand inventory valuation and non-sellable stock quantity.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
     '019fff9a-1dfd-76e4-99d4-5168b37fb95f',
     'Inventory Value by Location',
     'Inventory Location/Inventory Value & Asset Management/PLOT/Inventory Value by Location',
@@ -1021,7 +867,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfd-73b5-a621-555bfce3e3ec',
     'Stock by City / Region',
     'Inventory Location/Inventory Value & Asset Management/PLOT/Stock by City / Region',
@@ -1066,7 +912,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfd-786b-996d-22cc13375928',
     'Inventory Value by Location Report',
     'Inventory Location/Inventory Value & Asset Management/TABLE/Inventory Value by Location Report',
@@ -1123,45 +969,6 @@ OFFSET COALESCE(:offset, 0)
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff9a-1dfd-7dde-b41a-49261098371d',
-    'Location Governance KPIs',
-    'Inventory Location/Location Governance & Special Operations/KPI/Location Governance KPIs',
-    '
-    WITH location_stock AS (
-        SELECT loc.id AS location_id,
-               COALESCE(loc.is_active, TRUE) AS is_active,
-               COALESCE(loc.is_fulfillment_service, FALSE) AS is_fulfillment_service,
-               COALESCE(SUM(il.on_hand_quantity), 0) AS on_hand_quantity
-        FROM public.dim_inventory_locations loc
-        LEFT JOIN public.dim_inventory_levels il
-               ON il.inventory_location_id = loc.id
-              AND il.seller_id = :shopId
-        WHERE loc.seller_id = :shopId
-        GROUP BY loc.id, loc.is_active, loc.is_fulfillment_service
-    )
-    SELECT COUNT(*) FILTER (WHERE NOT ls.is_active AND ls.on_hand_quantity > 0)
-             AS inactive_locations_with_stock,
-           COUNT(*) FILTER (WHERE ls.is_fulfillment_service)
-             AS fulfillment_service_locations
-    FROM location_stock ls
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Location governance KPIs tracking count of inactive locations retaining stock and fulfillment service locations count.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
     '019fff9a-1dfd-72e6-b151-76e45937aba1',
     'Inactive Location Stock Exposure',
     'Inventory Location/Location Governance & Special Operations/PLOT/Inactive Location Stock Exposure',
@@ -1203,7 +1010,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfd-76d4-9608-da40ce2f7995',
     'Inactive Location Stock Report',
     'Inventory Location/Location Governance & Special Operations/TABLE/Inactive Location Stock Report',
@@ -1257,7 +1064,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfd-74e2-b5f8-3f1a07395cb2',
     'Fulfillment Service Location Report',
     'Inventory Location/Location Governance & Special Operations/TABLE/Fulfillment Service Location Report',

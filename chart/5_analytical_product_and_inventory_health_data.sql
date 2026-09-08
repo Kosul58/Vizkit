@@ -5,109 +5,6 @@
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31e-7982-a4ad-54e5b0b51284',
-    'Inventory Health KPIs',
-    'Product & Inventory Health/Inventory Health/KPI/Inventory Health KPIs',
-    '
-    WITH
-    /*comparison_window_cte*/
-    sku_inventory AS (
-        SELECT pv.id AS variant_id,
-               SUM(COALESCE(il.available_quantity, 0)) AS available_quantity,
-               SUM(COALESCE(il.committed_quantity, 0)) AS committed_quantity,
-               SUM(COALESCE(il.reserved_quantity, 0)) AS reserved_quantity,
-               BOOL_OR(COALESCE(il.available_quantity, 0)
-                       <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
-        FROM public.dim_inventory_items ii
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
-        WHERE ii.seller_id = :shopId
-          AND il.seller_id = :shopId
-          AND il.is_active = TRUE
-        GROUP BY pv.id
-    ),
-    scoped_lines AS (
-        SELECT * FROM (
-            SELECT li.product_variant_id,
-                   li.quantity,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior
-            FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    sales AS (
-        SELECT product_variant_id,
-               COALESCE(SUM(quantity) FILTER (WHERE is_current), 0) AS cur_units,
-               COALESCE(SUM(quantity) FILTER (WHERE is_prior),   0) AS prv_units
-        FROM scoped_lines
-        GROUP BY product_variant_id
-    ),
-    rolled AS (
-        SELECT COALESCE(SUM(si.available_quantity + si.committed_quantity + si.reserved_quantity), 0)
-                 AS total_inventory_units,
-               COALESCE(SUM(si.available_quantity), 0) AS available_stock,
-               COUNT(*) FILTER (WHERE si.available_quantity > 0 AND si.any_location_low) AS low_stock_skus,
-               COUNT(*) FILTER (WHERE si.available_quantity <= 0) AS out_of_stock_skus,
-               COALESCE(SUM(s.cur_units), 0) AS cur_units,
-               COALESCE(SUM(s.prv_units), 0) AS prv_units
-         FROM sku_inventory si
-         LEFT JOIN sales s ON s.product_variant_id = si.variant_id
-    ),
-    computed AS (
-        SELECT r.total_inventory_units, r.available_stock, r.low_stock_skus, r.out_of_stock_skus,
-               ROUND(100.0 * r.cur_units
-                     / NULLIF(r.available_stock + r.cur_units, 0), 2) AS cur_sell_through,
-               ROUND(100.0 * r.prv_units
-                     / NULLIF(r.available_stock + r.prv_units, 0), 2) AS prv_sell_through
-        FROM rolled r
-    )
-    SELECT c.total_inventory_units AS total_inventory_units,
-           c.available_stock AS available_stock,
-           c.low_stock_skus AS low_stock_skus,
-           c.out_of_stock_skus AS out_of_stock_skus,
-           c.cur_sell_through AS sell_through_rate,
-           ROUND(100 * (c.cur_sell_through - c.prv_sell_through)
-                 / NULLIF(ABS(c.prv_sell_through), 0), 2) AS sell_through_rate_divergence
-    FROM computed c
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Overall inventory health metrics covering total units, available stock, low stock SKUs, out of stock SKUs, and sell-through rate %.',
-    '{
-      "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        {
-          "provider": "COMPARISON_WINDOW_CTE",
-          "condition": "hasFilter:startDate",
-          "placeholder": "/*comparison_window_cte*/",
-          "args": {
-            "currentStartParam": "currentStartDate",
-            "currentEndParam": "currentEndDate",
-            "priorStartParam": "priorStartDate",
-            "priorEndParam": "priorEndDate"
-          }
-        }
-      ]
-    }'
-),
-(
     '019fff82-e31e-7a30-9953-eb452bce7b85',
     'Stock Status Mix',
     'Product & Inventory Health/Inventory Health/PLOT/Stock Status Mix',
@@ -160,7 +57,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-7494-b147-e0825a13ad10',
     'Sell-Through by Product',
     'Product & Inventory Health/Inventory Health/PLOT/Sell-Through by Product',
@@ -222,7 +119,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-7a80-87d7-b73688031a3c',
     'Top Selling Products vs Available Stock',
     'Product & Inventory Health/Inventory Health/PLOT/Top Selling Products vs Available Stock',
@@ -280,7 +177,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-7c6d-8384-a1140a90563f',
     'Inventory Health Report',
     'Product & Inventory Health/Inventory Health/TABLE/Inventory Health Report',
@@ -342,7 +239,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-7ada-8e58-b9818b23a2bc',
     'Fast-Moving SKU Report',
     'Product & Inventory Health/Inventory Health/TABLE/Fast-Moving SKU Report',
@@ -426,125 +323,6 @@ VALUES (
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31e-72ff-b56a-7858f69bc0bf',
-    'Replenishment & Stock Risk KPIs',
-    'Product & Inventory Health/Replenishment & Stock Risk/KPI/Replenishment & Stock Risk KPIs',
-    '
-    WITH
-    /*comparison_window_cte*/
-    period AS (
-        SELECT GREATEST(COALESCE(w.cur_end, (SELECT MAX(o.created_at::date) FROM public.fact_order_headers o WHERE o.seller_id = :shopId AND o.test = FALSE ))
-                      - COALESCE(w.cur_start, (SELECT MIN(o.created_at::date) FROM public.fact_order_headers o WHERE o.seller_id = :shopId AND o.test = FALSE )) + 1, 1) AS cur_days,
-               GREATEST(w.prv_end - w.prv_start + 1, 1) AS prv_days
-        FROM windows w
-    ),
-    sku_inventory AS (
-        SELECT pv.id AS variant_id,
-               pv.price,
-               SUM(COALESCE(il.available_quantity, 0)) AS available_quantity,
-               BOOL_OR(COALESCE(il.available_quantity, 0)
-                       <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low,
-               SUM(COALESCE(il.incoming_quantity, 0)) AS incoming_quantity
-        FROM public.dim_inventory_items ii
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
-        WHERE ii.seller_id = :shopId
-          AND il.seller_id = :shopId
-          AND il.is_active = TRUE
-        GROUP BY pv.id, pv.price
-    ),
-    scoped_lines AS (
-        SELECT * FROM (
-            SELECT li.product_variant_id,
-                   li.quantity,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior
-            FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    sales AS (
-        SELECT product_variant_id,
-               COALESCE(SUM(quantity) FILTER (WHERE is_current), 0) AS cur_units,
-               COALESCE(SUM(quantity) FILTER (WHERE is_prior),   0) AS prv_units
-        FROM scoped_lines
-        GROUP BY product_variant_id
-    ),
-    velocity AS (
-        SELECT si.price,
-               si.available_quantity,
-               si.any_location_low,
-               si.incoming_quantity,
-               COALESCE(s.cur_units, 0)::numeric / per.cur_days AS cur_per_day,
-               COALESCE(s.prv_units, 0)::numeric / per.prv_days AS prv_per_day
-        FROM sku_inventory si
-        CROSS JOIN period per
-        LEFT JOIN sales s ON s.product_variant_id = si.variant_id
-    ),
-    computed AS (
-        SELECT ROUND(COALESCE(SUM(
-                   CASE WHEN any_location_low
-                        THEN cur_per_day
-                             * GREATEST(7 - available_quantity / NULLIF(cur_per_day, 0), 0)
-                             * COALESCE(price, 0)
-                        ELSE 0 END), 0), 2) AS cur_risk,
-               ROUND(COALESCE(SUM(
-                   CASE WHEN any_location_low
-                        THEN prv_per_day
-                             * GREATEST(7 - available_quantity / NULLIF(prv_per_day, 0), 0)
-                             * COALESCE(price, 0)
-                        ELSE 0 END), 0), 2) AS prv_risk,
-               ROUND(SUM(available_quantity) / NULLIF(SUM(cur_per_day), 0), 1) AS cur_cover,
-               ROUND(SUM(available_quantity) / NULLIF(SUM(prv_per_day), 0), 1) AS prv_cover,
-               COALESCE(SUM(incoming_quantity), 0) AS incoming_stock
-        FROM velocity
-    )
-    SELECT c.cur_risk AS low_stock_revenue_risk,
-           ROUND(100 * (c.cur_risk - c.prv_risk)
-                 / NULLIF(ABS(c.prv_risk), 0), 2) AS low_stock_revenue_risk_divergence,
-           c.cur_cover AS stock_coverage_days,
-           ROUND(100 * (c.cur_cover - c.prv_cover)
-                 / NULLIF(ABS(c.prv_cover), 0), 2) AS stock_coverage_days_divergence,
-           c.incoming_stock AS incoming_stock
-    FROM computed c
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Replenishment risk KPIs tracking low stock revenue risk, overall stock coverage days, and incoming stock.',
-    '{
-      "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        {
-          "provider": "COMPARISON_WINDOW_CTE",
-          "condition": "hasFilter:startDate",
-          "placeholder": "/*comparison_window_cte*/",
-          "args": {
-            "currentStartParam": "currentStartDate",
-            "currentEndParam": "currentEndDate",
-            "priorStartParam": "priorStartDate",
-            "priorEndParam": "priorEndDate"
-          }
-        }
-      ]
-    }'
-),
-(
     '019fff82-e31e-7fec-a16b-dd174e41fe83',
     'Low Stock Revenue Risk by SKU',
     'Product & Inventory Health/Replenishment & Stock Risk/PLOT/Low Stock Revenue Risk by SKU',
@@ -634,7 +412,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-7c77-934f-8e50724277f0',
     'Stock Coverage Days by SKU',
     'Product & Inventory Health/Replenishment & Stock Risk/PLOT/Stock Coverage Days by SKU',
@@ -708,7 +486,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-7a3e-859a-6ba09f321cc8',
     'Inventory Movement Trend',
     'Product & Inventory Health/Replenishment & Stock Risk/PLOT/Inventory Movement Trend',
@@ -784,7 +562,7 @@ VALUES (
       ]
     }'
 ),
-(
+    (
     '019fff82-e31e-7fbe-8a1d-8005aaea2a53',
     'Low Stock Report',
     'Product & Inventory Health/Replenishment & Stock Risk/TABLE/Low Stock Report',
@@ -870,7 +648,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-748e-b205-28aafe15d0e8',
     'Out of Stock Report',
     'Product & Inventory Health/Replenishment & Stock Risk/TABLE/Out of Stock Report',
@@ -963,98 +741,6 @@ VALUES (
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31e-744a-b513-00f6ebae2e7e',
-    'Inventory Value & Capital KPIs',
-    'Product & Inventory Health/Inventory Value & Capital/KPI/Inventory Value & Capital KPIs',
-    '
-    WITH
-    /*comparison_window_cte*/
-    sku_inventory AS (
-        SELECT pv.id AS variant_id,
-               ii.unit_cost,
-               SUM(COALESCE(il.on_hand_quantity, 0)) AS on_hand_quantity,
-               SUM(COALESCE(il.damaged_quantity, 0)) AS damaged_quantity
-        FROM public.dim_inventory_items ii
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
-        WHERE ii.seller_id = :shopId
-          AND il.seller_id = :shopId
-          AND il.is_active = TRUE
-        GROUP BY pv.id, ii.unit_cost
-    ),
-    scoped_lines AS (
-        SELECT * FROM (
-            SELECT li.product_variant_id,
-                   li.quantity,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior
-            FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    sales AS (
-        SELECT product_variant_id,
-               SUM(quantity) FILTER (WHERE is_current) AS cur_units,
-               SUM(quantity) FILTER (WHERE is_prior)   AS prv_units
-        FROM scoped_lines
-        GROUP BY product_variant_id
-    ),
-    computed AS (
-        SELECT ROUND(COALESCE(SUM(si.on_hand_quantity * COALESCE(si.unit_cost, 0)), 0), 2)
-                 AS inventory_value,
-               ROUND(COALESCE(SUM(si.on_hand_quantity * COALESCE(si.unit_cost, 0))
-                              FILTER (WHERE s.cur_units IS NULL), 0), 2) AS cur_dead,
-               ROUND(COALESCE(SUM(si.on_hand_quantity * COALESCE(si.unit_cost, 0))
-                              FILTER (WHERE s.prv_units IS NULL), 0), 2) AS prv_dead,
-               ROUND(COALESCE(SUM(si.damaged_quantity * COALESCE(si.unit_cost, 0)), 0), 2)
-                 AS damaged_stock_value
-        FROM sku_inventory si
-        LEFT JOIN sales s ON s.product_variant_id = si.variant_id
-    )
-    SELECT c.inventory_value AS inventory_value,
-           c.cur_dead AS dead_stock_value,
-           ROUND(100 * (c.cur_dead - c.prv_dead)
-                 / NULLIF(ABS(c.prv_dead), 0), 2) AS dead_stock_value_divergence,
-           c.damaged_stock_value AS damaged_stock_value
-    FROM computed c
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Capital valuation metrics tracking total inventory value, dead stock capital, and damaged stock value vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        {
-          "provider": "COMPARISON_WINDOW_CTE",
-          "condition": "hasFilter:startDate",
-          "placeholder": "/*comparison_window_cte*/",
-          "args": {
-            "currentStartParam": "currentStartDate",
-            "currentEndParam": "currentEndDate",
-            "priorStartParam": "priorStartDate",
-            "priorEndParam": "priorEndDate"
-          }
-        }
-      ]
-    }'
-),
-(
     '019fff82-e31e-78ef-874d-087573437963',
     'Inventory Value by Product',
     'Product & Inventory Health/Inventory Value & Capital/PLOT/Inventory Value by Product',
@@ -1096,7 +782,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-742f-b74d-ffe5fc4f9a83',
     'Dead Stock by Product',
     'Product & Inventory Health/Inventory Value & Capital/PLOT/Dead Stock by Product',
@@ -1153,7 +839,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-7dd0-8698-7e4c4a02a4c7',
     'Inventory Value Report',
     'Product & Inventory Health/Inventory Value & Capital/TABLE/Inventory Value Report',
@@ -1198,7 +884,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-71c6-b90c-0940ff0790c1',
     'Dead Stock Report',
     'Product & Inventory Health/Inventory Value & Capital/TABLE/Dead Stock Report',
@@ -1276,78 +962,6 @@ VALUES (
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31e-76cf-8717-df6af72da7c4',
-    'Fulfillment & Demand KPIs',
-    'Product & Inventory Health/Fulfillment & Demand/KPI/Fulfillment & Demand KPIs',
-    '
-    WITH
-    /*comparison_window_cte*/
-    inv AS (
-        SELECT SUM(COALESCE(il.committed_quantity, 0)) AS committed_quantity,
-               SUM(COALESCE(il.reserved_quantity, 0)) AS reserved_quantity
-        FROM public.dim_inventory_levels il
-        WHERE il.seller_id = :shopId
-          AND il.is_active = TRUE
-    ),
-    scoped_lines AS (
-        SELECT * FROM (
-            SELECT COALESCE(li.unfulfilled_quantity, 0) AS unfulfilled_quantity,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior
-            FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    unfulfilled AS (
-        SELECT COALESCE(SUM(unfulfilled_quantity) FILTER (WHERE is_current), 0) AS cur_unfulfilled,
-               COALESCE(SUM(unfulfilled_quantity) FILTER (WHERE is_prior),   0) AS prv_unfulfilled
-        FROM scoped_lines
-    )
-    SELECT COALESCE(inv.committed_quantity, 0) AS committed_stock,
-           COALESCE(inv.reserved_quantity, 0) AS reserved_stock,
-           u.cur_unfulfilled AS unfulfilled_stock_demand,
-           ROUND(100 * (u.cur_unfulfilled - u.prv_unfulfilled)
-                 / NULLIF(ABS(u.prv_unfulfilled), 0), 2) AS unfulfilled_stock_demand_divergence
-    FROM inv
-    CROSS JOIN unfulfilled u
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Demand KPIs evaluating committed stock, reserved stock, and unfulfilled stock demand volume vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        {
-          "provider": "COMPARISON_WINDOW_CTE",
-          "condition": "hasFilter:startDate",
-          "placeholder": "/*comparison_window_cte*/",
-          "args": {
-            "currentStartParam": "currentStartDate",
-            "currentEndParam": "currentEndDate",
-            "priorStartParam": "priorStartDate",
-            "priorEndParam": "priorEndDate"
-          }
-        }
-      ]
-    }'
-),
-(
     '019fff82-e31e-7ab0-8fde-619cbe1d3f63',
     'Unfulfilled Quantity by Product',
     'Product & Inventory Health/Fulfillment & Demand/PLOT/Unfulfilled Quantity by Product',
@@ -1390,7 +1004,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-7bfd-a6b5-2777df9b07ba',
     'Unfulfilled Inventory Report',
     'Product & Inventory Health/Fulfillment & Demand/TABLE/Unfulfilled Inventory Report',
@@ -1471,41 +1085,6 @@ VALUES (
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31e-766d-bf1f-31a4dc974d0b',
-    'Locations & Operations KPIs',
-    'Product & Inventory Health/Locations & Operations/KPI/Locations & Operations KPIs',
-    '
-    SELECT COUNT(*) AS active_inventory_locations
-    FROM (
-        SELECT loc.id
-        FROM public.dim_inventory_locations loc
-        JOIN public.dim_inventory_levels il ON il.inventory_location_id = loc.id
-        WHERE loc.seller_id = :shopId
-          AND loc.is_active = TRUE
-          AND il.is_active = TRUE
-        GROUP BY loc.id
-        HAVING SUM(COALESCE(il.available_quantity, 0)
-                 + COALESCE(il.committed_quantity, 0)
-                 + COALESCE(il.reserved_quantity, 0)) > 0
-    ) stocked_locations
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Count of active fulfillment locations holding active inventory stock.',
-    '{
-      "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
-      },
-      "excludeExtraParams": true
-    }'
-),
-(
     '019fff82-e31e-741a-9b77-036f24795d55',
     'Inventory by Location',
     'Product & Inventory Health/Locations & Operations/PLOT/Inventory by Location',
@@ -1539,7 +1118,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-7b01-8e90-b7e72ea47d3d',
     'Damaged / QC / Safety Stock Mix',
     'Product & Inventory Health/Locations & Operations/PLOT/Damaged / QC / Safety Stock Mix',
@@ -1575,7 +1154,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-7f12-862d-2a71d90c903a',
     'Location Stock Report',
     'Product & Inventory Health/Locations & Operations/TABLE/Location Stock Report',
@@ -1653,7 +1232,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-752c-8bf6-3c3f866777c0',
     'Inventory Value by Collection',
     'Product & Inventory Health/Vendor & Collection Analysis/PLOT/Inventory Value by Collection',
@@ -1691,7 +1270,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-7603-b866-cadd19d65482',
     'Origin Country Stock Mix',
     'Product & Inventory Health/Vendor & Collection Analysis/PLOT/Origin Country Stock Mix',
@@ -1726,7 +1305,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-706d-838e-ee315b8dde04',
     'Vendor Inventory Report',
     'Product & Inventory Health/Vendor & Collection Analysis/TABLE/Vendor Inventory Report',
@@ -1788,7 +1367,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31e-7e78-8f78-8a4b440e0b84',
     'Collection Inventory Report',
     'Product & Inventory Health/Vendor & Collection Analysis/TABLE/Collection Inventory Report',

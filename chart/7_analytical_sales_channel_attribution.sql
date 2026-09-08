@@ -4,7 +4,7 @@
 --comment seed Channel Performance tab
 
 INSERT INTO
-    chart (
+    vizkit.chart (
         id,
         name,
         purpose,
@@ -16,105 +16,6 @@ INSERT INTO
         configuration
     )
 VALUES (
-'019fffa2-0f80-7a28-bd46-3540650afb5d',
-        'Channel Performance KPIs',
-        'Sales Channel Attribution/Channel Performance/KPI/Channel Performance KPIs',
-        $$
-    WITH
-    /*comparison_window_cte*/
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior,
-COALESCE(
-    o.attribution_displayname,
-    o.order_app_name,
-    o.source_name,
-    'Unattributed'
-) AS channel,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
-FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-AND o.test = FALSE
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    order_totals AS (
-        SELECT COALESCE(SUM(net_sales) FILTER (WHERE is_current), 0) AS cur_net_sales,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_prior),   0) AS prv_net_sales,
-               COUNT(*) FILTER (WHERE is_current) AS cur_orders,
-               COUNT(*) FILTER (WHERE is_prior)   AS prv_orders
-        FROM scoped_orders
-    ),
-    channel_current AS (
-        SELECT channel,
-               SUM(net_sales) AS net_sales,
-               COUNT(*) AS orders,
-               SUM(net_sales) / NULLIF(COUNT(*), 0) AS aov
-        FROM scoped_orders
-        WHERE is_current
-        GROUP BY channel
-    ),
-    top_revenue AS (
-        SELECT channel
-        FROM channel_current
-        ORDER BY net_sales DESC NULLS LAST, channel ASC
-        LIMIT 1
-    ),
-    top_aov AS (
-        SELECT channel
-        FROM channel_current
-        ORDER BY aov DESC NULLS LAST, channel ASC
-        LIMIT 1
-    ),
-    computed AS (
-        SELECT ot.cur_net_sales, ot.prv_net_sales,
-               ot.cur_orders, ot.prv_orders,
-               ROUND(ot.cur_net_sales / NULLIF(ot.cur_orders, 0), 2) AS cur_aov,
-               ROUND(ot.prv_net_sales / NULLIF(ot.prv_orders, 0), 2) AS prv_aov
-        FROM order_totals ot
-    )
-    SELECT ROUND(c.cur_net_sales, 2) AS total_channel_revenue,
-           ROUND(100 * (c.cur_net_sales - c.prv_net_sales)
-                 / NULLIF(ABS(c.prv_net_sales), 0), 2) AS total_channel_revenue_divergence,
-           c.cur_orders AS channel_orders,
-           ROUND(100.0 * (c.cur_orders - c.prv_orders)
-                 / NULLIF(ABS(c.prv_orders), 0), 2) AS channel_orders_divergence,
-           c.cur_aov AS channel_aov,
-           ROUND(100 * (c.cur_aov - c.prv_aov)
-                 / NULLIF(ABS(c.prv_aov), 0), 2) AS channel_aov_divergence,
-           COALESCE(tr.channel, 'No data') AS top_revenue_channel,
-           COALESCE(ta.channel, 'No data') AS top_aov_channel
-    FROM computed c
-    LEFT JOIN top_revenue tr ON TRUE
-    LEFT JOIN top_aov     ta ON TRUE
-    $$,
-NULL,
-        'KPI',
-        60,
-        'Sales channel KPIs evaluating total channel revenue, total channel orders, channel AOV, top revenue channel, and top AOV channel.',
-        '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
-    }'
-),
-(
 '019fffa2-0f80-77ca-b168-dec3d25e1385',
         'Revenue by Channel',
         'Sales Channel Attribution/Channel Performance/PLOT/Revenue by Channel',
@@ -156,7 +57,7 @@ NULL,
       "excludeExtraParams": true
     }'
 ),
-(
+    (
 '019fffa2-0f80-75e3-b775-87a0a8633e24',
         'Orders by Channel',
         'Sales Channel Attribution/Channel Performance/PLOT/Orders by Channel',
@@ -195,7 +96,7 @@ NULL,
       "excludeExtraParams": true
     }'
 ),
-(
+    (
 '019fffa2-0f80-7d9e-8291-cc8dd6928cfd',
         'Channel AOV Comparison',
         'Sales Channel Attribution/Channel Performance/PLOT/Channel AOV Comparison',
@@ -237,7 +138,7 @@ NULL,
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fffa2-0f80-777c-ae56-782c587a8bde',
         'Channel Revenue Trend',
         'Sales Channel Attribution/Channel Performance/PLOT/Channel Revenue Trend',
@@ -322,7 +223,7 @@ NULL,
       ]
     }'
 ),
-(
+    (
 '019fffa2-0f80-7889-9761-5bc951290334',
         'Channel Performance Report',
         'Sales Channel Attribution/Channel Performance/TABLE/Channel Performance Report',
@@ -398,7 +299,7 @@ NULL,
       "excludeExtraParams": true
     }'
 ),
-(
+    (
 '019fffa2-0f80-7a6c-a7fa-d1b9b8e71fd8',
         'Channel Order Detail Report',
         'Sales Channel Attribution/Channel Performance/TABLE/Channel Order Detail Report',
@@ -477,7 +378,7 @@ NULL,
 --comment seed Channel Quality & Profitability tab
 
 INSERT INTO
-    chart (
+    vizkit.chart (
         id,
         name,
         purpose,
@@ -489,89 +390,6 @@ INSERT INTO
         configuration
     )
 VALUES (
-'019fffa2-0f80-7819-9ed6-49cfe9e1ccfc',
-        'Channel Quality KPIs',
-        'Sales Channel Attribution/Channel Quality & Profitability/KPI/Channel Quality KPIs',
-        '
-    WITH
-    /*comparison_window_cte*/
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT o.id,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior,
-                   COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales,
-                   COALESCE(o.total_discounts_amount, 0) AS discounts,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
-FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-AND o.test = FALSE
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    order_totals AS (
-        SELECT COALESCE(SUM(gross_sales) FILTER (WHERE is_current), 0) AS cur_gross,
-               COALESCE(SUM(gross_sales) FILTER (WHERE is_prior),   0) AS prv_gross,
-               COALESCE(SUM(discounts) FILTER (WHERE is_current), 0) AS cur_discounts,
-               COALESCE(SUM(discounts) FILTER (WHERE is_prior),   0) AS prv_discounts,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_current), 0) AS cur_net,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_prior),   0) AS prv_net
-        FROM scoped_orders
-    ),
-    refund_totals AS (
-        SELECT COALESCE(SUM(COALESCE(r.total_refunded_amount, 0))
-                        FILTER (WHERE s.is_current), 0) AS cur_refunded,
-               COALESCE(SUM(COALESCE(r.total_refunded_amount, 0))
-                        FILTER (WHERE s.is_prior),   0) AS prv_refunded
-FROM public.fact_order_refunds r
-        JOIN scoped_orders s ON s.id = r.order_id
-    ),
-    computed AS (
-        SELECT ot.cur_net, ot.prv_net,
-               ROUND(100 * rt.cur_refunded / NULLIF(ot.cur_gross, 0), 2) AS cur_refund_rate,
-               ROUND(100 * rt.prv_refunded / NULLIF(ot.prv_gross, 0), 2) AS prv_refund_rate,
-               ROUND(100 * ot.cur_discounts / NULLIF(ot.cur_gross, 0), 2) AS cur_discount_rate,
-               ROUND(100 * ot.prv_discounts / NULLIF(ot.prv_gross, 0), 2) AS prv_discount_rate
-        FROM order_totals ot
-        CROSS JOIN refund_totals rt
-    )
-    SELECT ROUND(c.cur_net, 2) AS net_revenue_after_refunds,
-           ROUND(100 * (c.cur_net - c.prv_net)
-                 / NULLIF(ABS(c.prv_net), 0), 2) AS net_revenue_after_refunds_divergence,
-           c.cur_refund_rate AS channel_refund_rate,
-           ROUND(100 * (c.cur_refund_rate - c.prv_refund_rate)
-                 / NULLIF(ABS(c.prv_refund_rate), 0), 2) AS channel_refund_rate_divergence,
-           c.cur_discount_rate AS channel_discount_rate,
-           ROUND(100 * (c.cur_discount_rate - c.prv_discount_rate)
-                 / NULLIF(ABS(c.prv_discount_rate), 0), 2) AS channel_discount_rate_divergence
-    FROM computed c
-    ',
-NULL,
-        'KPI',
-        60,
-        'Quality KPIs evaluating net revenue after refunds, overall channel refund rate %, and channel discount rate % vs prior period.',
-        '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
-    }'
-),
-(
         '019fffa2-0f80-77bd-8a78-95f23c54470b',
         'Channel Quality Matrix',
         'Sales Channel Attribution/Channel Quality & Profitability/TABLE/Channel Quality Matrix',
@@ -643,7 +461,7 @@ NULL,
       "excludeExtraParams": true
     }'
 ),
-(
+    (
 '019fffa2-0f80-75b9-ab4b-b31d2a23ed61',
         'Net Revenue After Refunds by Channel',
         'Sales Channel Attribution/Channel Quality & Profitability/PLOT/Net Revenue After Refunds by Channel',
@@ -685,7 +503,7 @@ NULL,
       "excludeExtraParams": true
     }'
 ),
-(
+    (
 '019fffa2-0f80-70c4-9a28-0385c2cf3627',
         'Refund Rate by Channel',
         'Sales Channel Attribution/Channel Quality & Profitability/PLOT/Refund Rate by Channel',
@@ -743,7 +561,7 @@ NULL,
       "excludeExtraParams": true
     }'
 ),
-(
+    (
 '019fffa2-0f80-776e-972e-acecde275b53',
         'Discount Rate by Channel',
         'Sales Channel Attribution/Channel Quality & Profitability/PLOT/Discount Rate by Channel',
@@ -785,7 +603,7 @@ NULL,
       "excludeExtraParams": true
     }'
 ),
-(
+    (
 '019fffa2-0f80-7da9-bd88-43e4b7c25702',
         'Channel Quality Report',
         'Sales Channel Attribution/Channel Quality & Profitability/TABLE/Channel Quality Report',
@@ -861,7 +679,7 @@ NULL,
       "excludeExtraParams": true
     }'
 ),
-(
+    (
 '019fffa2-0f80-770e-8d37-2f7fa9a51a10',
         'Channel Refund Report',
         'Sales Channel Attribution/Channel Quality & Profitability/TABLE/Channel Refund Report',
@@ -955,7 +773,7 @@ NULL,
 --comment seed Marketing Attribution tab
 
 INSERT INTO
-    chart (
+    vizkit.chart (
         id,
         name,
         purpose,
@@ -967,110 +785,6 @@ INSERT INTO
         configuration
     )
 VALUES (
-'019fffa2-0f80-7d69-850d-7e635d094b1d',
-        'Marketing Attribution KPIs',
-        'Sales Channel Attribution/Marketing Attribution/KPI/Marketing Attribution KPIs',
-        '
-    WITH
-    /*comparison_window_cte*/
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior,
-LOWER(NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,source}''), '''')) AS utm_source,
-                   LOWER(NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,medium}''), '''')) AS utm_medium,
-                   NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,campaign}''), '''') AS utm_campaign,
-                   o.customer_journey_summary #>> ''{lastVisit,referrerUrl}'' AS referring_site,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
-FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-AND o.test = FALSE
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    classified AS (
-        SELECT s.is_current,
-               s.is_prior,
-               s.net_sales,
-               (s.utm_source IS NOT NULL
-             OR s.utm_medium IS NOT NULL
-             OR s.utm_campaign IS NOT NULL) AS has_utm,
-               (s.referring_site IS NOT NULL) AS has_referral,
-               CASE WHEN s.utm_medium IN (''cpc'', ''ppc'', ''paid'', ''paidsearch'', ''paid_search'',
-                                          ''paid-search'', ''cpm'', ''cpv'', ''display'', ''banner'',
-                                          ''retargeting'')                                   THEN 1
-                    WHEN s.utm_medium IN (''organic'', ''seo'', ''organic_search'',
-                                          ''organic-search'')                                THEN 2
-                    WHEN s.utm_medium IN (''referral'', ''referrer'', ''ref'')                THEN 3
-                    WHEN s.utm_medium IN (''email'', ''e-mail'', ''newsletter'', ''mail'')     THEN 4
-                    WHEN s.utm_medium IN (''social'', ''social_media'', ''social-media'',
-                                          ''socialmedia'', ''sm'', ''facebook'', ''instagram'',
-                                          ''twitter'', ''tiktok'', ''pinterest'', ''linkedin'') THEN 5
-                    ELSE 6 END AS medium_group
-        FROM scoped_orders s
-    ),
-    totals AS (
-        SELECT COALESCE(SUM(net_sales) FILTER (WHERE is_current AND has_utm), 0) AS cur_utm_rev,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_prior   AND has_utm), 0) AS prv_utm_rev,
-               COUNT(*) FILTER (WHERE is_current AND has_utm) AS cur_utm_orders,
-               COUNT(*) FILTER (WHERE is_prior   AND has_utm) AS prv_utm_orders,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_current AND has_referral), 0) AS cur_ref_rev,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_prior   AND has_referral), 0) AS prv_ref_rev,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_current AND medium_group = 1), 0) AS cur_paid_rev,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_prior   AND medium_group = 1), 0) AS prv_paid_rev,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_current), 0) AS cur_total_rev,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_prior),   0) AS prv_total_rev
-        FROM classified
-    ),
-    computed AS (
-        SELECT t.cur_utm_rev, t.prv_utm_rev,
-               t.cur_ref_rev, t.prv_ref_rev,
-               ROUND(t.cur_utm_rev / NULLIF(t.cur_utm_orders, 0), 2) AS cur_utm_aov,
-               ROUND(t.prv_utm_rev / NULLIF(t.prv_utm_orders, 0), 2) AS prv_utm_aov,
-               ROUND(100 * t.cur_paid_rev / NULLIF(t.cur_total_rev, 0), 2) AS cur_paid_share,
-               ROUND(100 * t.prv_paid_rev / NULLIF(t.prv_total_rev, 0), 2) AS prv_paid_share
-        FROM totals t
-    )
-    SELECT ROUND(c.cur_utm_rev, 2) AS utm_revenue,
-           ROUND(100 * (c.cur_utm_rev - c.prv_utm_rev)
-                 / NULLIF(ABS(c.prv_utm_rev), 0), 2) AS utm_revenue_divergence,
-           c.cur_utm_aov AS utm_aov,
-           ROUND(100 * (c.cur_utm_aov - c.prv_utm_aov)
-                 / NULLIF(ABS(c.prv_utm_aov), 0), 2) AS utm_aov_divergence,
-           ROUND(c.cur_ref_rev, 2) AS referral_revenue,
-           ROUND(100 * (c.cur_ref_rev - c.prv_ref_rev)
-                 / NULLIF(ABS(c.prv_ref_rev), 0), 2) AS referral_revenue_divergence,
-           COALESCE(c.cur_paid_share, 0) AS paid_revenue_share,
-           ROUND(100 * (c.cur_paid_share - c.prv_paid_share)
-                 / NULLIF(ABS(c.prv_paid_share), 0), 2) AS paid_revenue_share_divergence
-    FROM computed c
-    ',
-NULL,
-        'KPI',
-        60,
-        'Marketing KPIs tracking UTM-tagged revenue, UTM AOV, referral site revenue, and paid media revenue share % vs prior period.',
-        '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
-    }'
-),
-(
 '019fffa2-0f80-70ef-9a0f-c359403e905d',
         'UTM Campaign Revenue',
         'Sales Channel Attribution/Marketing Attribution/PLOT/UTM Campaign Revenue',
@@ -1111,7 +825,7 @@ NULL,
       "excludeExtraParams": true
     }'
 ),
-(
+    (
 '019fffa2-0f80-71ce-a2f8-1d91eb3cf4e6',
         'UTM Source / Medium Performance',
         'Sales Channel Attribution/Marketing Attribution/PLOT/UTM Source / Medium Performance',
@@ -1161,7 +875,7 @@ NULL,
       "excludeExtraParams": true
     }'
 ),
-(
+    (
 '019fffa2-0f80-73f6-a81c-b324e3603939',
         'Referral Site Revenue',
         'Sales Channel Attribution/Marketing Attribution/PLOT/Referral Site Revenue',
@@ -1202,7 +916,7 @@ NULL,
       "excludeExtraParams": true
     }'
 ),
-(
+    (
 '019fffa2-0f80-79ee-84eb-b644d7b1d5c4',
         'Paid vs Organic Revenue Mix',
         'Sales Channel Attribution/Marketing Attribution/PLOT/Paid vs Organic Revenue Mix',
@@ -1266,7 +980,7 @@ NULL,
       "excludeExtraParams": true
     }'
 ),
-(
+    (
 '019fffa2-0f80-7510-8c97-1bd21c12e627',
         'UTM Campaign Report',
         'Sales Channel Attribution/Marketing Attribution/TABLE/UTM Campaign Report',
@@ -1345,7 +1059,7 @@ NULL,
       "excludeExtraParams": true
     }'
 ),
-(
+    (
 '019fffa2-0f80-71e2-b91c-c916a676dd3e',
         'Referral Site Report',
         'Sales Channel Attribution/Marketing Attribution/TABLE/Referral Site Report',
@@ -1399,7 +1113,7 @@ NULL,
 --comment seed Attribution Health tab
 
 INSERT INTO
-    chart (
+    vizkit.chart (
         id,
         name,
         purpose,
@@ -1411,65 +1125,6 @@ INSERT INTO
         configuration
     )
 VALUES (
-'019fffa2-0f80-7305-bd5d-53ae0ca111f1',
-        'Orders Without Attribution',
-        'Sales Channel Attribution/Attribution Health/KPI/Orders Without Attribution',
-        '
-    WITH
-    /*comparison_window_cte*/
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior,
-(NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,source}''), '''') IS NULL
-                AND NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,medium}''), '''') IS NULL
-                AND NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,campaign}''), '''') IS NULL) AS missing_utm,
-                   (o.customer_journey_summary #>> ''{lastVisit,referrerUrl}'' IS NULL) AS missing_referring_site,
-                   (o.attribution_displayname IS NULL
-                AND o.order_app_id IS NULL
-                AND NULLIF(TRIM(o.source_name), '''') IS NULL) AS missing_channel
-FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-AND o.test = FALSE
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    totals AS (
-        SELECT COUNT(*) FILTER (WHERE is_current
-                            AND (missing_utm OR missing_referring_site OR missing_channel)) AS cur_gap,
-               COUNT(*) FILTER (WHERE is_prior
-                            AND (missing_utm OR missing_referring_site OR missing_channel)) AS prv_gap
-        FROM scoped_orders
-    )
-    SELECT t.cur_gap AS orders_without_attribution,
-           ROUND(100.0 * (t.cur_gap - t.prv_gap)
-                 / NULLIF(ABS(t.prv_gap), 0), 2) AS orders_without_attribution_divergence
-    FROM totals t
-    ',
-NULL,
-        'KPI',
-        60,
-        'Attribution health KPI tracking count of orders lacking attribution tracking data vs prior period.',
-        '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
-    }'
-),
-(
 '019fffa2-0f80-7aec-b21a-cf83cf3fd204',
         'Unattributed Orders Trend',
         'Sales Channel Attribution/Attribution Health/PLOT/Unattributed Orders Trend',
@@ -1538,7 +1193,7 @@ NULL,
       ]
     }'
 ),
-(
+    (
 '019fffa2-0f80-77e4-8127-7707ab16f3d5',
         'Attribution Gap Report',
         'Sales Channel Attribution/Attribution Health/TABLE/Attribution Gap Report',
@@ -1602,7 +1257,7 @@ NULL,
 --comment seed Customer Quality tab
 
 INSERT INTO
-    chart (
+    vizkit.chart (
         id,
         name,
         purpose,
@@ -1721,7 +1376,7 @@ NULL,
 --comment seed Operations & Fulfillment tab
 
 INSERT INTO
-    chart (
+    vizkit.chart (
         id,
         name,
         purpose,
@@ -1733,70 +1388,6 @@ INSERT INTO
         configuration
     )
 VALUES (
-'019fffa2-0f80-787c-ab20-d084e6171e29',
-        'Channel Operations KPIs',
-        'Sales Channel Attribution/Operations & Fulfillment/KPI/Channel Operations KPIs',
-        '
-    WITH
-    /*comparison_window_cte*/
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT o.id,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior,
-                   COALESCE(o.current_total_tax, 0) AS tax
-FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-AND o.test = FALSE
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    tax_totals AS (
-        SELECT COALESCE(SUM(tax) FILTER (WHERE is_current), 0) AS cur_tax,
-               COALESCE(SUM(tax) FILTER (WHERE is_prior),   0) AS prv_tax
-        FROM scoped_orders
-    ),
-    unfulfilled_totals AS (
-        SELECT COALESCE(SUM(COALESCE(li.unfulfilled_discounted_total_amount, 0))
-                        FILTER (WHERE s.is_current), 0) AS cur_unfulfilled,
-               COALESCE(SUM(COALESCE(li.unfulfilled_discounted_total_amount, 0))
-                        FILTER (WHERE s.is_prior),   0) AS prv_unfulfilled
-FROM public.fact_order_line_items li
-        JOIN scoped_orders s ON s.id = li.order_id
-    )
-    SELECT ROUND(t.cur_tax, 2) AS channel_tax_collected,
-           ROUND(100 * (t.cur_tax - t.prv_tax)
-                 / NULLIF(ABS(t.prv_tax), 0), 2) AS channel_tax_collected_divergence,
-           ROUND(u.cur_unfulfilled, 2) AS channel_fulfillment_risk,
-           ROUND(100 * (u.cur_unfulfilled - u.prv_unfulfilled)
-                 / NULLIF(ABS(u.prv_unfulfilled), 0), 2) AS channel_fulfillment_risk_divergence
-    FROM tax_totals t
-    CROSS JOIN unfulfilled_totals u
-    ',
-NULL,
-        'KPI',
-        60,
-        'Channel operations KPIs tracking total tax collected and unfulfilled dollar risk vs prior period.',
-        '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
-    }'
-),
-(
 '019fffa2-0f80-763a-b2bb-f4448a711028',
         'Channel Fulfillment Backlog',
         'Sales Channel Attribution/Operations & Fulfillment/PLOT/Channel Fulfillment Backlog',
@@ -1848,7 +1439,7 @@ NULL,
       "excludeExtraParams": true
     }'
 ),
-(
+    (
 '019fffa2-0f80-7234-9907-dd1623f04383',
         'Channel Geography Mix',
         'Sales Channel Attribution/Operations & Fulfillment/PLOT/Channel Geography Mix',
@@ -1909,7 +1500,7 @@ NULL,
       "excludeExtraParams": true
     }'
 ),
-(
+    (
 '019fffa2-0f80-7abe-96ab-bc331790de2d',
         'Channel Fulfillment Report',
         'Sales Channel Attribution/Operations & Fulfillment/TABLE/Channel Fulfillment Report',

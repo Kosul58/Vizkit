@@ -5,121 +5,6 @@
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31b-7b01-ac42-94e645ff7ab3',
-    'Refund KPIs',
-    'Refunds & Reversals/Refund Overview/KPI/Refund KPIs',
-    $$
-    WITH
-    /*comparison_window_cte*/
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT o.id,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior
-            FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    order_totals AS (
-        SELECT COUNT(*) FILTER (WHERE is_current) AS cur_orders,
-               COUNT(*) FILTER (WHERE is_prior)   AS prv_orders
-        FROM scoped_orders
-    ),
-    gross_totals AS (
-        SELECT COALESCE(SUM(COALESCE(li.original_total_amount, li.original_unit_price * li.quantity, 0))
-                        FILTER (WHERE s.is_current), 0) AS cur_gross,
-               COALESCE(SUM(COALESCE(li.original_total_amount, li.original_unit_price * li.quantity, 0))
-                        FILTER (WHERE s.is_prior),   0) AS prv_gross
-        FROM public.fact_order_line_items li
-        JOIN scoped_orders s ON s.id = li.order_id
-    ),
-    scoped_refunds AS (
-        SELECT * FROM (
-            SELECT r.order_id,
-                   ((w.cur_start IS NULL OR COALESCE(r.processed_at, r.created_at)::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR COALESCE(r.processed_at, r.created_at)::date <= w.cur_end))
-                     AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND COALESCE(r.processed_at, r.created_at)::date
-                    BETWEEN w.prv_start AND w.prv_end)                        AS is_prior,
-                   COALESCE(r.total_refunded_amount, 0) AS amount
-            FROM public.fact_order_refunds r
-            JOIN public.fact_order_headers o ON o.id = r.order_id
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    refund_totals AS (
-        SELECT COALESCE(SUM(amount) FILTER (WHERE is_current), 0) AS cur_refunded,
-               COALESCE(SUM(amount) FILTER (WHERE is_prior),   0) AS prv_refunded,
-               COUNT(*) FILTER (WHERE is_current) AS cur_refund_count,
-               COUNT(*) FILTER (WHERE is_prior)   AS prv_refund_count,
-               COUNT(DISTINCT order_id) FILTER (WHERE is_current) AS cur_refunded_orders,
-               COUNT(DISTINCT order_id) FILTER (WHERE is_prior)   AS prv_refunded_orders
-        FROM scoped_refunds
-    ),
-    computed AS (
-        SELECT rt.cur_refunded, rt.prv_refunded,
-               rt.cur_refunded_orders, rt.prv_refunded_orders,
-               ROUND(100 * rt.cur_refunded / NULLIF(g.cur_gross, 0), 2) AS cur_rate_by_value,
-               ROUND(100 * rt.prv_refunded / NULLIF(g.prv_gross, 0), 2) AS prv_rate_by_value,
-               ROUND(100 * rt.cur_refunded_orders::numeric
-                     / NULLIF(ot.cur_orders, 0), 2) AS cur_order_rate,
-               ROUND(100 * rt.prv_refunded_orders::numeric
-                     / NULLIF(ot.prv_orders, 0), 2) AS prv_order_rate,
-               ROUND(rt.cur_refunded / NULLIF(rt.cur_refund_count, 0), 2) AS cur_avg_refund,
-               ROUND(rt.prv_refunded / NULLIF(rt.prv_refund_count, 0), 2) AS prv_avg_refund
-        FROM refund_totals rt
-        CROSS JOIN gross_totals g
-        CROSS JOIN order_totals ot
-    )
-    SELECT ROUND(c.cur_refunded, 2) AS total_refunded_amount,
-           ROUND(100 * (c.cur_refunded - c.prv_refunded)
-                 / NULLIF(ABS(c.prv_refunded), 0), 2) AS total_refunded_amount_divergence,
-           c.cur_rate_by_value AS refund_rate_by_value,
-           ROUND(100 * (c.cur_rate_by_value - c.prv_rate_by_value)
-                 / NULLIF(ABS(c.prv_rate_by_value), 0), 2) AS refund_rate_by_value_divergence,
-           c.cur_refunded_orders AS refunded_orders,
-           ROUND(100 * (c.cur_refunded_orders - c.prv_refunded_orders)
-                 / NULLIF(ABS(c.prv_refunded_orders), 0), 2) AS refunded_orders_divergence,
-           c.cur_order_rate AS refunded_order_rate,
-           ROUND(100 * (c.cur_order_rate - c.prv_order_rate)
-                 / NULLIF(ABS(c.prv_order_rate), 0), 2) AS refunded_order_rate_divergence,
-           c.cur_avg_refund AS average_refund_value,
-           ROUND(100 * (c.cur_avg_refund - c.prv_avg_refund)
-                 / NULLIF(ABS(c.prv_avg_refund), 0), 2) AS average_refund_value_divergence
-    FROM computed c
-    $$,
-    NULL,
-    'KPI',
-    60,
-    'Core refund KPIs tracking refunded total, refund rates %, refunded order volume, and average refund value vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
-    }'
-),
-(
     '019fff82-e31b-748a-8425-3bb474a85b65',
     'Refund Trend',
     'Refunds & Reversals/Refund Overview/PLOT/Refund Trend',
@@ -179,7 +64,7 @@ VALUES (
       ]
     }'
 ),
-(
+    (
     '019fff82-e31b-74ba-ba74-370b43f625be',
     'Refund Rate Trend',
     'Refunds & Reversals/Refund Overview/PLOT/Refund Rate Trend',
@@ -255,7 +140,7 @@ VALUES (
       ]
     }'
 ),
-(
+    (
     '019fff82-e31b-79f4-9202-7fba04cbf8de',
     'Refunds vs Sales',
     'Refunds & Reversals/Refund Overview/PLOT/Refunds vs Sales',
@@ -332,7 +217,7 @@ VALUES (
       ]
     }'
 ),
-(
+    (
     '019fff82-e31b-75ee-96c8-10a77eeb0a92',
     'Refunded Orders Report',
     'Refunds & Reversals/Refund Overview/TABLE/Refunded Orders Report',
@@ -400,101 +285,6 @@ VALUES (
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31b-7388-b15e-8f691b1e7b67',
-    'Refund Financial KPIs',
-    'Refunds & Reversals/Revenue Impact/KPI/Refund Financial KPIs',
-    $$
-    WITH
-    /*comparison_window_cte*/
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT o.id,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior,
-                   COALESCE(o.total_refunded_shipping_amount, 0) AS refunded_shipping
-            FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    shipping_totals AS (
-        SELECT COALESCE(SUM(refunded_shipping) FILTER (WHERE is_current), 0) AS cur_shipping,
-               COALESCE(SUM(refunded_shipping) FILTER (WHERE is_prior),   0) AS prv_shipping
-        FROM scoped_orders
-    ),
-    discount_totals AS (
-        SELECT COALESCE(SUM(COALESCE(li.total_discount_amount, 0)
-                 * (li.quantity - COALESCE(li.refundable_quantity, li.quantity))::numeric
-                 / NULLIF(li.quantity, 0)) FILTER (WHERE s.is_current), 0) AS cur_discount,
-               COALESCE(SUM(COALESCE(li.total_discount_amount, 0)
-                 * (li.quantity - COALESCE(li.refundable_quantity, li.quantity))::numeric
-                 / NULLIF(li.quantity, 0)) FILTER (WHERE s.is_prior),   0) AS prv_discount
-        FROM public.fact_order_line_items li
-        JOIN scoped_orders s ON s.id = li.order_id
-    ),
-    scoped_txns AS (
-        SELECT * FROM (
-            SELECT ((w.cur_start IS NULL OR t.processed_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR t.processed_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND t.processed_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior,
-                   COALESCE(t.amount, 0) AS amount
-            FROM public.fact_order_transactions t
-            JOIN public.fact_order_headers o ON o.id = t.order_id
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-              AND t.test = FALSE
-              AND t.kind = 'REFUND'
-              AND t.status = 'SUCCESS'
-        ) x
-        WHERE x.is_current OR x.is_prior
-    ),
-    txn_totals AS (
-        SELECT COALESCE(SUM(amount) FILTER (WHERE is_current), 0) AS cur_txn,
-               COALESCE(SUM(amount) FILTER (WHERE is_prior),   0) AS prv_txn
-        FROM scoped_txns
-    )
-    SELECT ROUND(s.cur_shipping, 2) AS refunded_shipping_amount,
-           ROUND(100 * (s.cur_shipping - s.prv_shipping)
-                 / NULLIF(ABS(s.prv_shipping), 0), 2) AS refunded_shipping_amount_divergence,
-           ROUND(x.cur_txn, 2) AS refund_transaction_amount,
-           ROUND(100 * (x.cur_txn - x.prv_txn)
-                 / NULLIF(ABS(x.prv_txn), 0), 2) AS refund_transaction_amount_divergence,
-           ROUND(d.cur_discount, 2) AS refunded_discount_value,
-           ROUND(100 * (d.cur_discount - d.prv_discount)
-                 / NULLIF(ABS(d.prv_discount), 0), 2) AS refunded_discount_value_divergence
-    FROM shipping_totals s
-    CROSS JOIN txn_totals x
-    CROSS JOIN discount_totals d
-    $$,
-    NULL,
-    'KPI',
-    60,
-    'Financial KPIs tracking refunded shipping, transaction amounts, and refunded discount values vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
-    }'
-),
-(
     '019fff82-e31b-78d0-9da5-5953fef1cb38',
     'Refunded Shipping Trend',
     'Refunds & Reversals/Revenue Impact/PLOT/Refunded Shipping Trend',
@@ -550,7 +340,7 @@ VALUES (
       ]
     }'
 ),
-(
+    (
     '019fff82-e31b-7dbf-9fe8-864fac6fd708',
     'Refund Transaction Reconciliation',
     'Refunds & Reversals/Revenue Impact/PLOT/Refund Transaction Reconciliation',
@@ -603,7 +393,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31b-7fdf-83ea-fda8faadf542',
     'Refund Transaction Reconciliation Report',
     'Refunds & Reversals/Revenue Impact/TABLE/Refund Transaction Reconciliation Report',
@@ -722,7 +512,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31b-7b00-ac1b-c9fc8f9cd155',
     'Refund Shipping Report',
     'Refunds & Reversals/Revenue Impact/TABLE/Refund Shipping Report',
@@ -794,7 +584,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31b-713f-b4fc-231044934ca5',
     'Partial vs Full Refund Report',
     'Refunds & Reversals/Revenue Impact/TABLE/Partial vs Full Refund Report',
@@ -845,90 +635,6 @@ VALUES (
 --comment seed order refund analysis tab
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31b-7080-85bc-6e2dd340d5e1',
-    'Order Refund Status KPIs',
-    'Refunds & Reversals/Order Refund Analysis/KPI/Order Refund Status KPIs',
-    '
-    WITH
-    /*comparison_window_cte*/
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT o.financialstatus AS financial_status,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end)) AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end) AS is_prior
-            FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    totals AS (
-        SELECT COUNT(*) FILTER (
-                   WHERE is_current
-                     AND financial_status = ''PARTIALLY_REFUNDED''
-               ) AS cur_partial,
-               COUNT(*) FILTER (
-                   WHERE is_prior
-                     AND financial_status = ''PARTIALLY_REFUNDED''
-               ) AS prv_partial,
-               COUNT(*) FILTER (
-                   WHERE is_current
-                     AND financial_status = ''REFUNDED''
-               ) AS cur_full,
-               COUNT(*) FILTER (
-                   WHERE is_prior
-                     AND financial_status = ''REFUNDED''
-               ) AS prv_full
-        FROM scoped_orders
-    )
-    SELECT t.cur_partial AS partially_refunded_orders,
-           ROUND(
-               100 * (t.cur_partial - t.prv_partial)
-               / NULLIF(ABS(t.prv_partial), 0),
-               2
-           ) AS partially_refunded_orders_divergence,
-           t.cur_full AS fully_refunded_orders,
-           ROUND(
-               100 * (t.cur_full - t.prv_full)
-               / NULLIF(ABS(t.prv_full), 0),
-               2
-           ) AS fully_refunded_orders_divergence
-    FROM totals t
-    ',
-    NULL,
-    'KPI',
-    60,
-    'KPI metrics tracking partially vs fully refunded order counts vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        {
-          "provider": "COMPARISON_WINDOW_CTE",
-          "condition": "hasFilter:startDate",
-          "placeholder": "/*comparison_window_cte*/",
-          "args": {
-            "currentStartParam": "currentStartDate",
-            "currentEndParam": "currentEndDate",
-            "priorStartParam": "priorStartDate",
-            "priorEndParam": "priorEndDate"
-          }
-        }
-      ]
-    }'
-),
-(
     '019fff82-e31b-7f26-b6d9-e5be106a2e02',
     'Refunds by Financial Status',
     'Refunds & Reversals/Order Refund Analysis/PLOT/Refunds by Financial Status',
@@ -973,7 +679,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31b-72dd-a2be-2d371f692040',
     'Refund Severity Distribution',
     'Refunds & Reversals/Order Refund Analysis/PLOT/Refund Severity Distribution',
@@ -1020,65 +726,6 @@ VALUES (
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31b-750a-ac69-e152e35ac365',
-    'Product Refund KPIs',
-    'Refunds & Reversals/Product Refund Analysis/KPI/Product Refund KPIs',
-    $$
-    WITH
-    /*comparison_window_cte*/
-    scoped_lines AS (
-        SELECT * FROM (
-            SELECT ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior,
-                   li.quantity - COALESCE(li.current_quantity, li.quantity) AS removed_units,
-                   COALESCE(li.refundable_quantity, 0) AS refundable_units
-            FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    totals AS (
-        SELECT COALESCE(SUM(removed_units)    FILTER (WHERE is_current), 0) AS cur_removed,
-               COALESCE(SUM(removed_units)    FILTER (WHERE is_prior),   0) AS prv_removed,
-               COALESCE(SUM(refundable_units) FILTER (WHERE is_current), 0) AS cur_refundable,
-               COALESCE(SUM(refundable_units) FILTER (WHERE is_prior),   0) AS prv_refundable
-        FROM scoped_lines
-    )
-    SELECT t.cur_removed AS refund_removed_quantity,
-           ROUND(100 * (t.cur_removed - t.prv_removed)
-                 / NULLIF(ABS(t.prv_removed), 0), 2) AS refund_removed_quantity_divergence,
-           t.cur_refundable AS refundable_quantity,
-           ROUND(100 * (t.cur_refundable - t.prv_refundable)
-                 / NULLIF(ABS(t.prv_refundable), 0), 2) AS refundable_quantity_divergence
-    FROM totals t
-    $$,
-    NULL,
-    'KPI',
-    60,
-    'Product refund volume KPIs comparing removed units and remaining refundable quantities vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
-    }'
-),
-(
     '019fff82-e31b-7510-b989-6f45dce0489f',
     'Top Refunded Products / SKUs',
     'Refunds & Reversals/Product Refund Analysis/PLOT/Top Refunded Products / SKUs',
@@ -1120,7 +767,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31b-7f43-a957-21278090eb7f',
     'Top Refunded Products Report',
     'Refunds & Reversals/Product Refund Analysis/TABLE/Top Refunded Products Report',
@@ -1226,7 +873,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31b-71ac-8d79-6ab5ac8211ba',
     'Refunds by Customer Segment',
     'Refunds & Reversals/Channel Customer & Geography/PLOT/Refunds by Customer Segment',
@@ -1283,7 +930,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31b-78da-a0cf-ee6e0c231283',
     'Refunds by Geography',
     'Refunds & Reversals/Channel Customer & Geography/PLOT/Refunds by Geography',
@@ -1391,7 +1038,7 @@ VALUES (
         "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31b-71db-8c0a-0fa0605c12d0',
     'Refunds by Payment Gateway',
     'Refunds & Reversals/Channel Customer & Geography/PLOT/Refunds by Payment Gateway',
@@ -1436,7 +1083,8 @@ OFFSET COALESCE(:offset, 0);
       },
       "excludeExtraParams": true
     }'
-),(
+),
+    (
     '019fff82-e31b-7458-8319-42a3cd185f85',
     'Channel Refund Report',
     'Refunds & Reversals/Channel Customer & Geography/TABLE/Channel Refund Report',
@@ -1498,7 +1146,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31b-7846-9d18-045c5f46bef8',
     'Customer Refund Risk Report',
     'Refunds & Reversals/Channel Customer & Geography/TABLE/Customer Refund Risk Report',
@@ -1629,7 +1277,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31d-78ee-b15c-582a98b59a1f',
     'Refund Detail Report',
     'Refunds & Reversals/Staff & Audit Controls/TABLE/Refund Detail Report',
@@ -1671,7 +1319,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31d-71d9-8086-eb0e7405032c',
     'Refund Notes Report',
     'Refunds & Reversals/Staff & Audit Controls/TABLE/Refund Notes Report',

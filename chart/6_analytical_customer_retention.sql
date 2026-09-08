@@ -5,113 +5,6 @@
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff9a-1dfa-7ef3-8402-c7e413fe686d',
-    'Customer KPIs',
-    'Customer Retention/Customer Overview/KPI/Customer KPIs',
-    '
-    WITH
-    /*comparison_window_cte*/
-    shop_customers AS (
-        SELECT DISTINCT o.customer_id AS id
-        FROM public.fact_order_headers o
-        WHERE o.seller_id = :shopId
-          AND o.test = FALSE
-          
-          AND o.customer_id IS NOT NULL
-    ),
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT o.customer_id,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior
-            FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-              AND o.customer_id IS NOT NULL
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    per_customer AS (
-        SELECT customer_id,
-               COUNT(*) FILTER (WHERE is_current) AS cur_orders,
-               COUNT(*) FILTER (WHERE is_prior)   AS prv_orders
-        FROM scoped_orders
-        GROUP BY customer_id
-    ),
-    totals AS (
-        SELECT COUNT(*) FILTER (WHERE cur_orders > 0) AS cur_total,
-               COUNT(*) FILTER (WHERE prv_orders > 0) AS prv_total
-        FROM per_customer
-    ),
-    repeats AS (
-        SELECT COUNT(*) FILTER (WHERE cur_orders > 1) AS cur_repeat,
-               COUNT(*) FILTER (WHERE prv_orders > 1) AS prv_repeat
-        FROM per_customer
-    ),
-    news AS (
-        SELECT COUNT(*) FILTER (WHERE is_current) AS cur_new,
-               COUNT(*) FILTER (WHERE is_prior)   AS prv_new
-        FROM (
-            SELECT ((w.cur_start IS NULL OR c.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR c.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND c.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior
-            FROM public.dim_customers c
-            JOIN shop_customers sc ON sc.id = c.id
-            CROSS JOIN windows w
-            WHERE c.created_at IS NOT NULL
-        ) n
-        WHERE n.is_current OR n.is_prior
-    ),
-    computed AS (
-        SELECT t.cur_total, t.prv_total,
-               n.cur_new, n.prv_new,
-               r.cur_repeat, r.prv_repeat,
-               ROUND(100.0 * r.cur_repeat / NULLIF(t.cur_total, 0), 2) AS cur_rate,
-               ROUND(100.0 * r.prv_repeat / NULLIF(t.prv_total, 0), 2) AS prv_rate
-        FROM totals t
-        CROSS JOIN news n
-        CROSS JOIN repeats r
-    )
-    SELECT c.cur_total AS total_customers,
-           ROUND(100.0 * (c.cur_total - c.prv_total)
-                 / NULLIF(ABS(c.prv_total), 0), 2) AS total_customers_divergence,
-           c.cur_new AS new_customers,
-           ROUND(100.0 * (c.cur_new - c.prv_new)
-                 / NULLIF(ABS(c.prv_new), 0), 2) AS new_customers_divergence,
-           c.cur_repeat AS repeat_customers,
-           ROUND(100.0 * (c.cur_repeat - c.prv_repeat)
-                 / NULLIF(ABS(c.prv_repeat), 0), 2) AS repeat_customers_divergence,
-           c.cur_rate AS repeat_customer_rate,
-           ROUND(100 * (c.cur_rate - c.prv_rate)
-                 / NULLIF(ABS(c.prv_rate), 0), 2) AS repeat_customer_rate_divergence
-    FROM computed c
-    ',
-    NULL,
-    'KPI',
-    60,
-    'High-level customer KPIs tracking total active customers, new customer additions, repeat customers, and repeat rate % vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
-    }'
-),
-(
     '019fff9a-1dfa-7282-8db8-0ad49fdec2cc',
     'Customer Growth Trend',
     'Customer Retention/Customer Overview/PLOT/Customer Growth Trend',
@@ -168,7 +61,7 @@ ORDER BY df.bucket ASC
       ]
     }'
 ),
-(
+    (
     '019fff9a-1dfb-7513-8ee7-49b421c93f16',
     'New vs Repeat Orders',
     'Customer Retention/Customer Overview/PLOT/New vs Repeat Orders',
@@ -272,7 +165,7 @@ ORDER BY df.bucket ASC;
       ]
     }'
 ),
-(
+    (
     '019fff9a-1dfb-727b-b29d-9f6592bc4660',
     'Customer Detail Report',
     'Customer Retention/Customer Overview/TABLE/Customer Detail Report',
@@ -339,7 +232,7 @@ ORDER BY df.bucket ASC;
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfb-7807-bf9d-7db4e9fb7900',
     'New vs Repeat Customer Report',
     'Customer Retention/Customer Overview/TABLE/New vs Repeat Customer Report',
@@ -439,112 +332,6 @@ ORDER BY df.bucket ASC;
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff9a-1dfb-7067-a154-101db904ec65',
-    'Customer Value KPIs',
-    'Customer Retention/Customer Revenue & Value/KPI/Customer Value KPIs',
-    '
-    WITH
-    /*comparison_window_cte*/
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT o.customer_id,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
-            FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-              AND o.customer_id IS NOT NULL
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    cur_customers AS (
-        SELECT customer_id, SUM(net_sales) AS rev, COUNT(*) AS orders
-        FROM scoped_orders WHERE is_current GROUP BY customer_id
-    ),
-    prv_customers AS (
-        SELECT customer_id, SUM(net_sales) AS rev, COUNT(*) AS orders
-        FROM scoped_orders WHERE is_prior GROUP BY customer_id
-    ),
-    cur_agg AS (
-        SELECT COALESCE(SUM(rev), 0) AS revenue,
-               COUNT(*) AS customers,
-               COALESCE(SUM(orders), 0) AS orders,
-               percentile_cont(0.8) WITHIN GROUP (ORDER BY rev)::numeric AS vip_cut
-        FROM cur_customers
-    ),
-    prv_agg AS (
-        SELECT COALESCE(SUM(rev), 0) AS revenue,
-               COUNT(*) AS customers,
-               COALESCE(SUM(orders), 0) AS orders,
-               percentile_cont(0.8) WITHIN GROUP (ORDER BY rev)::numeric AS vip_cut
-        FROM prv_customers
-    ),
-    cur_high AS (
-        SELECT COUNT(*) AS n
-        FROM cur_customers c CROSS JOIN cur_agg a
-        WHERE a.vip_cut IS NOT NULL AND c.rev >= a.vip_cut
-    ),
-    prv_high AS (
-        SELECT COUNT(*) AS n
-        FROM prv_customers c CROSS JOIN prv_agg a
-        WHERE a.vip_cut IS NOT NULL AND c.rev >= a.vip_cut
-    ),
-    computed AS (
-        SELECT ca.revenue AS cur_rev,
-               pa.revenue AS prv_rev,
-               ROUND(ca.revenue / NULLIF(ca.customers, 0), 2) AS cur_acv,
-               ROUND(pa.revenue / NULLIF(pa.customers, 0), 2) AS prv_acv,
-               ROUND(ca.orders::numeric / NULLIF(ca.customers, 0), 2) AS cur_aopc,
-               ROUND(pa.orders::numeric / NULLIF(pa.customers, 0), 2) AS prv_aopc,
-               ch.n AS cur_hv,
-               ph.n AS prv_hv
-        FROM cur_agg ca
-        CROSS JOIN prv_agg pa
-        CROSS JOIN cur_high ch
-        CROSS JOIN prv_high ph
-    )
-    SELECT ROUND(c.cur_rev, 2) AS customer_revenue,
-           ROUND(100 * (c.cur_rev - c.prv_rev)
-                 / NULLIF(ABS(c.prv_rev), 0), 2) AS customer_revenue_divergence,
-           c.cur_acv AS average_customer_value,
-           ROUND(100 * (c.cur_acv - c.prv_acv)
-                 / NULLIF(ABS(c.prv_acv), 0), 2) AS average_customer_value_divergence,
-           c.cur_aopc AS average_orders_per_customer,
-           ROUND(100 * (c.cur_aopc - c.prv_aopc)
-                 / NULLIF(ABS(c.prv_aopc), 0), 2) AS average_orders_per_customer_divergence,
-           c.cur_hv AS high_value_customers,
-           ROUND(100.0 * (c.cur_hv - c.prv_hv)
-                 / NULLIF(ABS(c.prv_hv), 0), 2) AS high_value_customers_divergence
-    FROM computed c
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Value KPIs evaluating total customer revenue, ACV (average customer value), average orders per customer, and VIP customer counts vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
-    }'
-),
-(
     '019fff9a-1dfb-76a0-844c-85dcf1a54191',
     'New vs Repeat Customer Revenue',
     'Customer Retention/Customer Revenue & Value/PLOT/New vs Repeat Customer Revenue',
@@ -629,7 +416,7 @@ ORDER BY df.bucket ASC
       ]
     }'
 ),
-(
+    (
     '019fff9a-1dfb-7d54-ae3f-df0d8febed39',
     'Revenue by Customer Segment',
     'Customer Retention/Customer Revenue & Value/PLOT/Revenue by Customer Segment',
@@ -709,7 +496,7 @@ ORDER BY df.bucket ASC
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfb-7047-bd5e-e1400ef79384',
     'Top Customers by Revenue',
     'Customer Retention/Customer Revenue & Value/PLOT/Top Customers by Revenue',
@@ -757,7 +544,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfb-718e-b555-8d50bbaff35c',
     'Customer Value Distribution',
     'Customer Retention/Customer Revenue & Value/PLOT/Customer Value Distribution',
@@ -802,7 +589,7 @@ OFFSET COALESCE(:offset, 0)
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfb-76bb-bfd3-3eee427a2d97',
     'High-Value Customer Report',
     'Customer Retention/Customer Revenue & Value/TABLE/High-Value Customer Report',
@@ -915,7 +702,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfb-70e1-9bb5-d0221b4e1569',
     'Customer Revenue Cohort',
     'Customer Retention/Customer Retention & Loyalty/PLOT/Customer Revenue Cohort',
@@ -1000,7 +787,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfb-7501-93db-3e10a209f815',
     'Customer Cohort Report',
     'Customer Retention/Customer Retention & Loyalty/TABLE/Customer Cohort Report',
@@ -1089,91 +876,6 @@ OFFSET COALESCE(:offset, 0)
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff9a-1dfb-7d94-805d-a1062b8c8565',
-    'Refund-Risk Customers',
-    'Customer Retention/Customer Risk & Refund Analysis/KPI/Refund-Risk Customers',
-    '
-    WITH
-    /*comparison_window_cte*/
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT o.id,
-                   o.customer_id,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior
-            FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              
-              AND o.customer_id IS NOT NULL
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    order_refunds AS (
-        SELECT s.customer_id,
-               s.is_current,
-               s.is_prior,
-               COALESCE(SUM(r.total_refunded_amount), 0) AS refunded
-        FROM scoped_orders s
-        LEFT JOIN public.fact_order_refunds r ON r.order_id = s.id
-        GROUP BY s.id, s.customer_id, s.is_current, s.is_prior
-    ),
-    cur_customers AS (
-        SELECT customer_id, SUM(refunded) AS refunded
-        FROM order_refunds WHERE is_current GROUP BY customer_id
-    ),
-    prv_customers AS (
-        SELECT customer_id, SUM(refunded) AS refunded
-        FROM order_refunds WHERE is_prior GROUP BY customer_id
-    ),
-    cur_cut AS (
-        SELECT percentile_cont(0.8) WITHIN GROUP (ORDER BY refunded)::numeric AS cut
-        FROM cur_customers
-    ),
-    prv_cut AS (
-        SELECT percentile_cont(0.8) WITHIN GROUP (ORDER BY refunded)::numeric AS cut
-        FROM prv_customers
-    ),
-    cur_risk AS (
-        SELECT COUNT(*) AS n
-        FROM cur_customers c CROSS JOIN cur_cut x
-        WHERE x.cut IS NOT NULL AND c.refunded > 0 AND c.refunded >= x.cut
-    ),
-    prv_risk AS (
-        SELECT COUNT(*) AS n
-        FROM prv_customers c CROSS JOIN prv_cut x
-        WHERE x.cut IS NOT NULL AND c.refunded > 0 AND c.refunded >= x.cut
-    )
-    SELECT cr.n AS refund_risk_customers,
-           ROUND(100.0 * (cr.n - pr.n)
-                 / NULLIF(ABS(pr.n), 0), 2) AS refund_risk_customers_divergence
-    FROM cur_risk cr
-    CROSS JOIN prv_risk pr
-    ',
-    NULL,
-    'KPI',
-    60,
-    'KPI tracking count of high refund-risk customers (top 20% refund volume) vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
-    }'
-),
-(
     '019fff9a-1dfb-7980-9aef-d4218448b532',
     'Refund-Risk Customers by Segment',
     'Customer Retention/Customer Risk & Refund Analysis/PLOT/Refund-Risk Customers by Segment',
@@ -1230,7 +932,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfb-702e-87f5-5d558c3b3a79',
     'Refund-Risk Customer Report',
     'Customer Retention/Customer Risk & Refund Analysis/TABLE/Refund-Risk Customer Report',
@@ -1306,109 +1008,6 @@ OFFSET COALESCE(:offset, 0)
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff9a-1dfb-71fd-9571-3b8eee00748e',
-    'New vs Repeat Customer Revenue',
-    'Customer Retention/Customer Geography & Segmentation/KPI/New vs Repeat Customer Revenue',
-    '
-    WITH
-    /*comparison_window_cte*/
-    customer_order_ranks AS (
-        SELECT o.created_at::date AS day,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales,
-               ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
-        FROM public.fact_order_headers o
-        WHERE o.seller_id = :shopId
-          AND o.test = FALSE
-          
-          AND o.customer_id IS NOT NULL
-    ),
-    guest_orders AS (
-        SELECT o.created_at::date AS day,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
-        FROM public.fact_order_headers o
-        WHERE o.seller_id = :shopId
-          AND o.test = FALSE
-          
-          AND o.customer_id IS NULL
-    ),
-    scoped_known AS (
-        SELECT * FROM (
-            SELECT r.order_rank,
-                   r.net_sales,
-                   ((w.cur_start IS NULL OR r.day >= w.cur_start)
-                AND (w.cur_end   IS NULL OR r.day <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND r.day BETWEEN w.prv_start AND w.prv_end)      AS is_prior
-            FROM customer_order_ranks r
-            CROSS JOIN windows w
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    scoped_guest AS (
-        SELECT * FROM (
-            SELECT g.net_sales,
-                   ((w.cur_start IS NULL OR g.day >= w.cur_start)
-                AND (w.cur_end   IS NULL OR g.day <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND g.day BETWEEN w.prv_start AND w.prv_end)      AS is_prior
-            FROM guest_orders g
-            CROSS JOIN windows w
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    known AS (
-        SELECT COALESCE(SUM(net_sales) FILTER (WHERE is_current AND order_rank = 1), 0) AS cur_new,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_prior   AND order_rank = 1), 0) AS prv_new,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_current AND order_rank > 1), 0) AS cur_repeat,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_prior   AND order_rank > 1), 0) AS prv_repeat
-        FROM scoped_known
-    ),
-    guests AS (
-        SELECT COALESCE(SUM(net_sales) FILTER (WHERE is_current), 0) AS cur_guest,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_prior),   0) AS prv_guest
-        FROM scoped_guest
-    ),
-    computed AS (
-        SELECT k.cur_new + g.cur_guest AS cur_new_rev,
-               k.prv_new + g.prv_guest AS prv_new_rev,
-               k.cur_repeat AS cur_rep_rev,
-               k.prv_repeat AS prv_rep_rev
-        FROM known k
-        CROSS JOIN guests g
-    )
-    SELECT ROUND(c.cur_new_rev, 2) AS new_customer_revenue,
-           ROUND(100 * (c.cur_new_rev - c.prv_new_rev)
-                 / NULLIF(ABS(c.prv_new_rev), 0), 2) AS new_customer_revenue_divergence,
-           ROUND(c.cur_rep_rev, 2) AS repeat_customer_revenue,
-           ROUND(100 * (c.cur_rep_rev - c.prv_rep_rev)
-                 / NULLIF(ABS(c.prv_rep_rev), 0), 2) AS repeat_customer_revenue_divergence
-    FROM computed c
-    ',
-    NULL,
-    'KPI',
-    60,
-    'KPI revenue metrics comparing total dollar sales derived from new vs repeat customers.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
-    }'
-),
-(
     '019fff9a-1dfb-7d51-aba5-9eac6880bcee',
     'Customer Geography',
     'Customer Retention/Customer Geography & Segmentation/PLOT/Customer Geography',
@@ -1452,7 +1051,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfb-7501-9628-e35284463dde',
     'Customer Location Revenue Ranking',
     'Customer Retention/Customer Geography & Segmentation/PLOT/Customer Location Revenue Ranking',
@@ -1496,7 +1095,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfb-73e3-b8cb-cf8d48dde497',
     'Customer Geography Report',
     'Customer Retention/Customer Geography & Segmentation/TABLE/Customer Geography Report',
@@ -1552,125 +1151,6 @@ VALUES (
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff9a-1dfb-71d9-baa2-c69257c65184',
-    'Operations & Compliance KPIs',
-    'Customer Retention/Customer Operations & Compliance/KPI/Operations & Compliance KPIs',
-    '
-    WITH
-    /*comparison_window_cte*/
-    valid_orders AS (
-        SELECT o.customer_id, o.created_at::date AS day
-        FROM public.fact_order_headers o
-        WHERE o.seller_id = :shopId
-          AND o.test = FALSE
-          
-          AND o.customer_id IS NOT NULL
-    ),
-    anchors AS (
-        SELECT COALESCE(w.cur_end, (SELECT MAX(day) FROM valid_orders)) AS cur_anchor,
-               w.prv_end AS prv_anchor
-        FROM windows w
-    ),
-    cur_window AS (
-        SELECT DISTINCT customer_id FROM valid_orders
-        CROSS JOIN windows w
-        WHERE (w.cur_start IS NULL OR day >= w.cur_start)
-          AND (w.cur_end IS NULL OR day <= w.cur_end)
-    ),
-    prv_window AS (
-        SELECT DISTINCT customer_id FROM valid_orders
-        CROSS JOIN windows w
-        WHERE w.prv_start IS NOT NULL
-          AND day BETWEEN w.prv_start AND w.prv_end
-    ),
-    cur_last AS (
-        SELECT v.customer_id, MAX(v.day) AS last_day
-        FROM valid_orders v CROSS JOIN anchors a
-        WHERE v.day <= a.cur_anchor
-        GROUP BY v.customer_id
-    ),
-    prv_last AS (
-        SELECT v.customer_id, MAX(v.day) AS last_day
-        FROM valid_orders v CROSS JOIN anchors a
-        WHERE a.prv_anchor IS NOT NULL AND v.day <= a.prv_anchor
-        GROUP BY v.customer_id
-    ),
-    inactive AS (
-        SELECT (SELECT COUNT(*) FROM cur_last c CROSS JOIN anchors a
-                WHERE a.cur_anchor - c.last_day > 90) AS cur_n,
-               (SELECT COUNT(*) FROM prv_last p CROSS JOIN anchors a
-                WHERE a.prv_anchor - p.last_day > 90) AS prv_n
-    ),
-    exempt AS (
-        SELECT COUNT(*) FILTER (WHERE c.taxExempt) AS n
-        FROM public.dim_customers c JOIN cur_window w ON w.customer_id = c.id
-        WHERE c.seller_id = :shopId
-    ),
-    exempt_prv AS (
-        SELECT COUNT(*) FILTER (WHERE c.taxExempt) AS n
-        FROM public.dim_customers c JOIN prv_window w ON w.customer_id = c.id
-        WHERE c.seller_id = :shopId
-    ),
-    weak_addr AS (
-        SELECT COUNT(DISTINCT ca.customer_id) AS n
-        FROM public.dim_customer_addresses ca
-        JOIN cur_window w ON w.customer_id = ca.customer_id
-        WHERE ca.seller_id = :shopId
-          AND (COALESCE(ca.coordinates_validated, FALSE) = FALSE
-           OR COALESCE(LENGTH(TRIM(ca.address1)), 0) = 0
-           OR COALESCE(LENGTH(TRIM(ca.city)), 0) = 0
-           OR COALESCE(LENGTH(TRIM(ca.province)), 0) = 0
-           OR COALESCE(LENGTH(TRIM(ca.country)), 0) = 0
-           OR COALESCE(LENGTH(TRIM(ca.zip)), 0) = 0)
-    ),
-    weak_addr_prv AS (
-        SELECT COUNT(DISTINCT ca.customer_id) AS n
-        FROM public.dim_customer_addresses ca
-        JOIN prv_window w ON w.customer_id = ca.customer_id
-        WHERE ca.seller_id = :shopId
-          AND (COALESCE(ca.coordinates_validated, FALSE) = FALSE
-           OR COALESCE(LENGTH(TRIM(ca.address1)), 0) = 0
-           OR COALESCE(LENGTH(TRIM(ca.city)), 0) = 0
-           OR COALESCE(LENGTH(TRIM(ca.province)), 0) = 0
-           OR COALESCE(LENGTH(TRIM(ca.country)), 0) = 0
-           OR COALESCE(LENGTH(TRIM(ca.zip)), 0) = 0)
-    )
-    SELECT e.n AS tax_exempt_customers,
-           ROUND(100.0 * (e.n - ep.n)
-                 / NULLIF(ABS(ep.n), 0), 2) AS tax_exempt_customers_divergence,
-           i.cur_n AS inactive_customers,
-           ROUND(100.0 * (i.cur_n - i.prv_n)
-                 / NULLIF(ABS(i.prv_n), 0), 2) AS inactive_customers_divergence,
-           wa.n AS weak_address_customers,
-           ROUND(100.0 * (wa.n - wap.n)
-                 / NULLIF(ABS(wap.n), 0), 2) AS weak_address_customers_divergence
-    FROM exempt e
-    CROSS JOIN exempt_prv ep
-    CROSS JOIN inactive i
-    CROSS JOIN weak_addr wa
-    CROSS JOIN weak_addr_prv wap
-    ',
-    NULL,
-    'KPI',
-    60,
-    'Operational compliance KPIs tracking tax exempt customers, inactive customers (>90 days), and weak address profiles vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        { "provider": "COMPARISON_WINDOW_CTE", "condition": "hasFilter:startDate", "placeholder": "/*comparison_window_cte*/",
-          "args": { "currentStartParam": "currentStartDate", "currentEndParam": "currentEndDate", "priorStartParam": "priorStartDate", "priorEndParam": "priorEndDate" } }
-      ]
-    }'
-),
-(
     '019fff9a-1dfb-74e4-ac8d-73f6dc14ac98',
     'Tax-Exempt Customer Revenue',
     'Customer Retention/Customer Operations & Compliance/PLOT/Tax-Exempt Customer Revenue',
@@ -1717,7 +1197,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfb-7bca-8834-63524c92900d',
     'Inactive Customer Aging',
     'Customer Retention/Customer Operations & Compliance/PLOT/Inactive Customer Aging',
@@ -1772,7 +1252,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfb-7e71-837c-54bae0ae10c2',
     'Inactive Customer Report',
     'Customer Retention/Customer Operations & Compliance/TABLE/Inactive Customer Report',
@@ -1834,7 +1314,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfb-7814-b98f-0bdf98266f9a',
     'Tax-Exempt Customer Report',
     'Customer Retention/Customer Operations & Compliance/TABLE/Tax-Exempt Customer Report',
@@ -1887,7 +1367,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff9a-1dfb-7217-b231-2c8856fc75a5',
     'Address Quality Report',
     'Customer Retention/Customer Operations & Compliance/TABLE/Address Quality Report',

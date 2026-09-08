@@ -4,111 +4,6 @@
 --comment seed sales & revenue data
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31d-7a2c-9710-92ecf736d574',
-    'Sales & Revenue KPIs',
-    'Order Reports/Sales & Revenue/KPI/Sales & Revenue KPIs',
-    $$
-    WITH
-    /*comparison_window_cte*/
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT o.id,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales,
-                   COALESCE(o.subtotal_price, 0)
-                     + COALESCE(o.total_discounts_amount, 0) AS gross_sales,
-                   COALESCE(o.total_discounts_amount, 0) AS discount_amount,
-                   COALESCE(o.current_total_tax, 0) AS tax_collected
-            FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    order_totals AS (
-        SELECT COUNT(*) FILTER (WHERE is_current) AS cur_orders,
-               COUNT(*) FILTER (WHERE is_prior)   AS prv_orders,
-               COALESCE(SUM(net_sales)       FILTER (WHERE is_current), 0) AS cur_net,
-               COALESCE(SUM(net_sales)       FILTER (WHERE is_prior),   0) AS prv_net,
-               COALESCE(SUM(gross_sales)     FILTER (WHERE is_current), 0) AS cur_gross,
-               COALESCE(SUM(gross_sales)     FILTER (WHERE is_prior),   0) AS prv_gross,
-               COALESCE(SUM(discount_amount) FILTER (WHERE is_current), 0) AS cur_discount,
-               COALESCE(SUM(discount_amount) FILTER (WHERE is_prior),   0) AS prv_discount,
-               COALESCE(SUM(tax_collected)   FILTER (WHERE is_current), 0) AS cur_tax,
-               COALESCE(SUM(tax_collected)   FILTER (WHERE is_prior),   0) AS prv_tax
-        FROM scoped_orders
-    ),
-    refund_totals AS (
-        SELECT COALESCE(SUM(r.total_refunded_amount) FILTER (WHERE s.is_current), 0) AS cur_refunded,
-               COALESCE(SUM(r.total_refunded_amount) FILTER (WHERE s.is_prior),   0) AS prv_refunded
-        FROM public.fact_order_refunds r
-        JOIN scoped_orders s ON s.id = r.order_id
-    ),
-    computed AS (
-        SELECT ot.cur_net, ot.prv_net, ot.cur_gross, ot.prv_gross,
-               ot.cur_discount, ot.prv_discount, ot.cur_tax, ot.prv_tax,
-               rt.cur_refunded, rt.prv_refunded,
-               ROUND(COALESCE(ot.cur_net / NULLIF(ot.cur_orders, 0), 0), 2) AS cur_aov,
-               ROUND(COALESCE(ot.prv_net / NULLIF(ot.prv_orders, 0), 0), 2) AS prv_aov
-        FROM order_totals ot
-        CROSS JOIN refund_totals rt
-    )
-    SELECT ROUND(c.cur_net, 2) AS net_sales,
-           ROUND(100 * (c.cur_net - c.prv_net)
-                 / NULLIF(ABS(c.prv_net), 0), 2) AS net_sales_divergence,
-           ROUND(c.cur_gross, 2) AS gross_sales,
-           ROUND(100 * (c.cur_gross - c.prv_gross)
-                 / NULLIF(ABS(c.prv_gross), 0), 2) AS gross_sales_divergence,
-           c.cur_aov AS average_order_value,
-           ROUND(100 * (c.cur_aov - c.prv_aov)
-                 / NULLIF(ABS(c.prv_aov), 0), 2) AS average_order_value_divergence,
-           ROUND(c.cur_discount, 2) AS discount_amount,
-           ROUND(100 * (c.cur_discount - c.prv_discount)
-                 / NULLIF(ABS(c.prv_discount), 0), 2) AS discount_amount_divergence,
-           ROUND(c.cur_refunded, 2) AS refunded_order_value,
-           ROUND(100 * (c.cur_refunded - c.prv_refunded)
-                 / NULLIF(ABS(c.prv_refunded), 0), 2) AS refunded_order_value_divergence,
-           ROUND(c.cur_tax, 2) AS tax_collected,
-           ROUND(100 * (c.cur_tax - c.prv_tax)
-                 / NULLIF(ABS(c.prv_tax), 0), 2) AS tax_collected_divergence
-    FROM computed c
-    $$,
-    NULL,
-    'KPI',
-    60,
-    'High-level order sales & revenue KPIs evaluating net sales, gross sales, AOV, discounts, refunds, and tax vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        {
-          "provider": "COMPARISON_WINDOW_CTE",
-          "condition": "hasFilter:startDate",
-          "placeholder": "/*comparison_window_cte*/",
-          "args": {
-            "currentStartParam": "currentStartDate",
-            "currentEndParam": "currentEndDate",
-            "priorStartParam": "priorStartDate",
-            "priorEndParam": "priorEndDate"
-          }
-        }
-      ]
-    }'
-),
-(
     '019fff82-e31d-73b8-9e6d-85c6d409913c',
     'Sales Trend',
     'Order Reports/Sales & Revenue/PLOT/Sales Trend',
@@ -178,7 +73,7 @@ VALUES (
       ]
     }'
 ),
-(
+    (
     '019fff82-e31d-797f-be67-74f6653427aa',
     'Revenue Waterfall',
     'Order Reports/Sales & Revenue/PLOT/Revenue Waterfall',
@@ -281,7 +176,7 @@ VALUES (
       ]
     }'
 ),
-(
+    (
     '019fff82-e31d-7f37-bca1-e5405982d060',
     'Discount Trend',
     'Order Reports/Sales & Revenue/PLOT/Discount Trend',
@@ -349,7 +244,7 @@ VALUES (
       ]
     }'
 ),
-(
+    (
     '019fff82-e31d-7bf1-8c13-df22e4af91f2',
     'Refunded Orders Trend',
     'Order Reports/Sales & Revenue/PLOT/Refunded Orders Trend',
@@ -417,7 +312,7 @@ VALUES (
       ]
     }'
 ),
-(
+    (
     '019fff82-e31d-7bc3-a07b-7beb0c45249b',
     'Orders vs AOV Trend',
     'Order Reports/Sales & Revenue/PLOT/Orders vs AOV Trend',
@@ -485,7 +380,7 @@ VALUES (
       ]
     }'
 ),
-(
+    (
     '019fff82-e31d-769a-bc42-f99a7173de6a',
     'Orders Detail Report',
     'Order Reports/Sales & Revenue/TABLE/Orders Detail Report',
@@ -557,96 +452,6 @@ VALUES (
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31d-7345-8f03-4bdb44f89b93',
-    'Orders & Fulfillment KPIs',
-    'Order Reports/Orders & Fulfillment/KPI/Orders & Fulfillment KPIs',
-    $$
-    WITH
-    /*comparison_window_cte*/
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT UPPER(o.fulfillmentStatus) AS fulfillment_status,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior
-            FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    scoped_cancellations AS (
-        SELECT * FROM (
-            SELECT ((w.cur_start IS NULL OR o.cancelled_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.cancelled_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.cancelled_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior
-            FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              AND o.cancelled_at IS NOT NULL
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    totals AS (
-        SELECT COUNT(*) FILTER (WHERE is_current) AS cur_total,
-               COUNT(*) FILTER (WHERE is_prior)   AS prv_total,
-               COUNT(*) FILTER (WHERE is_current
-                             AND fulfillment_status IS DISTINCT FROM 'FULFILLED') AS cur_pending,
-               COUNT(*) FILTER (WHERE is_prior
-                             AND fulfillment_status IS DISTINCT FROM 'FULFILLED') AS prv_pending
-        FROM scoped_orders
-    ),
-    cancelled AS (
-        SELECT COUNT(*) FILTER (WHERE is_current) AS cur_cancelled,
-               COUNT(*) FILTER (WHERE is_prior)   AS prv_cancelled
-        FROM scoped_cancellations
-    )
-    SELECT t.cur_total AS total_orders,
-           ROUND(100 * (t.cur_total - t.prv_total)
-                 / NULLIF(ABS(t.prv_total), 0), 2) AS total_orders_divergence,
-           t.cur_pending AS fulfillment_pending_orders,
-           ROUND(100 * (t.cur_pending - t.prv_pending)
-                 / NULLIF(ABS(t.prv_pending), 0), 2) AS fulfillment_pending_orders_divergence,
-           c.cur_cancelled AS cancelled_orders,
-           ROUND(100 * (c.cur_cancelled - c.prv_cancelled)
-                 / NULLIF(ABS(c.prv_cancelled), 0), 2) AS cancelled_orders_divergence
-    FROM totals t
-    CROSS JOIN cancelled c
-    $$,
-    NULL,
-    'KPI',
-    60,
-    'KPIs tracking total order volume, pending unfulfilled orders, and cancelled order counts vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        {
-          "provider": "COMPARISON_WINDOW_CTE",
-          "condition": "hasFilter:startDate",
-          "placeholder": "/*comparison_window_cte*/",
-          "args": {
-            "currentStartParam": "currentStartDate",
-            "currentEndParam": "currentEndDate",
-            "priorStartParam": "priorStartDate",
-            "priorEndParam": "priorEndDate"
-          }
-        }
-      ]
-    }'
-),
-(
     '019fff82-e31d-7da5-bec3-40a9b99a9baa',
     'Orders by Status',
     'Order Reports/Orders & Fulfillment/PLOT/Orders by Status',
@@ -688,7 +493,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31d-7d01-b0e7-e98182e66062',
     'Cancelled Order Loss',
     'Order Reports/Orders & Fulfillment/PLOT/Cancelled Order Loss',
@@ -753,7 +558,7 @@ VALUES (
       ]
     }'
 ),
-(
+    (
     '019fff82-e31d-7950-8048-cc15a851e0f2',
     'Cancelled Orders Report',
     'Order Reports/Orders & Fulfillment/TABLE/Cancelled Orders Report',
@@ -810,74 +615,6 @@ VALUES (
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31d-7a4d-96d2-1b2921c3001d',
-    'Payments & Collections KPIs',
-    'Order Reports/Payments & Collections/KPI/Payments & Collections KPIs',
-    $$
-    WITH
-    /*comparison_window_cte*/
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT UPPER(o.financialstatus) AS financial_status,
-                   ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior,
-                   COALESCE(o.total_outstanding_amount, 0) AS outstanding_amount
-            FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    totals AS (
-        SELECT COALESCE(SUM(outstanding_amount) FILTER (WHERE is_current), 0) AS cur_outstanding,
-               COALESCE(SUM(outstanding_amount) FILTER (WHERE is_prior),   0) AS prv_outstanding,
-               ROUND(COALESCE(100.0 * COUNT(*) FILTER (WHERE is_current AND financial_status = 'PAID')
-                              / NULLIF(COUNT(*) FILTER (WHERE is_current), 0), 0), 2) AS cur_paid_rate,
-               ROUND(COALESCE(100.0 * COUNT(*) FILTER (WHERE is_prior AND financial_status = 'PAID')
-                              / NULLIF(COUNT(*) FILTER (WHERE is_prior), 0), 0), 2) AS prv_paid_rate
-        FROM scoped_orders
-    )
-    SELECT ROUND(t.cur_outstanding, 2) AS outstanding_amount,
-           ROUND(100 * (t.cur_outstanding - t.prv_outstanding)
-                 / NULLIF(ABS(t.prv_outstanding), 0), 2) AS outstanding_amount_divergence,
-           t.cur_paid_rate AS paid_order_rate,
-           ROUND(100 * (t.cur_paid_rate - t.prv_paid_rate)
-                 / NULLIF(ABS(t.prv_paid_rate), 0), 2) AS paid_order_rate_divergence
-    FROM totals t
-    $$,
-    NULL,
-    'KPI',
-    60,
-    'KPI metrics evaluating total unpaid outstanding order balance and paid order rate % vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        {
-          "provider": "COMPARISON_WINDOW_CTE",
-          "condition": "hasFilter:startDate",
-          "placeholder": "/*comparison_window_cte*/",
-          "args": {
-            "currentStartParam": "currentStartDate",
-            "currentEndParam": "currentEndDate",
-            "priorStartParam": "priorStartDate",
-            "priorEndParam": "priorEndDate"
-          }
-        }
-      ]
-    }'
-),
-(
     '019fff82-e31d-7c28-8dee-e197d859bba8',
     'Unpaid Orders Aging',
     'Order Reports/Payments & Collections/PLOT/Unpaid Orders Aging',
@@ -919,7 +656,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31d-7adf-9ec0-da4952b71ce1',
     'Payment Gateway Mix',
     'Order Reports/Payments & Collections/PLOT/Payment Gateway Mix',
@@ -959,7 +696,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31d-772e-a943-97b7591e0ecd',
     'Unpaid Orders Queue',
     'Order Reports/Payments & Collections/TABLE/Unpaid Orders Queue',
@@ -1017,104 +754,6 @@ VALUES (
 --comment seed Customers tab 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31d-7e39-a770-59ebdce216a3',
-    'Orders by Customer Type',
-    'Order Reports/Customers/KPI/Orders by Customer Type',
-    $$
-    WITH
-    /*comparison_window_cte*/
-    customer_order_ranks AS (
-        SELECT o.created_at::date AS day,
-               ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
-        FROM public.fact_order_headers o
-        WHERE o.seller_id = :shopId
-          AND o.test = FALSE
-          AND o.customer_id IS NOT NULL
-    ),
-    scoped_orders AS (
-        SELECT * FROM (
-            SELECT r.order_rank,
-                   ((w.cur_start IS NULL OR r.day >= w.cur_start)
-                AND (w.cur_end   IS NULL OR r.day <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND r.day BETWEEN w.prv_start AND w.prv_end)      AS is_prior
-            FROM customer_order_ranks r
-            CROSS JOIN windows w
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    scoped_guest_orders AS (
-        SELECT * FROM (
-            SELECT ((w.cur_start IS NULL OR o.created_at::date >= w.cur_start)
-                AND (w.cur_end   IS NULL OR o.created_at::date <= w.cur_end))  AS is_current,
-                   (w.prv_start IS NOT NULL
-                AND o.created_at::date BETWEEN w.prv_start AND w.prv_end)      AS is_prior
-            FROM public.fact_order_headers o
-            CROSS JOIN windows w
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              AND o.customer_id IS NULL
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    known AS (
-        SELECT COUNT(*) FILTER (WHERE is_current AND order_rank = 1) AS cur_new,
-               COUNT(*) FILTER (WHERE is_prior   AND order_rank = 1) AS prv_new,
-               COUNT(*) FILTER (WHERE is_current AND order_rank > 1) AS cur_repeat,
-               COUNT(*) FILTER (WHERE is_prior   AND order_rank > 1) AS prv_repeat
-        FROM scoped_orders
-    ),
-    guests AS (
-        SELECT COUNT(*) FILTER (WHERE is_current) AS cur_guest,
-               COUNT(*) FILTER (WHERE is_prior)   AS prv_guest
-        FROM scoped_guest_orders
-    ),
-    computed AS (
-        SELECT k.cur_new + g.cur_guest AS cur_new_orders,
-               k.prv_new + g.prv_guest AS prv_new_orders,
-               k.cur_repeat AS cur_repeat_orders,
-               k.prv_repeat AS prv_repeat_orders
-        FROM known k
-        CROSS JOIN guests g
-    )
-    SELECT c.cur_new_orders AS new_orders,
-           ROUND(100 * (c.cur_new_orders - c.prv_new_orders)
-                 / NULLIF(ABS(c.prv_new_orders), 0), 2) AS new_orders_divergence,
-           c.cur_repeat_orders AS repeat_orders,
-           ROUND(100 * (c.cur_repeat_orders - c.prv_repeat_orders)
-                 / NULLIF(ABS(c.prv_repeat_orders), 0), 2) AS repeat_orders_divergence
-    FROM computed c
-    $$,
-    NULL,
-    'KPI',
-    60,
-    'KPI breakdown of order volume split between new customers (including guests) vs repeat returning customers vs prior period.',
-    '{
-      "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
-        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
-        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
-      },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        {
-          "provider": "COMPARISON_WINDOW_CTE",
-          "condition": "hasFilter:startDate",
-          "placeholder": "/*comparison_window_cte*/",
-          "args": {
-            "currentStartParam": "currentStartDate",
-            "currentEndParam": "currentEndDate",
-            "priorStartParam": "priorStartDate",
-            "priorEndParam": "priorEndDate"
-          }
-        }
-      ]
-    }'
-),
-(
     '019fff82-e31d-7cbb-9e99-db4ae79df001',
     'New vs Repeat Orders',
     'Order Reports/Customers/PLOT/New vs Repeat Orders',
@@ -1275,7 +914,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31d-7247-92b0-22f212b5136c',
     'Channel Order Report',
     'Order Reports/Channels & Geography/TABLE/Channel Order Report',
@@ -1353,7 +992,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31d-7eca-b184-91c61334d67c',
     'Orders by Geography',
     'Order Reports/Channels & Geography/PLOT/Orders by Geography',
@@ -1400,7 +1039,7 @@ VALUES (
       "excludeExtraParams": true
     }'
 ),
-(
+    (
     '019fff82-e31d-78eb-98ea-48b41df26c99',
     'Geography Sales Report',
     'Order Reports/Channels & Geography/TABLE/Geography Sales Report',
