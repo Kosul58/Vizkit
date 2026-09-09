@@ -673,23 +673,20 @@ VALUES (
            ROUND(COALESCE(SUM(t.amount), 0), 2) AS "Order Value"
     FROM public.fact_order_transactions t
     JOIN filtered_orders f ON f.id = t.order_id
-    WHERE UPPER(t.kind) = 'SALE'
-      AND UPPER(t.status) = 'SUCCESS'
+    WHERE t.kind = 'SALE'
+      AND t.status = 'SUCCESS'
     GROUP BY 1
     ORDER BY 2 DESC
-    LIMIT COALESCE(:limit, 10)
-    OFFSET COALESCE(:offset, 0)
+    LIMIT 20
     $$,
     NULL,
     'PLOT',
-    60,
+    30,
     'Distribution of paid order volume across payment gateways.',
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
-        "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
-        "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"   }
       },

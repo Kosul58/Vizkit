@@ -929,36 +929,31 @@ VALUES (
     'Payment Method Mix',
     'Executive Store Health/Payment & Business Risk/PLOT/Payment Method Mix',
     $$
-    WITH
-    filtered_tender AS (
-        SELECT COALESCE(tt.payment_method, tt.transaction_credit_card_company) AS payment_method,
-               ROUND(SUM(COALESCE(tt.amount, 0)), 2) AS amount
-        FROM public.dim_tender_transactions tt
-        JOIN public.fact_order_headers o ON o.id = tt.order_id
+    WITH filtered_orders AS (
+        SELECT o.id
+        FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
-          AND tt.test = FALSE
-          AND (:currentStartDate IS NULL OR tt.processed_at::date >= :currentStartDate::date)
-          AND (:currentEndDate IS NULL OR tt.processed_at::date <= :currentEndDate::date)
-        GROUP BY COALESCE(tt.payment_method, tt.transaction_credit_card_company)
+          AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
+          AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
-    SELECT payment_method, amount
-    FROM filtered_tender
-    ORDER BY amount DESC
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
+    SELECT COALESCE(t.gateway, 'unknown') AS gateway,
+           ROUND(COALESCE(SUM(t.amount), 0), 2) AS "Order Value"
+    FROM public.fact_order_transactions t
+    JOIN filtered_orders f ON f.id = t.order_id
+    WHERE t.kind = 'SALE'
+      AND t.status = 'SUCCESS'
+    GROUP BY 1
+    ORDER BY 2 DESC
+    LIMIT 20
     $$,
     NULL,
     'PLOT',
     60,
-    'Distribution of gross transaction amounts grouped by payment method / credit card type.',
+    'Distribution of transaction amounts grouped by payment method.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
