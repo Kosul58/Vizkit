@@ -50,4 +50,9 @@ date_filler AS (
     SELECT generate_series(dp.start_bucket, dp.end_bucket, dp.step) AS bucket
     FROM date_params dp
 ),'
-    );
+    ),
+    (
+    'c6b65345-4a56-42b7-8495-2c8e2279b003',
+    'ORDER_STATUS_FILTER',
+    'AND (''ALL'' = ANY (:<statusParam>) OR <statusColumn> = ANY (:<statusParam>))'
+);
