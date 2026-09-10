@@ -105,13 +105,13 @@ OFFSET COALESCE(:offset, 0)
         FROM filtered_lines f
         GROUP BY f.bucket
     )
-    SELECT to_char(df.bucket,
-               CASE WHEN dp.g = 'DAY'   THEN 'Mon DD, YYYY'
-                    WHEN dp.g = 'WEEK'  THEN 'Mon DD, YYYY'
-                    WHEN dp.g = 'MONTH' THEN 'Mon YYYY'
-                    WHEN dp.g = 'YEAR'  THEN 'YYYY'
-               END
-           ) AS period,
+    SELECT CASE
+               WHEN dp.g = 'DAY'     THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'WEEK'    THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'MONTH'   THEN to_char(df.bucket, 'Mon YYYY')
+               WHEN dp.g = 'QUARTER' THEN 'Q' || EXTRACT(QUARTER FROM df.bucket)::int || ' ' || EXTRACT(YEAR FROM df.bucket)::int
+               WHEN dp.g = 'YEAR'    THEN to_char(df.bucket, 'YYYY')
+           END AS period,
            df.bucket,
            ROUND(COALESCE(d.net_sales, 0), 2) AS net_sales,
            COALESCE(d.units_sold, 0) AS units_sold
@@ -127,7 +127,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -693,13 +692,13 @@ VALUES (
         FROM filtered_lines f
         GROUP BY f.bucket
     )
-    SELECT to_char(df.bucket,
-               CASE WHEN dp.g = 'DAY'   THEN 'Mon DD, YYYY'
-                    WHEN dp.g = 'WEEK'  THEN 'Mon DD, YYYY'
-                    WHEN dp.g = 'MONTH' THEN 'Mon YYYY'
-                    WHEN dp.g = 'YEAR'  THEN 'YYYY'
-               END
-           ) AS period,
+    SELECT CASE
+               WHEN dp.g = 'DAY'     THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'WEEK'    THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'MONTH'   THEN to_char(df.bucket, 'Mon YYYY')
+               WHEN dp.g = 'QUARTER' THEN 'Q' || EXTRACT(QUARTER FROM df.bucket)::int || ' ' || EXTRACT(YEAR FROM df.bucket)::int
+               WHEN dp.g = 'YEAR'    THEN to_char(df.bucket, 'YYYY')
+           END AS period,
            df.bucket,
            d.average_unit_price AS average_unit_price
     FROM date_filler df
@@ -714,7 +713,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -1018,6 +1016,7 @@ OFFSET COALESCE(:offset, 0)
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                li.quantity AS units,
+               li.current_quantity AS current_units,
                COALESCE(li.original_total_amount, 0) AS gross_sales,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
@@ -1031,6 +1030,7 @@ OFFSET COALESCE(:offset, 0)
            COUNT(DISTINCT pv.product_id) AS products,
            COUNT(DISTINCT pv.id) AS skus,
            SUM(f.units) AS units_sold,
+           SUM(f.units - f.current_units) AS refunded_units,
            ROUND(SUM(f.gross_sales), 2) AS gross_sales,
            ROUND(SUM(f.net_sales), 2) AS net_sales,
            ROUND(100 * (SUM(f.gross_sales) - SUM(f.net_sales)) / NULLIF(SUM(f.gross_sales), 0), 2) AS discount_rate,

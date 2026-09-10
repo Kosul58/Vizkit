@@ -243,7 +243,7 @@ VALUES (
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
       AND o.cancelled_at IS NULL
-      AND UPPER(o.fulfillmentStatus) IS DISTINCT FROM 'FULFILLED'
+      AND o.fulfillmentStatus != 'FULFILLED'
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -254,7 +254,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -656,7 +655,7 @@ VALUES (
            ROUND(100.0 * (ot.cur_value - ot.prv_value)
                  / NULLIF(ABS(ot.prv_value), 0), 2) AS divergence
     FROM order_totals ot
-    $$,
+    $$
 ),
 (
     '019fff82-e31d-7c08-8f38-2a2b3c4d1008',
@@ -675,7 +674,7 @@ VALUES (
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
               AND o.cancelled_at IS NULL
-              AND UPPER(o.fulfillmentStatus) IS DISTINCT FROM 'FULFILLED'
+              AND o.fulfillmentStatus != 'FULFILLED'
         ) t
         WHERE t.is_current OR t.is_prior
     )

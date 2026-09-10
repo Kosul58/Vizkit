@@ -62,13 +62,13 @@ VALUES (
         FROM scoped_txn s
         GROUP BY s.bucket
     )
-    SELECT to_char(df.bucket,
-               CASE WHEN dp.g = 'DAY'   THEN 'Mon DD, YYYY'
-                    WHEN dp.g = 'WEEK'  THEN 'Mon DD, YYYY'
-                    WHEN dp.g = 'MONTH' THEN 'Mon YYYY'
-                    WHEN dp.g = 'YEAR'  THEN 'YYYY'
-               END
-           ) AS period,
+    SELECT CASE
+               WHEN dp.g = 'DAY'     THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'WEEK'    THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'MONTH'   THEN to_char(df.bucket, 'Mon YYYY')
+               WHEN dp.g = 'QUARTER' THEN 'Q' || EXTRACT(QUARTER FROM df.bucket)::int || ' ' || EXTRACT(YEAR FROM df.bucket)::int
+               WHEN dp.g = 'YEAR'    THEN to_char(df.bucket, 'YYYY')
+           END AS period,
            df.bucket,
            ROUND(COALESCE(d.payments, 0), 2) AS payments,
            ROUND(COALESCE(d.refunds, 0), 2) AS refunds,
@@ -85,7 +85,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -210,7 +209,8 @@ VALUES (
     FROM scoped_txn s
     LEFT JOIN public.dim_inventory_locations loc ON loc.id = s.location_id
     ORDER BY s.txn_at DESC, s.transaction_gid
-    LIMIT :limit OFFSET :offset
+    LIMIT COALESCE(:limit, 10)
+    OFFSET COALESCE(:offset, 0)
     ',
     NULL,
     'TABLE',
@@ -219,7 +219,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -232,7 +231,7 @@ VALUES (
     '019fffa3-ddd3-74f4-8b88-84aa1bf30d42',
     'Payment Method Report',
     'Payments & Transactions/Payment Overview/TABLE/Payment Method Report',
-    '
+    $$
     WITH scoped_orders AS (
         SELECT o.id
         FROM public.fact_order_headers o
@@ -242,7 +241,7 @@ VALUES (
     ),
     scoped_tender AS (
         SELECT tt.order_id,
-               INITCAP(REPLACE(COALESCE(tt.payment_method, ''Unattributed''),
+               INITCAP(REPLACE(COALESCE(tt.payment_method, 'Unattributed'),
                                CHR(95), CHR(32))) AS method,
                COALESCE(tt.amount, 0) AS amount
         FROM public.dim_tender_transactions tt
@@ -271,9 +270,9 @@ VALUES (
     order_txn AS (
         SELECT t.order_id,
                COALESCE(SUM(COALESCE(t.amount, 0)) FILTER (
-                   WHERE UPPER(t.kind) = ''REFUND''
-                     AND UPPER(t.status) = ''SUCCESS''), 0) AS refunded,
-               COUNT(*) FILTER (WHERE UPPER(t.status) IN (''FAILURE'', ''ERROR'')) AS failures
+                   WHERE UPPER(t.kind) = 'REFUND'
+                     AND UPPER(t.status) = 'SUCCESS'), 0) AS refunded,
+               COUNT(*) FILTER (WHERE UPPER(t.status) IN ('FAILURE', 'ERROR')) AS failures
         FROM public.fact_order_transactions t
         JOIN scoped_orders so ON so.id = t.order_id
         WHERE t.test = FALSE
@@ -297,8 +296,9 @@ VALUES (
     FROM method_totals mt
     LEFT JOIN method_txn mx ON mx.method = mt.method
     ORDER BY mt.amount DESC, mt.method ASC
-    LIMIT :limit OFFSET :offset
-    ',
+    LIMIT COALESCE(:limit, 10)
+    OFFSET COALESCE(:offset, 0)
+    $$,
     NULL,
     'TABLE',
     60,
@@ -306,7 +306,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -382,13 +381,13 @@ VALUES (
         FROM scoped_txn s
         GROUP BY s.bucket
     )
-    SELECT to_char(df.bucket,
-               CASE WHEN dp.g = 'DAY'   THEN 'Mon DD, YYYY'
-                    WHEN dp.g = 'WEEK'  THEN 'Mon DD, YYYY'
-                    WHEN dp.g = 'MONTH' THEN 'Mon YYYY'
-                    WHEN dp.g = 'YEAR'  THEN 'YYYY'
-               END
-           ) AS period,
+    SELECT CASE
+               WHEN dp.g = 'DAY'     THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'WEEK'    THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'MONTH'   THEN to_char(df.bucket, 'Mon YYYY')
+               WHEN dp.g = 'QUARTER' THEN 'Q' || EXTRACT(QUARTER FROM df.bucket)::int || ' ' || EXTRACT(YEAR FROM df.bucket)::int
+               WHEN dp.g = 'YEAR'    THEN to_char(df.bucket, 'YYYY')
+           END AS period,
            df.bucket,
            ROUND(COALESCE(d.fees, 0), 2) AS transaction_fees,
            ROUND(100 * d.fees / NULLIF(d.amount, 0), 2) AS fee_rate
@@ -404,7 +403,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -416,15 +414,14 @@ VALUES (
     '019fffa3-ddd3-7325-ae53-eba74722bea6',
     'Gateway Fee Report',
     'Payments & Transactions/Payment Costs & Gateway Performance/TABLE/Gateway Fee Report',
-    '
+    $$
     WITH scoped_txn AS (
-        SELECT INITCAP(REPLACE(COALESCE(t.gateway, ''Unknown''),
-                               CHR(95), CHR(32))) AS gateway,
+        SELECT t.gateway AS gateway,
                COALESCE(t.amount, 0) AS amount,
                COALESCE(t.transaction_fee, 0) AS fee,
-               (UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
-            AND UPPER(t.status) = ''SUCCESS'') AS is_payment,
-               (UPPER(t.status) IN (''FAILURE'', ''ERROR'')) AS is_failed
+               t.kind IN ('SALE', 'CAPTURE')
+            AND t.status = 'SUCCESS' AS is_payment,
+               t.status IN ('FAILURE', 'ERROR') AS is_failed
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id
         WHERE o.seller_id = :shopId
@@ -452,8 +449,9 @@ VALUES (
            COUNT(*) OVER() AS total_records
     FROM gateway_totals gt
     ORDER BY gt.amount_processed DESC, gt.gateway ASC
-    LIMIT :limit OFFSET :offset
-    ',
+    LIMIT COALESCE(:limit, 10)
+    OFFSET COALESCE(:offset, 0)
+    $$,
     NULL,
     'TABLE',
     60,
@@ -461,7 +459,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -546,13 +543,13 @@ VALUES (
         FROM scoped_txn s
         GROUP BY s.bucket
     )
-    SELECT to_char(df.bucket,
-               CASE WHEN dp.g = 'DAY'   THEN 'Mon DD, YYYY'
-                    WHEN dp.g = 'WEEK'  THEN 'Mon DD, YYYY'
-                    WHEN dp.g = 'MONTH' THEN 'Mon YYYY'
-                    WHEN dp.g = 'YEAR'  THEN 'YYYY'
-               END
-           ) AS period,
+    SELECT CASE
+               WHEN dp.g = 'DAY'     THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'WEEK'    THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'MONTH'   THEN to_char(df.bucket, 'Mon YYYY')
+               WHEN dp.g = 'QUARTER' THEN 'Q' || EXTRACT(QUARTER FROM df.bucket)::int || ' ' || EXTRACT(YEAR FROM df.bucket)::int
+               WHEN dp.g = 'YEAR'    THEN to_char(df.bucket, 'YYYY')
+           END AS period,
            df.bucket,
            COALESCE(d.failed_count, 0) AS failed_count,
            COALESCE(d.pending_count, 0) AS pending_count
@@ -568,7 +565,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -584,15 +580,14 @@ VALUES (
     '019fffa3-ddd3-7be5-89dc-101e463d6bb3',
     'Failed / Pending Transactions Report',
     'Payments & Transactions/Payment Health & Reliability/TABLE/Failed / Pending Transactions Report',
-    '
+    $$
     WITH scoped_txn AS (
         SELECT t.id as transaction_gid,
                o.id as order_gid,
                o.customer_id,
                COALESCE(t.processed_at, t.created_at) AS txn_at,
-               UPPER(t.status) AS status,
-               INITCAP(REPLACE(COALESCE(t.gateway, ''Unknown''),
-                               CHR(95), CHR(32))) AS gateway,
+               t.status AS status,
+               t.gateway AS gateway,
                COALESCE(t.amount, 0) AS amount
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id
@@ -600,25 +595,26 @@ VALUES (
           AND o.test = FALSE
           
           AND t.test = FALSE
-          AND UPPER(t.status) IN (''FAILURE'', ''ERROR'', ''PENDING'', ''AWAITING_RESPONSE'')
+          AND t.status IN ('FAILURE', 'ERROR', 'PENDING', 'AWAITING_RESPONSE')
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     )
-    SELECT COALESCE(s.transaction_gid, ''Unknown'') AS transaction_id,
-           COALESCE(s.order_gid, ''Unknown'') AS order_id,
+    SELECT COALESCE(s.transaction_gid, 'Unknown') AS transaction_id,
+           COALESCE(s.order_gid, 'Unknown') AS order_id,
            s.gateway AS gateway,
            ROUND(s.amount, 2) AS amount,
            s.status AS status,
            s.txn_at::date::text AS processed_date,
            CASE WHEN LENGTH(CONCAT_WS(CHR(32), cu.first_name, cu.last_name)) > 0
                 THEN CONCAT_WS(CHR(32), cu.first_name, cu.last_name)
-                ELSE COALESCE(cu.email, ''Guest'') END AS customer,
+                ELSE COALESCE(cu.email, 'Guest') END AS customer,
            COUNT(*) OVER() AS total_records
     FROM scoped_txn s
     LEFT JOIN public.dim_customers cu ON cu.id = s.customer_id
     ORDER BY s.txn_at DESC, s.transaction_gid
-    LIMIT :limit OFFSET :offset
-    ',
+    LIMIT COALESCE(:limit, 10)
+    OFFSET COALESCE(:offset, 0)
+    $$,
     NULL,
     'TABLE',
     60,
@@ -626,7 +622,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -705,13 +700,13 @@ VALUES (
           AND UPPER(t.status) = 'SUCCESS'
         GROUP BY f.bucket
     )
-    SELECT to_char(df.bucket,
-               CASE WHEN dp.g = 'DAY'   THEN 'Mon DD, YYYY'
-                    WHEN dp.g = 'WEEK'  THEN 'Mon DD, YYYY'
-                    WHEN dp.g = 'MONTH' THEN 'Mon YYYY'
-                    WHEN dp.g = 'YEAR'  THEN 'YYYY'
-               END
-           ) AS period,
+    SELECT CASE
+               WHEN dp.g = 'DAY'     THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'WEEK'    THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'MONTH'   THEN to_char(df.bucket, 'Mon YYYY')
+               WHEN dp.g = 'QUARTER' THEN 'Q' || EXTRACT(QUARTER FROM df.bucket)::int || ' ' || EXTRACT(YEAR FROM df.bucket)::int
+               WHEN dp.g = 'YEAR'    THEN to_char(df.bucket, 'YYYY')
+           END AS period,
            df.bucket,
            ROUND(COALESCE(d.order_total, 0), 2) AS order_total,
            ROUND(COALESCE(p.captured_payments, 0), 2) AS captured_payments
@@ -797,13 +792,13 @@ VALUES (
         FROM scoped_refunds s
         GROUP BY s.bucket
     )
-    SELECT to_char(df.bucket,
-               CASE WHEN dp.g = 'DAY'   THEN 'Mon DD, YYYY'
-                    WHEN dp.g = 'WEEK'  THEN 'Mon DD, YYYY'
-                    WHEN dp.g = 'MONTH' THEN 'Mon YYYY'
-                    WHEN dp.g = 'YEAR'  THEN 'YYYY'
-               END
-           ) AS period,
+    SELECT CASE
+               WHEN dp.g = 'DAY'     THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'WEEK'    THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'MONTH'   THEN to_char(df.bucket, 'Mon YYYY')
+               WHEN dp.g = 'QUARTER' THEN 'Q' || EXTRACT(QUARTER FROM df.bucket)::int || ' ' || EXTRACT(YEAR FROM df.bucket)::int
+               WHEN dp.g = 'YEAR'    THEN to_char(df.bucket, 'YYYY')
+           END AS period,
            df.bucket,
            ROUND(COALESCE(d.refund_amount, 0), 2) AS refund_amount,
            COALESCE(d.refund_count, 0) AS refund_count
@@ -819,7 +814,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -831,7 +825,7 @@ VALUES (
     '019fffa3-ddd3-7cbb-9fbc-b0387524b1f4',
     'Order Payment Reconciliation Report',
     'Payments & Transactions/Reconciliation & Refund Payments/TABLE/Order Payment Reconciliation Report',
-    '
+    $$
     WITH filtered_orders AS (
         SELECT o.id,
                o.created_at,
@@ -848,11 +842,11 @@ VALUES (
         SELECT t.order_id,
                SUM(COALESCE(t.amount, 0)) AS transaction_amount,
                COALESCE(SUM(COALESCE(t.amount, 0)) FILTER (
-                   WHERE UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
-                     AND UPPER(t.status) = ''SUCCESS''), 0) AS captured_amount,
+                   WHERE UPPER(t.kind) IN ('SALE', 'CAPTURE')
+                     AND UPPER(t.status) = 'SUCCESS'), 0) AS captured_amount,
                COALESCE(SUM(COALESCE(t.amount, 0)) FILTER (
-                   WHERE UPPER(t.kind) = ''REFUND''
-                     AND UPPER(t.status) = ''SUCCESS''), 0) AS refunded_amount
+                   WHERE UPPER(t.kind) = 'REFUND'
+                     AND UPPER(t.status) = 'SUCCESS'), 0) AS refunded_amount
         FROM public.fact_order_transactions t
         JOIN filtered_orders f ON f.id = t.order_id
         WHERE t.test = FALSE
@@ -872,7 +866,7 @@ VALUES (
         FROM filtered_orders f
         LEFT JOIN order_txn ot ON ot.order_id = f.id
     )
-    SELECT COALESCE(r.id, ''Unknown'') AS order_id,
+    SELECT COALESCE(r.id, 'Unknown') AS order_id,
            ROUND(r.order_total, 2) AS order_total,
            ROUND(r.net_payment, 2) AS net_payment,
            ROUND(r.transaction_amount, 2) AS transaction_amount,
@@ -882,8 +876,9 @@ VALUES (
            COUNT(*) OVER() AS total_records
     FROM reconciled r
     ORDER BY ABS(r.difference) DESC, r.created_at DESC, r.id
-    LIMIT :limit OFFSET :offset
-    ',
+    LIMIT COALESCE(:limit, 10)
+    OFFSET COALESCE(:offset, 0)
+    $$,
     NULL,
     'TABLE',
     60,
@@ -891,7 +886,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -904,14 +898,13 @@ VALUES (
     '019fffa3-ddd3-7bfd-8994-043808a9ede2',
     'Refund Transaction Report',
     'Payments & Transactions/Reconciliation & Refund Payments/TABLE/Refund Transaction Report',
-    '
+    $$
     WITH scoped_refunds AS (
         SELECT t.id as transaction_gid,
                o.id as order_gid,
                COALESCE(t.processed_at, t.created_at) AS txn_at,
-               UPPER(t.status) AS status,
-               INITCAP(REPLACE(COALESCE(t.gateway, ''Unknown''),
-                               CHR(95), CHR(32))) AS gateway,
+               t.status AS status,
+               t.gateway AS gateway,
                COALESCE(t.amount, 0) AS amount
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id
@@ -919,23 +912,24 @@ VALUES (
           AND o.test = FALSE
           
           AND t.test = FALSE
-          AND UPPER(t.kind) = ''REFUND''
+          AND t.kind = 'REFUND'
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     )
-    SELECT COALESCE(s.transaction_gid, ''Unknown'') AS transaction_id,
-           COALESCE(s.order_gid, ''Unknown'') AS order_id,
+    SELECT COALESCE(s.transaction_gid, 'Unknown') AS transaction_id,
+           COALESCE(s.order_gid, 'Unknown') AS order_id,
            ROUND(s.amount, 2) AS refund_amount,
            s.gateway AS gateway,
-           COALESCE(p.id, ''None'') AS parent_transaction,
-           COALESCE(s.status, ''UNKNOWN'') AS status,
+           COALESCE(p.id, 'None') AS parent_transaction,
+           s.status AS status,
            s.txn_at::date::text AS processed_date,
            COUNT(*) OVER() AS total_records
     FROM scoped_refunds s
     LEFT JOIN public.fact_order_transactions p ON p.id = s.transaction_gid
     ORDER BY s.txn_at DESC, s.transaction_gid
-    LIMIT :limit OFFSET :offset
-    ',
+    LIMIT COALESCE(:limit, 10)
+    OFFSET COALESCE(:offset, 0)
+    $$,
     NULL,
     'TABLE',
     60,
@@ -943,7 +937,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1028,7 +1021,7 @@ VALUES (
     WITH filtered_orders AS (
         SELECT o.id,
                o.created_at,
-               UPPER(o.financialstatus) AS financial_status
+               o.financialstatus AS financial_status
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -1039,11 +1032,11 @@ VALUES (
     order_txn AS (
         SELECT t.order_id,
                COALESCE(SUM(COALESCE(t.amount, 0)) FILTER (
-                   WHERE UPPER(t.kind) IN ('AUTHORIZATION', 'EMV_AUTHORIZATION')
-                     AND UPPER(t.status) = 'SUCCESS'), 0) AS authorized_amount,
+                   WHERE t.kind IN ('AUTHORIZATION', 'EMV_AUTHORIZATION')
+                     AND t.status = 'SUCCESS'), 0) AS authorized_amount,
                COALESCE(SUM(COALESCE(t.amount, 0)) FILTER (
-                   WHERE UPPER(t.kind) IN ('SALE', 'CAPTURE')
-                     AND UPPER(t.status) = 'SUCCESS'), 0) AS captured_amount
+                   WHERE t.kind IN ('SALE', 'CAPTURE')
+                     AND t.status = 'SUCCESS'), 0) AS captured_amount
         FROM public.fact_order_transactions t
         JOIN filtered_orders f ON f.id = t.order_id
         WHERE t.test = FALSE
@@ -1079,7 +1072,8 @@ VALUES (
     ORDER BY GREATEST(COALESCE(ot.authorized_amount, 0)
                       - COALESCE(ot.captured_amount, 0), 0) DESC,
              f.created_at DESC, f.id
-    LIMIT :limit OFFSET :offset
+    LIMIT COALESCE(:limit, 10)
+    OFFSET COALESCE(:offset, 0)
     $$,
     NULL,
     'TABLE',
@@ -1088,7 +1082,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1223,33 +1216,33 @@ VALUES (
     '019fffa3-ddd3-7803-b1ad-78780dcea258',
     'Cash Rounding Adjustments Trend',
     'Payments & Transactions/POS & Alternative Payment Operations/PLOT/Cash Rounding Adjustments Trend',
-    '
+    $$
     WITH
     date_params AS (
         SELECT
             g,
-            CASE WHEN g = ''DAY''   THEN date_trunc(''day'',   :currentStartDate::date)
-                 WHEN g = ''WEEK''  THEN date_trunc(''week'',  :currentStartDate::date)
-                 WHEN g = ''MONTH'' THEN date_trunc(''month'', :currentStartDate::date)
-                 WHEN g = ''YEAR''  THEN date_trunc(''year'',  :currentStartDate::date)
+            CASE WHEN g = 'DAY'   THEN date_trunc('day',   :currentStartDate::date)
+                 WHEN g = 'WEEK'  THEN date_trunc('week',  :currentStartDate::date)
+                 WHEN g = 'MONTH' THEN date_trunc('month', :currentStartDate::date)
+                 WHEN g = 'YEAR'  THEN date_trunc('year',  :currentStartDate::date)
             END AS start_bucket,
-            CASE WHEN g = ''DAY''   THEN date_trunc(''day'',   :currentEndDate::date)
-                 WHEN g = ''WEEK''  THEN date_trunc(''week'',  :currentEndDate::date)
-                 WHEN g = ''MONTH'' THEN date_trunc(''month'', :currentEndDate::date)
-                 WHEN g = ''YEAR''  THEN date_trunc(''year'',  :currentEndDate::date)
+            CASE WHEN g = 'DAY'   THEN date_trunc('day',   :currentEndDate::date)
+                 WHEN g = 'WEEK'  THEN date_trunc('week',  :currentEndDate::date)
+                 WHEN g = 'MONTH' THEN date_trunc('month', :currentEndDate::date)
+                 WHEN g = 'YEAR'  THEN date_trunc('year',  :currentEndDate::date)
             END AS end_bucket,
-            CASE WHEN g = ''DAY''   THEN interval ''1 day''
-                 WHEN g = ''WEEK''  THEN interval ''1 week''
-                 WHEN g = ''MONTH'' THEN interval ''1 month''
-                 WHEN g = ''YEAR''  THEN interval ''1 year''
+            CASE WHEN g = 'DAY'   THEN interval '1 day'
+                 WHEN g = 'WEEK'  THEN interval '1 week'
+                 WHEN g = 'MONTH' THEN interval '1 month'
+                 WHEN g = 'YEAR'  THEN interval '1 year'
             END AS step
         FROM (
             SELECT COALESCE(
-                NULLIF(:granularity, ''''),
-                CASE WHEN (:currentEndDate::date - :currentStartDate::date) > 730 THEN ''YEAR''
-                     WHEN (:currentEndDate::date - :currentStartDate::date) > 180 THEN ''MONTH''
-                     WHEN (:currentEndDate::date - :currentStartDate::date) > 31  THEN ''WEEK''
-                     ELSE ''DAY''
+                NULLIF(:granularity, ''),
+                CASE WHEN (:currentEndDate::date - :currentStartDate::date) > 730 THEN 'YEAR'
+                     WHEN (:currentEndDate::date - :currentStartDate::date) > 180 THEN 'MONTH'
+                     WHEN (:currentEndDate::date - :currentStartDate::date) > 31  THEN 'WEEK'
+                     ELSE 'DAY'
                 END
             ) AS g
         ) sub
@@ -1276,20 +1269,20 @@ VALUES (
         FROM scoped_txn s
         GROUP BY s.bucket
     )
-    SELECT to_char(df.bucket,
-               CASE WHEN dp.g = ''DAY''   THEN ''Mon DD, YYYY''
-                    WHEN dp.g = ''WEEK''  THEN ''Mon DD, YYYY''
-                    WHEN dp.g = ''MONTH'' THEN ''Mon YYYY''
-                    WHEN dp.g = ''YEAR''  THEN ''YYYY''
-               END
-           ) AS period,
+    SELECT CASE
+               WHEN dp.g = 'DAY'     THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'WEEK'    THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'MONTH'   THEN to_char(df.bucket, 'Mon YYYY')
+               WHEN dp.g = 'QUARTER' THEN 'Q' || EXTRACT(QUARTER FROM df.bucket)::int || ' ' || EXTRACT(YEAR FROM df.bucket)::int
+               WHEN dp.g = 'YEAR'    THEN to_char(df.bucket, 'YYYY')
+           END AS period,
            df.bucket,
            ROUND(COALESCE(d.rounding_amount, 0), 2) AS rounding_amount
     FROM date_filler df
     CROSS JOIN date_params dp
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1297,7 +1290,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -1309,13 +1301,13 @@ VALUES (
     '019fffa3-ddd3-7b1a-a7b4-6d3cc0d9d8b7',
     'Manual Payment Report',
     'Payments & Transactions/POS & Alternative Payment Operations/TABLE/Manual Payment Report',
-    '
+    $$
     WITH scoped_txn AS (
         SELECT t.id,
                o.id as order_gid,
                t.gateway,
                COALESCE(t.processed_at, t.created_at) AS txn_at,
-               UPPER(t.status) AS status,
+               t.status AS status,
                COALESCE(t.amount, 0) AS amount
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id
@@ -1327,16 +1319,17 @@ VALUES (
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     )
-    SELECT COALESCE(s.order_gid, ''Unknown'') AS order_id,
-           INITCAP(REPLACE(s.gateway, CHR(95), CHR(32))) AS manual_gateway,
+    SELECT s.order_gid AS order_id,
+           s.gateway AS manual_gateway,
            ROUND(s.amount, 2) AS amount,
-           s.txn_at::date::text AS processed_date,
-           COALESCE(s.status, ''UNKNOWN'') AS status,
+           s.txn_at::date AS processed_date,
+           s.status AS status,
            COUNT(*) OVER() AS total_records
     FROM scoped_txn s
     ORDER BY s.txn_at DESC, s.id
-    LIMIT :limit OFFSET :offset
-    ',
+    LIMIT COALESCE(:limit, 10)
+    OFFSET COALESCE(:offset, 0)
+    $$,
     NULL,
     'TABLE',
     60,
@@ -1344,7 +1337,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1357,7 +1349,7 @@ VALUES (
     '019fffa3-ddd3-7964-b52a-a330c2f1e7a0',
     'POS Payment Report',
     'Payments & Transactions/POS & Alternative Payment Operations/TABLE/POS Payment Report',
-    '
+    $$
     WITH scoped_orders AS (
         SELECT o.id
         FROM public.fact_order_headers o
@@ -1367,15 +1359,15 @@ VALUES (
     ),
     pos_txn AS (
         SELECT t.order_id,
-               COALESCE(loc.name, ''Unknown'') AS location,
-               COALESCE(t.device_id, ''Unknown'') AS device,
+               COALESCE(loc.name, 'Unknown') AS location,
+               COALESCE(t.device_id, 'Unknown') AS device,
                COALESCE(t.amount, 0) AS amount
         FROM public.fact_order_transactions t
         JOIN scoped_orders so ON so.id = t.order_id
         LEFT JOIN public.dim_inventory_locations loc ON loc.id = t.location_id
         WHERE t.test = FALSE
-          AND UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
-          AND UPPER(t.status) = ''SUCCESS''
+          AND t.kind IN ('SALE', 'CAPTURE')
+          AND t.status = 'SUCCESS'
           AND (t.device_id IS NOT NULL
             OR t.location_id IS NOT NULL)
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
@@ -1383,15 +1375,13 @@ VALUES (
     ),
     order_tender AS (
         SELECT tt.order_id,
-               INITCAP(REPLACE(COALESCE(tt.payment_method, ''Unattributed''),
-                               CHR(95), CHR(32))) AS method,
+               tt.payment_method AS method,
                SUM(COALESCE(tt.amount, 0)) AS amount
         FROM public.dim_tender_transactions tt
         JOIN scoped_orders so ON so.id = tt.order_id
         WHERE tt.test = FALSE
         GROUP BY tt.order_id,
-                 INITCAP(REPLACE(COALESCE(tt.payment_method, ''Unattributed''),
-                                 CHR(95), CHR(32)))
+                 tt.payment_method
     ),
     primary_method AS (
         SELECT DISTINCT ON (ot.order_id) ot.order_id, ot.method
@@ -1404,8 +1394,8 @@ VALUES (
         FROM public.fact_order_transactions t
         JOIN scoped_orders so ON so.id = t.order_id
         WHERE t.test = FALSE
-          AND UPPER(t.kind) = ''REFUND''
-          AND UPPER(t.status) = ''SUCCESS''
+          AND t.kind = 'REFUND'
+          AND t.status = 'SUCCESS'
         GROUP BY t.order_id
     ),
     pos_by_order AS (
@@ -1417,7 +1407,7 @@ VALUES (
     SELECT b.location AS location,
            b.device AS device,
            ROUND(SUM(b.amount), 2) AS payment_amount,
-           COALESCE(string_agg(DISTINCT pm.method, CHR(44) || CHR(32)), ''Unknown'') AS payment_method,
+           COALESCE(string_agg(DISTINCT pm.method, CHR(44) || CHR(32)), 'Unknown') AS payment_method,
            ROUND(COALESCE(SUM(orf.refunded), 0), 2) AS refund_amount,
            COUNT(*) OVER() AS total_records
     FROM pos_by_order b
@@ -1425,8 +1415,9 @@ VALUES (
     LEFT JOIN order_refunds orf ON orf.order_id = b.order_id
     GROUP BY b.location, b.device
     ORDER BY SUM(b.amount) DESC, b.location ASC, b.device ASC
-    LIMIT :limit OFFSET :offset
-    ',
+    LIMIT COALESCE(:limit, 10)
+    OFFSET COALESCE(:offset, 0)
+    $$,
     NULL,
     'TABLE',
     60,
@@ -1434,7 +1425,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1447,7 +1437,7 @@ VALUES (
     '019fffa3-ddd3-7ca6-a8ff-5976abc98ff7',
     'Card Brand Report',
     'Payments & Transactions/POS & Alternative Payment Operations/TABLE/Card Brand Report',
-    '
+    $$
     WITH scoped_orders AS (
         SELECT o.id
         FROM public.fact_order_headers o
@@ -1457,7 +1447,7 @@ VALUES (
     ),
     scoped_tender AS (
         SELECT tt.order_id,
-               INITCAP(REPLACE(tt.transaction_credit_card_company, CHR(95), CHR(32))) AS card_brand,
+               tt.transaction_credit_card_company AS card_brand,
                COALESCE(tt.amount, 0) AS amount
         FROM public.dim_tender_transactions tt
         JOIN scoped_orders so ON so.id = tt.order_id
@@ -1486,9 +1476,9 @@ VALUES (
     order_txn AS (
         SELECT t.order_id,
                COALESCE(SUM(COALESCE(t.amount, 0)) FILTER (
-                   WHERE UPPER(t.kind) = ''REFUND''
-                     AND UPPER(t.status) = ''SUCCESS''), 0) AS refunded,
-               COUNT(*) FILTER (WHERE UPPER(t.status) IN (''FAILURE'', ''ERROR'')) AS failures,
+                   WHERE t.kind = 'REFUND'
+                     AND t.status = 'SUCCESS'), 0) AS refunded,
+               COUNT(*) FILTER (WHERE t.status IN ('FAILURE', 'ERROR')) AS failures,
                COUNT(*) AS txn_count
         FROM public.fact_order_transactions t
         JOIN scoped_orders so ON so.id = t.order_id
@@ -1514,8 +1504,9 @@ VALUES (
     FROM brand_totals bt
     LEFT JOIN brand_txn bx ON bx.card_brand = bt.card_brand
     ORDER BY bt.amount DESC, bt.card_brand ASC
-    LIMIT :limit OFFSET :offset
-    ',
+    LIMIT COALESCE(:limit, 10)
+    OFFSET COALESCE(:offset, 0)
+    $$,
     NULL,
     'TABLE',
     60,
@@ -1523,7 +1514,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },

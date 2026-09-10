@@ -1088,7 +1088,6 @@ OFFSET COALESCE(:offset, 0);
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.financialstatus != 'VOIDED'
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1096,6 +1095,7 @@ OFFSET COALESCE(:offset, 0);
         SELECT r.order_id, SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
         FROM public.fact_order_refunds r
         JOIN filtered_orders f ON f.id = r.order_id
+        WHERE r.total_refunded_amount > 0
         GROUP BY r.order_id
     ),
     order_gross AS (
@@ -1145,7 +1145,6 @@ OFFSET COALESCE(:offset, 0)
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.financialstatus != 'VOIDED'
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1155,6 +1154,7 @@ OFFSET COALESCE(:offset, 0)
                SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
         FROM public.fact_order_refunds r
         JOIN filtered_orders f ON f.id = r.order_id
+        WHERE r.total_refunded_amount > 0
         GROUP BY r.order_id
     ),
     order_gross AS (
@@ -1178,7 +1178,7 @@ OFFSET COALESCE(:offset, 0)
     SELECT COALESCE(NULLIF(TRIM(CONCAT_WS(' ', cu.first_name, cu.last_name)), ''),
                     cu.email,
                     cu.id) AS customer,
-           pc.orders AS orders,
+           cu.number_of_orders AS orders,
            ROUND(COALESCE(cu.amount_spent, 0), 2) AS amount_spent,
            pc.refund_count AS refund_count,
            ROUND(pc.refunded_amount, 2) AS refunded_amount,
