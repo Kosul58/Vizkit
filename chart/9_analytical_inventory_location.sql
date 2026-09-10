@@ -93,11 +93,11 @@ OFFSET COALESCE(:offset, 0)
     '019fff9a-1dfc-7f1c-8633-d54b46a9f55e',
     'Location Inventory Summary',
     'Inventory Location/Location Overview/TABLE/Location Inventory Summary',
-    '
+    $$
     WITH location_stock AS (
         SELECT loc.id AS location_id,
-               COALESCE(loc.name, ''Unknown'') AS location_name,
-               COALESCE(loc.is_active, FALSE) AS is_active,
+               loc.name AS location_name,
+               loc.is_active AS is_active,
                loc.address,
                COALESCE(SUM(il.available_quantity), 0) AS available_quantity,
                COALESCE(SUM(il.on_hand_quantity), 0)   AS on_hand_quantity,
@@ -114,14 +114,14 @@ OFFSET COALESCE(:offset, 0)
         GROUP BY loc.id, loc.name, loc.is_active, loc.address
     )
     SELECT ls.location_name AS location,
-           CASE WHEN ls.is_active THEN ''Active'' ELSE ''Inactive'' END AS active_status,
+           CASE WHEN ls.is_active THEN 'Active' ELSE 'Inactive' END AS active_status,
            CASE WHEN LENGTH(CONCAT_WS(CHR(44) || CHR(32),
-                         ls.address #>> ''{address1}'', ls.address #>> ''{city}'',
-                         ls.address #>> ''{province}'', ls.address #>> ''{country}'')) > 0
+                         ls.address #>> '{address1}', ls.address #>> '{city}',
+                         ls.address #>> '{province}', ls.address #>> '{country}')) > 0
                 THEN CONCAT_WS(CHR(44) || CHR(32),
-                         ls.address #>> ''{address1}'', ls.address #>> ''{city}'',
-                         ls.address #>> ''{province}'', ls.address #>> ''{country}'')
-                ELSE ''Unknown'' END AS address,
+                         ls.address #>> '{address1}', ls.address #>> '{city}',
+                         ls.address #>> '{province}', ls.address #>> '{country}')
+                ELSE 'Unknown' END AS address,
            ls.available_quantity AS available_quantity,
            ls.on_hand_quantity   AS on_hand_quantity,
            ls.committed_quantity AS committed_quantity,
@@ -133,7 +133,7 @@ OFFSET COALESCE(:offset, 0)
     ORDER BY ls.on_hand_quantity DESC, ls.location_name, ls.location_id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
     60,
@@ -141,7 +141,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -154,12 +153,13 @@ OFFSET COALESCE(:offset, 0)
     '019fff9a-1dfc-7fe3-864f-63a5e46aba11',
     'SKU by Location Report',
     'Inventory Location/Location Overview/TABLE/SKU by Location Report',
-    '
+    $$
     WITH level_rows AS (
         SELECT il.id AS level_id,
-               COALESCE(loc.name, ''Unknown'') AS location_name,
-               COALESCE(ii.sku, pv.sku, ''Unknown'') AS sku,
-               COALESCE(p.title, ''Unknown'') AS product,
+               p.id AS product_id,
+               loc.name AS location_name,
+               pv.sku AS sku,
+               p.title AS product,
                COALESCE(il.available_quantity, 0)    AS available_quantity,
                COALESCE(il.on_hand_quantity, 0)      AS on_hand_quantity,
                COALESCE(il.committed_quantity, 0)    AS committed_quantity,
@@ -176,6 +176,7 @@ OFFSET COALESCE(:offset, 0)
     )
     SELECT lr.location_name AS location,
            lr.sku AS sku,
+           lr.product_id AS product_id,
            lr.product AS product,
            lr.available_quantity    AS available_quantity,
            lr.on_hand_quantity      AS on_hand_quantity,
@@ -183,27 +184,26 @@ OFFSET COALESCE(:offset, 0)
            lr.reserved_quantity     AS reserved_quantity,
            lr.safety_stock_quantity AS safety_stock_quantity,
            CASE
-               WHEN lr.available_quantity <= 0                            THEN ''Out of Stock''
+               WHEN lr.available_quantity <= 0                            THEN 'Out of Stock'
                WHEN lr.safety_stock_quantity > 0
-                AND lr.available_quantity <= lr.safety_stock_quantity     THEN ''Low Stock''
+                AND lr.available_quantity <= lr.safety_stock_quantity     THEN 'Low Stock'
                WHEN lr.safety_stock_quantity > 0
-                AND lr.available_quantity > lr.safety_stock_quantity * 3  THEN ''Overstock''
-               ELSE ''In Stock''
+                AND lr.available_quantity > lr.safety_stock_quantity * 3  THEN 'Overstock'
+               ELSE 'In Stock'
            END AS stock_status,
            COUNT(*) OVER() AS total_records
     FROM level_rows lr
     ORDER BY lr.available_quantity ASC, lr.sku, lr.location_name, lr.level_id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Detailed SKU breakdown table per location showing available, on hand, committed, reserved, safety stock, and stock health status.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -359,12 +359,13 @@ OFFSET COALESCE(:offset, 0)
     '019fff9a-1dfc-771c-a028-9b840c9feeec',
     'Damaged / QC Stock Report',
     'Inventory Location/Inventory Health by Location/TABLE/Damaged / QC Stock Report',
-    '
+    $$
     WITH level_rows AS (
         SELECT il.id AS level_id,
-               COALESCE(loc.name, ''Unknown'') AS location_name,
-               COALESCE(ii.sku, pv.sku, ''Unknown'') AS sku,
-               COALESCE(p.title, ''Unknown'') AS product,
+               loc.name AS location_name,
+               pv.sku AS sku,
+               p.id AS product_id,
+               p.title AS product,
                COALESCE(il.damaged_quantity, 0) AS damaged_quantity,
                COALESCE(il.quality_control_quantity, 0) AS quality_control_quantity,
                COALESCE(ii.unit_cost, 0) AS unit_cost
@@ -381,6 +382,7 @@ OFFSET COALESCE(:offset, 0)
     )
     SELECT lr.location_name AS location,
            lr.sku AS sku,
+           lr.product_id AS product_id,
            lr.product AS product,
            lr.damaged_quantity AS damaged_quantity,
            lr.quality_control_quantity AS quality_control_quantity,
@@ -393,15 +395,14 @@ OFFSET COALESCE(:offset, 0)
              lr.sku, lr.level_id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Report table listing damaged and quality-control held stock SKUs with unit cost and blocked dollar value.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -546,9 +547,10 @@ OFFSET COALESCE(:offset, 0)
     $$
     WITH level_rows AS (
         SELECT il.id AS level_id,
-               COALESCE(loc.name, 'Unknown') AS location_name,
-               COALESCE(ii.sku, pv.sku, 'Unknown') AS sku,
-               COALESCE(p.title, 'Unknown') AS product,
+               loc.name AS location_name,
+               pv.sku AS sku,
+               p.id AS product_id,
+               p.title AS product,
                COALESCE(il.available_quantity, 0)    AS available_quantity,
                COALESCE(il.safety_stock_quantity, 0) AS safety_stock_quantity,
                COALESCE(il.incoming_quantity, 0)     AS incoming_quantity
@@ -564,6 +566,7 @@ OFFSET COALESCE(:offset, 0)
     )
     SELECT lr.location_name AS location,
            lr.sku AS sku,
+           lr.product_id AS product_id,
            lr.product AS product,
            lr.available_quantity    AS available_quantity,
            lr.safety_stock_quantity AS safety_stock_quantity,
@@ -588,7 +591,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -601,7 +603,7 @@ OFFSET COALESCE(:offset, 0)
     '019fff9a-1dfc-7fc3-8116-62b95b12534e',
     'Out-of-Stock by Location Report',
     'Inventory Location/Replenishment & Stock Risk/TABLE/Out-of-Stock by Location Report',
-    '
+    $$
     WITH last_sale AS (
         SELECT li.product_variant_id,
                MAX(o.created_at) AS last_sold_at
@@ -613,9 +615,10 @@ OFFSET COALESCE(:offset, 0)
     ),
     level_rows AS (
         SELECT il.id AS level_id,
-               COALESCE(loc.name, ''Unknown'') AS location_name,
-               COALESCE(ii.sku, pv.sku, ''Unknown'') AS sku,
-               COALESCE(p.title, ''Unknown'') AS product,
+               loc.name AS location_name,
+               pv.sku AS sku,
+               p.id AS product_id,
+               p.title AS product,
                ls.last_sold_at,
                COALESCE(il.available_quantity, 0) AS available_quantity,
                COALESCE(il.incoming_quantity, 0)  AS incoming_quantity
@@ -632,6 +635,7 @@ OFFSET COALESCE(:offset, 0)
     )
     SELECT lr.location_name AS location,
            lr.sku AS sku,
+           lr.product_id AS product_id,
            lr.product AS product,
            lr.last_sold_at::date::text AS last_sold_date,
            lr.available_quantity AS available_quantity,
@@ -641,7 +645,7 @@ OFFSET COALESCE(:offset, 0)
     ORDER BY lr.last_sold_at DESC NULLS LAST, lr.sku, lr.level_id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
     60,
@@ -649,7 +653,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -665,9 +668,10 @@ OFFSET COALESCE(:offset, 0)
     $$
     WITH level_rows AS (
         SELECT il.id AS level_id,
-               COALESCE(loc.name, 'Unknown') AS location_name,
-               COALESCE(ii.sku, pv.sku, 'Unknown') AS sku,
-               COALESCE(p.title, 'Unknown') AS product,
+               loc.name AS location_name,
+               pv.sku AS sku,
+               p.id AS product_id,
+               p.title AS product,
                COALESCE(il.incoming_quantity, 0)     AS incoming_quantity,
                COALESCE(il.available_quantity, 0)    AS available_quantity,
                COALESCE(il.safety_stock_quantity, 0) AS safety_stock_quantity
@@ -683,6 +687,7 @@ OFFSET COALESCE(:offset, 0)
     )
     SELECT lr.location_name AS location,
            lr.sku AS sku,
+           lr.product_id AS product_id,
            lr.product AS product,
            lr.incoming_quantity  AS incoming_quantity,
            lr.available_quantity AS available_quantity,
@@ -707,7 +712,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -768,10 +772,11 @@ OFFSET COALESCE(:offset, 0)
     $$
     WITH level_rows AS (
         SELECT il.id AS level_id,
-               COALESCE(loc.name, 'Unknown') AS location_name,
-               COALESCE(loc.has_unfulfilled_orders, FALSE) AS has_unfulfilled_orders,
-               COALESCE(ii.sku, pv.sku, 'Unknown') AS sku,
-               COALESCE(p.title, 'Unknown') AS product,
+               loc.name AS location_name,
+               loc.has_unfulfilled_orders AS has_unfulfilled_orders,
+                pv.sku AS sku,
+                p.id AS product_id,
+               p.title AS product,
                COALESCE(il.committed_quantity, 0)    AS committed_quantity,
                COALESCE(il.available_quantity, 0)    AS available_quantity,
                COALESCE(il.safety_stock_quantity, 0) AS safety_stock_quantity
@@ -787,6 +792,7 @@ OFFSET COALESCE(:offset, 0)
     )
     SELECT lr.location_name AS location,
            lr.sku AS sku,
+           lr.product_id AS product_id,
            lr.product AS product,
            lr.committed_quantity AS committed_quantity,
            CASE WHEN lr.has_unfulfilled_orders THEN 'Yes' ELSE 'No' END
@@ -812,7 +818,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -916,13 +921,14 @@ OFFSET COALESCE(:offset, 0)
     '019fff9a-1dfd-786b-996d-22cc13375928',
     'Inventory Value by Location Report',
     'Inventory Location/Inventory Value & Asset Management/TABLE/Inventory Value by Location Report',
-    '
+    $$
     WITH level_rows AS (
         SELECT il.id AS level_id,
-               COALESCE(loc.name, ''Unknown'') AS location_name,
-               COALESCE(ii.sku, pv.sku, ''Unknown'') AS sku,
-               COALESCE(p.title, ''Unknown'') AS product,
-               COALESCE(p.vendor, ''Unknown'') AS vendor,
+               loc.name AS location_name,
+               pv.sku AS sku,
+               p.id AS product_id,
+               p.title AS product,
+               p.vendor AS vendor,
                COALESCE(il.on_hand_quantity, 0) AS on_hand_quantity,
                COALESCE(ii.unit_cost, 0) AS unit_cost
         FROM public.dim_inventory_levels il
@@ -936,6 +942,7 @@ OFFSET COALESCE(:offset, 0)
     )
     SELECT lr.location_name AS location,
            lr.sku AS sku,
+           lr.product_id AS product_id,
            lr.product AS product,
            lr.vendor AS vendor,
            lr.on_hand_quantity AS on_hand_quantity,
@@ -946,7 +953,7 @@ OFFSET COALESCE(:offset, 0)
     ORDER BY lr.on_hand_quantity * lr.unit_cost DESC, lr.sku, lr.level_id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
     60,
@@ -954,7 +961,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1014,14 +1020,15 @@ OFFSET COALESCE(:offset, 0)
     '019fff9a-1dfd-76d4-9608-da40ce2f7995',
     'Inactive Location Stock Report',
     'Inventory Location/Location Governance & Special Operations/TABLE/Inactive Location Stock Report',
-    '
+    $$
     WITH level_rows AS (
         SELECT il.id AS level_id,
-               COALESCE(loc.name, ''Unknown'') AS location_name,
-               COALESCE(loc.is_active, TRUE) AS is_active,
+               loc.name AS location_name,
+               loc.is_active AS is_active,
                loc.deactivated_at,
-               COALESCE(ii.sku, pv.sku, ''Unknown'') AS sku,
-               COALESCE(p.title, ''Unknown'') AS product,
+               pv.sku AS sku,
+               p.id AS product_id,
+               p.title AS product,
                COALESCE(il.on_hand_quantity, 0) AS on_hand_quantity,
                COALESCE(ii.unit_cost, 0) AS unit_cost
         FROM public.dim_inventory_levels il
@@ -1036,9 +1043,10 @@ OFFSET COALESCE(:offset, 0)
           AND COALESCE(il.on_hand_quantity, 0) > 0
     )
     SELECT lr.location_name AS location,
-           CASE WHEN lr.is_active THEN ''Active'' ELSE ''Inactive'' END AS active_status,
+           CASE WHEN lr.is_active THEN 'Active' ELSE 'Inactive' END AS active_status,
            lr.deactivated_at::date::text AS deactivated_date,
            lr.sku AS sku,
+           lr.product_id AS product_id,
            lr.product AS product,
            lr.on_hand_quantity AS on_hand_quantity,
            ROUND(lr.on_hand_quantity * lr.unit_cost, 2) AS inventory_value,
@@ -1047,7 +1055,7 @@ OFFSET COALESCE(:offset, 0)
     ORDER BY lr.on_hand_quantity * lr.unit_cost DESC, lr.sku, lr.level_id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
     60,
@@ -1055,7 +1063,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1068,13 +1075,13 @@ OFFSET COALESCE(:offset, 0)
     '019fff9a-1dfd-74e2-b5f8-3f1a07395cb2',
     'Fulfillment Service Location Report',
     'Inventory Location/Location Governance & Special Operations/TABLE/Fulfillment Service Location Report',
-    '
+    $$
     WITH location_rows AS (
         SELECT loc.id AS location_id,
-               COALESCE(loc.name, ''Unknown'') AS location_name,
-               COALESCE(loc.is_fulfillment_service, FALSE) AS is_fulfillment_service,
-               COALESCE(loc.fulfills_online_orders, FALSE) AS fulfills_online_orders,
-               COALESCE(loc.has_active_inventory, FALSE) AS has_active_inventory,
+               loc.name AS location_name,
+               loc.is_fulfillment_service AS is_fulfillment_service,
+               loc.fulfills_online_orders AS fulfills_online_orders,
+               loc.has_active_inventory AS has_active_inventory,
                COALESCE(SUM(COALESCE(il.on_hand_quantity, 0)
                             * COALESCE(ii.unit_cost, 0)), 0) AS stock_value
         FROM public.dim_inventory_locations loc
@@ -1088,11 +1095,11 @@ OFFSET COALESCE(:offset, 0)
                  loc.fulfills_online_orders, loc.has_active_inventory
     )
     SELECT lr.location_name AS location,
-           CASE WHEN lr.is_fulfillment_service THEN ''Yes'' ELSE ''No'' END
+           CASE WHEN lr.is_fulfillment_service THEN 'Yes' ELSE 'No' END
              AS fulfillment_service,
-           CASE WHEN lr.fulfills_online_orders THEN ''Yes'' ELSE ''No'' END
+           CASE WHEN lr.fulfills_online_orders THEN 'Yes' ELSE 'No' END
              AS fulfills_online_orders,
-           CASE WHEN lr.has_active_inventory THEN ''Yes'' ELSE ''No'' END
+           CASE WHEN lr.has_active_inventory THEN 'Yes' ELSE 'No' END
              AS active_inventory,
            ROUND(lr.stock_value, 2) AS stock_value,
            COUNT(*) OVER() AS total_records
@@ -1100,7 +1107,7 @@ OFFSET COALESCE(:offset, 0)
     ORDER BY lr.stock_value DESC, lr.location_name, lr.location_id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
     60,
@@ -1108,7 +1115,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },

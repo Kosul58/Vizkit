@@ -45,6 +45,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = r.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
+          AND o.financialstatus != 'VOIDED'
           AND (:currentStartDate::date IS NULL
                OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL
@@ -71,7 +72,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -90,6 +90,7 @@ VALUES (
     JOIN public.fact_order_headers o ON o.id = r.order_id
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
+      AND o.financialstatus != 'VOIDED'
       AND (:currentStartDate::date IS NULL
            OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL
@@ -122,6 +123,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = r.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
+          AND o.financialstatus != 'VOIDED'
           AND (:currentStartDate::date IS NULL
                OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL
@@ -166,6 +168,7 @@ VALUES (
     JOIN public.fact_order_headers o ON o.id = r.order_id
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
+      AND o.financialstatus != 'VOIDED'
       AND (:currentStartDate::date IS NULL
            OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL
@@ -451,6 +454,7 @@ VALUES (
             JOIN public.fact_order_headers o ON o.id = r.order_id
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
+              AND o.financialstatus != 'VOIDED'
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -507,6 +511,7 @@ VALUES (
             JOIN public.fact_order_headers o ON o.id = r.order_id
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
+              AND o.financialstatus != 'VOIDED'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -537,6 +542,7 @@ VALUES (
             JOIN public.fact_order_headers o ON o.id = r.order_id
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
+              AND o.financialstatus != 'VOIDED'
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -591,6 +597,7 @@ VALUES (
             JOIN public.fact_order_headers o ON o.id = r.order_id
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
+              AND o.financialstatus != 'VOIDED'
         ) t
         WHERE t.is_current OR t.is_prior
     ),

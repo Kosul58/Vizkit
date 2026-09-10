@@ -19,9 +19,9 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
+          AND o.financialstatus != 'VOIDED'
           AND COALESCE(r.processed_at, r.created_at) >= dp.start_bucket
-          AND COALESCE(r.processed_at, r.created_at) <= dp.end_bucket
+          AND COALESCE(r.processed_at, r.created_at) < dp.end_bucket + dp.step
     ),
     daily_refunds AS (
         SELECT s.bucket,
@@ -52,7 +52,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -80,7 +79,7 @@ VALUES (
           AND o.test = FALSE
           
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= dp.end_bucket
+          AND o.created_at < dp.end_bucket + dp.step
     ),
     scoped_refunds AS (
         SELECT date_trunc(LOWER(dp.g), COALESCE(r.processed_at, r.created_at)) AS bucket,
@@ -92,7 +91,7 @@ VALUES (
           AND o.test = FALSE
           
           AND COALESCE(r.processed_at, r.created_at) >= dp.start_bucket
-          AND COALESCE(r.processed_at, r.created_at) <= dp.end_bucket
+          AND COALESCE(r.processed_at, r.created_at) < dp.end_bucket + dp.step
     ),
     daily_gross AS (
         SELECT f.bucket,
@@ -128,7 +127,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -156,9 +154,9 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
+          AND o.financialstatus != 'VOIDED'
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= dp.end_bucket
+          AND o.created_at < dp.end_bucket + dp.step
     ),
     scoped_refunds AS (
         SELECT date_trunc(LOWER(dp.g), COALESCE(r.processed_at, r.created_at)) AS bucket,
@@ -170,7 +168,7 @@ VALUES (
           AND o.test = FALSE
           
           AND COALESCE(r.processed_at, r.created_at) >= dp.start_bucket
-          AND COALESCE(r.processed_at, r.created_at) <= dp.end_bucket
+          AND COALESCE(r.processed_at, r.created_at) < dp.end_bucket + dp.step
     ),
     daily_net AS (
         SELECT f.bucket, SUM(f.net_sales) AS net_sales
@@ -205,7 +203,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -229,7 +226,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = r.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
+          AND o.financialstatus != 'VOIDED'
           AND (:currentStartDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date)
     ),
@@ -270,7 +267,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -397,7 +393,7 @@ VALUES (
     '019fff82-e31b-7fdf-83ea-fda8faadf542',
     'Refund Transaction Reconciliation Report',
     'Refunds & Reversals/Revenue Impact/TABLE/Refund Transaction Reconciliation Report',
-    '
+    $$
     WITH refund_records AS (
         SELECT
             r.order_id,
@@ -439,8 +435,8 @@ VALUES (
           AND o.test = FALSE
           
           AND t.test = FALSE
-          AND t.kind = ''REFUND''
-          AND t.status = ''SUCCESS''
+          AND t.kind = 'REFUND'
+          AND t.status = 'SUCCESS'
           AND (
               :currentStartDate IS NULL
               OR t.processed_at::date >= :currentStartDate::date
@@ -469,6 +465,7 @@ VALUES (
         ON tt.order_id = rr.order_id
     JOIN public.fact_order_headers o
         ON o.id = COALESCE(rr.order_id, tt.order_id)
+    WHERE COALESCE(rr.refund_amount, 0) > 0
     ORDER BY
         ABS(
             COALESCE(rr.refund_amount, 0)
@@ -477,20 +474,16 @@ VALUES (
         COALESCE(rr.refund_amount, 0) DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Granular reconciliation report matching refund entities against gateway transactions per order.',
     '{
       "filterMappings": {
         "shopId": {
           "source": "AUTH_CONTEXT",
           "contextKey": "shopGid"
-        },
-        "userId": {
-          "source": "AUTH_CONTEXT",
-          "contextKey": "user_id"
         },
         "limit": {
           "source": "REQUEST_FILTER",
@@ -525,7 +518,6 @@ VALUES (
             ON o.id = r.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
           AND (
               :currentStartDate IS NULL
               OR COALESCE(r.processed_at, r.created_at)::date
@@ -562,6 +554,7 @@ VALUES (
     FROM scoped_refunds s
     JOIN public.fact_order_headers o
         ON o.id = s.order_id
+    WHERE COALESCE(o.total_refunded_shipping_amount, 0) > 0
     ORDER BY
         refunded_shipping DESC,
         shipping_paid DESC
@@ -570,12 +563,11 @@ VALUES (
     $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Audit table comparing paid shipping vs refunded shipping per order.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -596,10 +588,10 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = r.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
           AND (:currentStartDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date)
         GROUP BY r.order_id
+        HAVING SUM(COALESCE(r.total_refunded_amount, 0)) > 0
     )
     SELECT o.id AS order_id,
            o.financialStatus AS financial_status,
@@ -621,7 +613,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -690,7 +681,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = r.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
+          AND o.financialstatus != 'VOIDED'
           AND (:currentStartDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date)
     ),
@@ -713,7 +704,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -786,8 +776,9 @@ OFFSET COALESCE(:offset, 0)
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
-    SELECT COALESCE(p.title, pv.id) AS product,
-           COALESCE(pv.sku, pv.id) AS sku,
+    SELECT p.id AS product_id,
+            p.title AS product,
+           pv.sku AS sku,
            SUM(f.ordered_units) AS ordered_quantity,
            SUM(f.current_units) AS current_quantity,
            SUM(f.removed_units) AS refund_removed_quantity,
@@ -796,7 +787,7 @@ OFFSET COALESCE(:offset, 0)
     FROM filtered_lines f
     JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
     LEFT JOIN public.dim_products p ON p.id = pv.product_id
-    GROUP BY COALESCE(p.title, pv.id), COALESCE(pv.sku, pv.id)
+    GROUP BY p.id, p.title, pv.sku
     HAVING SUM(f.removed_units) > 0
     ORDER BY refund_removed_quantity DESC, sku
     LIMIT COALESCE(:limit, 10)
@@ -804,12 +795,11 @@ OFFSET COALESCE(:offset, 0)
     $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Detailed tabular breakdown per product evaluating ordered vs current vs removed and refundable item quantities.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -894,7 +884,7 @@ VALUES (
         LEFT JOIN customer_first cf ON cf.customer_id = o.customer_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
+          AND o.financialstatus != 'VOIDED'
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1098,7 +1088,7 @@ OFFSET COALESCE(:offset, 0);
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
+          AND o.financialstatus != 'VOIDED'
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1137,7 +1127,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1156,7 +1145,7 @@ OFFSET COALESCE(:offset, 0)
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
+          AND o.financialstatus != 'VOIDED'
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1186,9 +1175,9 @@ OFFSET COALESCE(:offset, 0)
         LEFT JOIN order_gross og ON og.order_id = f.id
         GROUP BY f.customer_id
     )
-    SELECT CONCAT_WS(CHR(32) || CHR(183) || CHR(32),
-                     CONCAT_WS(CHR(32), cu.first_name, cu.last_name),
-                     COALESCE(cu.email, cu.id)) AS customer,
+    SELECT COALESCE(NULLIF(TRIM(CONCAT_WS(' ', cu.first_name, cu.last_name)), ''),
+                    cu.email,
+                    cu.id) AS customer,
            pc.orders AS orders,
            ROUND(COALESCE(cu.amount_spent, 0), 2) AS amount_spent,
            pc.refund_count AS refund_count,
@@ -1204,12 +1193,11 @@ OFFSET COALESCE(:offset, 0)
     $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Customer-level refund risk scorecard flagging high refund frequency and high refund value accounts.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1236,7 +1224,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = r.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
+          AND r.total_refunded_amount > 0
           AND r.note IS NOT NULL
           AND (:currentStartDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date)
@@ -1244,18 +1232,15 @@ VALUES (
     tokens AS (
         SELECT DISTINCT s.id AS refund_id,
                s.amount,
-               TRIM(translate(lower(w),
-                               CHR(46)||CHR(44)||CHR(33)||CHR(63)||CHR(59)||CHR(58)||CHR(40)||CHR(41),
-                               CHR(32)||CHR(32)||CHR(32)||CHR(32)||CHR(32)||CHR(32)||CHR(32)||CHR(32))) AS keyword
+               l.lexeme AS keyword
         FROM scoped_refunds s,
-             unnest(string_to_array(lower(s.note), CHR(32))) AS w
+             LATERAL unnest(to_tsvector('english', COALESCE(s.note, ''))) AS l
     )
     SELECT t.keyword AS keyword,
            COUNT(*) AS refund_count,
            ROUND(SUM(t.amount), 2) AS refunded_amount,
            COUNT(*) OVER() AS total_records
     FROM tokens t
-    WHERE LENGTH(t.keyword) > 3
     GROUP BY t.keyword
     ORDER BY refund_count DESC, refunded_amount DESC
     LIMIT COALESCE(:limit, 10)
@@ -1263,12 +1248,11 @@ OFFSET COALESCE(:offset, 0)
     $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Audit text analysis ranking recurring keywords found in refund notes.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1284,19 +1268,19 @@ OFFSET COALESCE(:offset, 0)
     $$
     SELECT r.id AS refund_id,
            o.id AS order_id,
-           CONCAT_WS(CHR(32) || CHR(183) || CHR(32),
-                     CONCAT_WS(CHR(32), cu.first_name, cu.last_name),
-                     COALESCE(cu.email, cu.id)) AS customer,
+           COALESCE(NULLIF(TRIM(CONCAT_WS(' ', cu.first_name, cu.last_name)), ''),
+                    cu.email,
+                    cu.id) AS customer,
            ROUND(COALESCE(r.total_refunded_amount, 0), 2) AS refunded_amount,
            r.note AS note,
-           COALESCE(r.processed_at, r.created_at)::date::text AS processed_date,
+           COALESCE(r.processed_at, r.created_at)::date AS processed_date,
            COUNT(*) OVER() AS total_records
     FROM public.fact_order_refunds r
     JOIN public.fact_order_headers o ON o.id = r.order_id
     LEFT JOIN public.dim_customers cu ON cu.id = o.customer_id
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
-      
+      AND r.total_refunded_amount > 0
       AND (:currentStartDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
       AND (:currentEndDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date)
     ORDER BY refunded_amount DESC
@@ -1305,12 +1289,11 @@ OFFSET COALESCE(:offset, 0)
     $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Detailed audit log listing individual refund transactions, notes, and customer info.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1333,23 +1316,20 @@ OFFSET COALESCE(:offset, 0)
         JOIN public.fact_order_headers o ON o.id = r.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
+          AND r.total_refunded_amount > 0
           AND (:currentStartDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date)
     ),
     tokens AS (
         SELECT DISTINCT s.id AS refund_id,
-               TRIM(translate(lower(w),
-                               CHR(46)||CHR(44)||CHR(33)||CHR(63)||CHR(59)||CHR(58)||CHR(40)||CHR(41),
-                               CHR(32)||CHR(32)||CHR(32)||CHR(32)||CHR(32)||CHR(32)||CHR(32)||CHR(32))) AS keyword
+               l.lexeme AS keyword
         FROM scoped_refunds s,
-             unnest(string_to_array(lower(COALESCE(s.note, CHR(32))), CHR(32))) AS w
+             LATERAL unnest(to_tsvector('english', COALESCE(s.note, ''))) AS l
     ),
     refund_keywords AS (
         SELECT t.refund_id,
-               string_agg(t.keyword, CHR(44) || CHR(32) ORDER BY t.keyword) AS keywords
+               string_agg(t.keyword, ', ' ORDER BY t.keyword) AS keywords
         FROM tokens t
-        WHERE LENGTH(t.keyword) > 3
         GROUP BY t.refund_id
     )
     SELECT s.id AS refund_id,
@@ -1366,12 +1346,11 @@ OFFSET COALESCE(:offset, 0)
     $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Tabular report of refund notes mapped to extracted search keywords for compliance audit.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },

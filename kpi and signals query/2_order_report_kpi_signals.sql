@@ -205,6 +205,35 @@ VALUES (
     }'
 ),
 (
+    '01a080a3-a4c3-7b33-836a-fab1bcc53bef',
+    'Fulfilled Orders',
+    'Order Reports/Orders & Fulfillment/KPI/Fulfilled Orders',
+    $$
+    SELECT COUNT(*) AS fulfilled_orders
+    FROM public.fact_order_headers o
+    WHERE o.seller_id = :shopId
+      AND o.test = FALSE
+      AND o.cancelled_at IS NULL
+      AND o.fulfillmentStatus = 'FULFILLED'
+      AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+      AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+    $$,
+    NULL,
+    'KPI',
+    60,
+    'Orders fulfilled for the selected period vs the prior period.',
+    '{
+      "filterMappings": {
+        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
+        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
+        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
+        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
+        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
+      },
+      "excludeExtraParams": true
+    }'
+),
+(
     '01a066fc-a9bb-7a4b-8e08-2ac2c37e556f',
     'Fulfillment Pending Orders',
     'Order Reports/Orders & Fulfillment/KPI/Fulfillment Pending Orders',
@@ -213,6 +242,7 @@ VALUES (
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
+      AND o.cancelled_at IS NULL
       AND UPPER(o.fulfillmentStatus) IS DISTINCT FROM 'FULFILLED'
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -602,6 +632,33 @@ VALUES (
     $$
 ),
 (
+  '01a085fb-6863-7662-bfd2-b7777afd551f',
+    '01a080a3-a4c3-7b33-836a-fab1bcc53bef',
+    'fulfilled_orders',
+    $$
+    WITH order_totals AS (
+        SELECT COUNT(*) FILTER (WHERE is_current) AS cur_value,
+               COUNT(*) FILTER (WHERE is_prior)   AS prv_value
+        FROM (
+            SELECT ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
+                   (:priorStartDate::date IS NOT NULL
+                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
+            FROM public.fact_order_headers o
+            WHERE o.seller_id = :shopId
+              AND o.test = FALSE
+              AND o.cancelled_at IS NULL
+              AND o.fulfillmentStatus = 'FULFILLED'
+        ) t
+        WHERE t.is_current OR t.is_prior
+    )
+    SELECT ot.prv_value AS previous_value,
+           ROUND(100.0 * (ot.cur_value - ot.prv_value)
+                 / NULLIF(ABS(ot.prv_value), 0), 2) AS divergence
+    FROM order_totals ot
+    $$,
+),
+(
     '019fff82-e31d-7c08-8f38-2a2b3c4d1008',
     '01a066fc-a9bb-7a4b-8e08-2ac2c37e556f',
     'fulfillment_pending_orders',
@@ -617,6 +674,7 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
+              AND o.cancelled_at IS NULL
               AND UPPER(o.fulfillmentStatus) IS DISTINCT FROM 'FULFILLED'
         ) t
         WHERE t.is_current OR t.is_prior

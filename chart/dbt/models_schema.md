@@ -31,7 +31,8 @@ This document contains the table schema, materialization strategies, indexes, an
   - [1. fact_order_headers](#1-fact_order_headerssql)
   - [2. fact_order_line_items](#2-fact_order_line_itemssql)
   - [3. fact_order_refunds](#3-fact_order_refundssql)
-  - [4. fact_order_transactions](#4-fact_order_transactionssql)
+  - [4. fact_order_refund_line_items](#4-fact_order_refund_line_itemssql)
+  - [5. fact_order_transactions](#5-fact_order_transactionssql)
 
 ---
 
@@ -552,7 +553,29 @@ This document contains the table schema, materialization strategies, indexes, an
 
 ---
 
-### 4. `fact_order_transactions.sql`
+### 4. `fact_order_refund_line_items.sql`
+
+- **Path**: `models/facts/fact_order_refund_line_items.sql`
+- **Materialization**: `incremental` (`unique_key: ['id']`)
+- **Source**: `stg_orders` unnested over `refunds`
+- **Indexes**: `id`, `(seller_id, order_id)`, `(order_id, id)`, `loaded_at desc`
+
+| Column Name             | Inferred Data Type | Source Expression / JSON Path                                            | Notes / Description         |
+| :---------------------- | :----------------- | :----------------------------------------------------------------------- | :-------------------------- |
+| `id`                    | `VARCHAR / TEXT`   | `r.value #>> '{id}'`                                                     | Refund Line Item identifier           |
+| `refund_id`              | `VARCHAR / TEXT`   | `b.order_id`                                                             | Refund identifier            |
+| `order_line_item_id`             | `VARCHAR / TEXT`   | `b.seller_id`                                                            | Order Line Item identifier            |
+| `seller_id`             | `VARCHAR / TEXT`   | `b.seller_id`                                                            | Shop/seller identifier      |
+| `refund_line_item_price` | `NUMERIC`          | `safe_cast_numeric(r.value #>> '{priceSet, shopMoney, amount}')` | Total refunded amount       |
+| `refund_quantity` | `NUMERIC`          | `safe_cast_int(rli.value #>> '{quantity}')` | Refund Quantity       |
+| `restock_type` | `NUMERIC`          | `clean_string(rli.value #>> '{restockType}')` | Restock Type       |
+| `refund_subtotal` | `NUMERIC`          | `safe_cast_numeric(r.value #>> '{subTotalSet, shopMoney, amount}')` | Subtotal amount       |
+| `refund_total_tax` | `NUMERIC`          | `safe_cast_numeric(r.value #>> '{totalTaxSet, shopMoney, amount}')` | Total tax amount       |
+| `loaded_at`             | `TIMESTAMPTZ`      | `b.loaded_at`                                                            | Timestamp record was loaded |
+
+---
+
+### 5. `fact_order_transactions.sql`
 
 - **Path**: `models/facts/fact_order_transactions.sql`
 - **Materialization**: `incremental` (`unique_key: ['id']`)

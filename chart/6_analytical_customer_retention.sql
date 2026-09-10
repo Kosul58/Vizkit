@@ -791,7 +791,7 @@ VALUES (
     '019fff9a-1dfb-7501-93db-3e10a209f815',
     'Customer Cohort Report',
     'Customer Retention/Customer Retention & Loyalty/TABLE/Customer Cohort Report',
-    '
+    $$
     WITH ranked AS (
         SELECT o.customer_id,
                o.created_at::date AS day,
@@ -809,7 +809,7 @@ VALUES (
         SELECT customer_id, MIN(day) AS first_day FROM ranked GROUP BY customer_id
     ),
     cohort_params AS (
-        SELECT 90 AS observation_days  /* equal exposure window applied to every cohort */
+        SELECT 90 AS observation_days  
     ),
     cohort_members AS (
         SELECT f.customer_id,
@@ -820,7 +820,6 @@ VALUES (
         CROSS JOIN cohort_params cp
         WHERE (:currentStartDate IS NULL OR f.first_day >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR f.first_day <= :currentEndDate::date)
-          /* drop cohorts that have not yet had the full window to repeat */
           AND f.first_day <= CURRENT_DATE - cp.observation_days
     ),
     cohort_size AS (
@@ -853,7 +852,7 @@ VALUES (
     ORDER BY s.cohort_month DESC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
     60,
@@ -1201,13 +1200,12 @@ VALUES (
     '019fff9a-1dfb-7bca-8834-63524c92900d',
     'Inactive Customer Aging',
     'Customer Retention/Customer Operations & Compliance/PLOT/Inactive Customer Aging',
-    '
+    $$
     WITH valid_orders AS (
         SELECT o.customer_id, o.created_at::date AS day
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
           AND o.customer_id IS NOT NULL
     ),
     anchor AS (
@@ -1226,9 +1224,10 @@ VALUES (
         JOIN scoped s ON s.customer_id = v.customer_id
         WHERE v.day <= a.anchor_day
         GROUP BY v.customer_id, a.anchor_day
+        HAVING (a.anchor_day - MAX(v.day)) > 15
     ),
     bucket_defs(ord, lo, hi) AS (
-        VALUES (1, 0, 30), (2, 31, 60), (3, 61, 90), (4, 91, 180), (5, 181, NULL::int)
+        VALUES (1, 16, 30), (2, 31, 60), (3, 61, 90), (4, 91, 180), (5, 181, NULL::int)
     )
     SELECT CASE WHEN b.hi IS NULL THEN b.lo::text || CHR(43)
                 ELSE b.lo::text || CHR(45) || b.hi::text END AS days_bucket,
@@ -1237,15 +1236,14 @@ VALUES (
     LEFT JOIN last_order l ON l.days_inactive >= b.lo AND (b.hi IS NULL OR l.days_inactive <= b.hi)
     GROUP BY b.ord, b.lo, b.hi
     ORDER BY b.ord
-    ',
+    $$,
     NULL,
     'PLOT',
-    60,
-    'Distribution of inactive customers across inactivity aging brackets (0-30 days to 181+ days).',
+    30,
+    'Distribution of inactive customers across inactivity aging brackets (16-30 days to 181+ days).',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },

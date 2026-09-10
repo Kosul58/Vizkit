@@ -181,7 +181,7 @@ OFFSET COALESCE(:offset, 0)
     '019fff82-e31b-7e27-9197-0666f3b361fd',
     'SKU Performance Report',
     'Order Line Item Analytics/Sales Performance/TABLE/SKU Performance Report',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                li.quantity AS units,
@@ -196,9 +196,10 @@ OFFSET COALESCE(:offset, 0)
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
-    SELECT COALESCE(pv.sku, pv.id) AS sku,
-           COALESCE(p.title, pv.id) AS product,
-           pv.id AS variant,
+    SELECT p.id AS product_id,
+           pv.sku AS sku,
+           p.title AS product,
+           pv.variant_title AS variant,
            SUM(f.units) AS units_sold,
            ROUND(SUM(f.gross_sales), 2) AS gross_sales,
            ROUND(SUM(f.discounts), 2) AS discounts,
@@ -209,19 +210,18 @@ OFFSET COALESCE(:offset, 0)
     FROM filtered_lines f
     JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
     LEFT JOIN public.dim_products p ON p.id = pv.product_id
-    GROUP BY pv.sku, pv.id, p.title
+    GROUP BY pv.sku, pv.variant_title, p.id, p.title
     ORDER BY net_sales DESC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Detailed tabular breakdown of performance per SKU evaluating units sold, gross/net sales, discounts, and AUP.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -234,7 +234,7 @@ OFFSET COALESCE(:offset, 0)
     '019fff82-e31b-7a36-b194-45c103600439',
     'Product Performance Report',
     'Order Line Item Analytics/Sales Performance/TABLE/Product Performance Report',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.order_id,
                li.product_variant_id,
@@ -249,7 +249,8 @@ OFFSET COALESCE(:offset, 0)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
     product_lines AS (
-        SELECT COALESCE(p.title, pv.sku, pv.id) AS product,
+        SELECT p.id AS product_id,
+               p.title AS product,
                p.vendor AS vendor,
                p.product_type AS product_type,
                tc.name AS category,
@@ -262,7 +263,8 @@ OFFSET COALESCE(:offset, 0)
         LEFT JOIN public.dim_products p ON p.id = pv.product_id
         LEFT JOIN public.dim_taxonomy_categories tc ON tc.id = p.category_id
     )
-    SELECT pl.product AS product,
+    SELECT  pl.product_id AS product_id,
+           pl.product AS product,
            pl.vendor AS vendor,
            pl.product_type AS product_type,
            pl.category AS category,
@@ -273,19 +275,18 @@ OFFSET COALESCE(:offset, 0)
            ROUND(100 * (SUM(pl.gross_sales) - SUM(pl.net_sales)) / NULLIF(SUM(pl.gross_sales), 0), 2) AS discount_rate,
            COUNT(*) OVER() AS total_records
     FROM product_lines pl
-    GROUP BY pl.product, pl.vendor, pl.product_type, pl.category
+    GROUP BY pl.id, pl.product, pl.vendor, pl.product_type, pl.category
     ORDER BY net_sales DESC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Detailed tabular breakdown of product-level sales performance, vendor, category, and discount rates.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -344,7 +345,7 @@ OFFSET COALESCE(:offset, 0)
     '019fff82-e31b-702b-8871-b4a7b41f48ed',
     'Discount Leakage Report',
     'Order Line Item Analytics/Discount & Leakage/TABLE/Discount Leakage Report',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.id AS line_id,
                li.product_variant_id,
@@ -360,8 +361,9 @@ OFFSET COALESCE(:offset, 0)
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
-    SELECT COALESCE(pv.sku, pv.id) AS sku,
-           COALESCE(p.title, pv.id) AS product,
+    SELECT p.id AS product_id,
+           pv.sku AS sku,
+           p.title AS product,
            f.order_id,
            ROUND(f.original_amount, 2) AS original_amount,
            ROUND(f.discounted_amount, 2) AS discounted_amount,
@@ -374,15 +376,14 @@ OFFSET COALESCE(:offset, 0)
     ORDER BY f.discount_amount DESC, f.line_id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Granular tabular audit of individual line item discount leakage per order.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -441,7 +442,7 @@ OFFSET COALESCE(:offset, 0)
     '019fff82-e31b-786f-9d94-810596bff3e8',
     'Unfulfilled Line Items Report',
     'Order Line Item Analytics/Fulfillment & Backlog/TABLE/Unfulfilled Line Items Report',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.id AS line_id,
                li.product_variant_id,
@@ -459,8 +460,9 @@ OFFSET COALESCE(:offset, 0)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
     SELECT f.order_id,
-           COALESCE(pv.sku, pv.id) AS sku,
-           COALESCE(p.title, pv.id) AS product,
+           p.id AS product_id,
+           pv.sku AS sku,
+           p.title AS product,
            f.units AS quantity,
            f.unfulfilled_units AS unfulfilled_quantity,
            ROUND(f.unfulfilled_value, 2) AS unfulfilled_value,
@@ -472,7 +474,7 @@ OFFSET COALESCE(:offset, 0)
     ORDER BY f.unfulfilled_value DESC, f.line_id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
     60,
@@ -480,7 +482,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -539,7 +540,7 @@ OFFSET COALESCE(:offset, 0)
     '019fff82-e31b-77da-849c-4dcfb1d0ab6f',
     'Refund / Removed Quantity Report',
     'Order Line Item Analytics/Returns & Refunds/TABLE/Refund / Removed Quantity Report',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                li.quantity AS ordered_units,
@@ -553,8 +554,9 @@ OFFSET COALESCE(:offset, 0)
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
-    SELECT COALESCE(pv.sku, pv.id) AS sku,
-           COALESCE(p.title, pv.id) AS product,
+    SELECT p.id AS product_id,
+           pv.sku AS sku,
+           p.title AS product,
            SUM(f.ordered_units) AS ordered_quantity,
            SUM(f.current_units) AS current_quantity,
            SUM(f.removed_units) AS refund_removed_quantity,
@@ -563,20 +565,19 @@ OFFSET COALESCE(:offset, 0)
     FROM filtered_lines f
     JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
     LEFT JOIN public.dim_products p ON p.id = pv.product_id
-    GROUP BY COALESCE(pv.sku, pv.id), COALESCE(p.title, pv.id)
+    GROUP BY p.id, pv.sku, p.title
     HAVING SUM(f.removed_units) > 0
     ORDER BY refund_removed_quantity DESC, sku
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Detailed tabular breakdown of ordered vs current vs removed and refundable item quantities per SKU.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1023,7 +1024,6 @@ OFFSET COALESCE(:offset, 0)
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )

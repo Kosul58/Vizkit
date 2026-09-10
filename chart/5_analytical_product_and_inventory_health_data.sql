@@ -184,6 +184,7 @@ VALUES (
     $$
     WITH level_rows AS (
         SELECT COALESCE(pv.sku, ii.sku) AS sku,
+                p.id AS product_id,
                p.title AS product,
                loc.name AS location,
                il.available_quantity,
@@ -209,9 +210,10 @@ VALUES (
           AND ii.seller_id = :shopId
           AND il.is_active = TRUE
     )
-    SELECT sku,
+    SELECT product_id,
+          sku,
            product,
-           COALESCE(location, 'Unknown') AS location,
+           location,
            available_quantity,
            committed_quantity,
            reserved_quantity,
@@ -225,12 +227,11 @@ VALUES (
     $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Detailed inventory audit report per SKU and location showing available, committed, reserved, and safety stock.',
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
         "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
         "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -243,14 +244,13 @@ VALUES (
     '019fff82-e31e-7ada-8e58-b9818b23a2bc',
     'Fast-Moving SKU Report',
     'Product & Inventory Health/Inventory Health/TABLE/Fast-Moving SKU Report',
-    '
+    $$
         WITH sales_window AS (
         SELECT MIN(o.created_at::date) AS min_day,
                MAX(o.created_at::date) AS max_day
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -262,6 +262,7 @@ VALUES (
     sku_inventory AS (
         SELECT pv.id AS variant_id,
                COALESCE(pv.sku, ii.sku) AS sku,
+               p.id AS product_id,
                p.title AS product,
                SUM(COALESCE(il.available_quantity, 0)) AS available_quantity
         FROM public.dim_inventory_items ii
@@ -271,7 +272,7 @@ VALUES (
         WHERE ii.seller_id = :shopId
           AND il.seller_id = :shopId
           AND il.is_active = TRUE
-        GROUP BY pv.id, pv.sku, ii.sku, p.title
+        GROUP BY p.id, pv.id, pv.sku, ii.sku, p.title
     ),
     sales AS (
         SELECT li.product_variant_id,
@@ -280,12 +281,12 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
     )
-    SELECT COALESCE(si.sku, s.product_variant_id::text) AS sku,
+    SELECT si.product_id AS product_id,
+           si.sku AS sku,
            si.product AS product,
            s.units_sold AS units_sold,
            ROUND(100.0 * s.units_sold
@@ -300,15 +301,14 @@ VALUES (
     ORDER BY s.units_sold DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Report ranking fast-moving SKUs by units sold and sell-through rate for the selected period, with days of stock cover as of today.',
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
         "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
         "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -566,7 +566,7 @@ VALUES (
     '019fff82-e31e-7fbe-8a1d-8005aaea2a53',
     'Low Stock Report',
     'Product & Inventory Health/Replenishment & Stock Risk/TABLE/Low Stock Report',
-    '
+    $$
     WITH sales_window AS (
         SELECT MIN(o.created_at::date) AS min_day,
                MAX(o.created_at::date) AS max_day
@@ -584,7 +584,8 @@ VALUES (
     ),
     sku_inventory AS (
         SELECT pv.id AS variant_id,
-               COALESCE(pv.sku, ii.sku) AS sku,
+               pv.sku AS sku,
+               p.id AS product_id,
                p.title AS product,
                pv.price,
                SUM(GREATEST(il.available_quantity, 0)) AS available_quantity,
@@ -598,7 +599,7 @@ VALUES (
         WHERE ii.seller_id = :shopId
           AND il.seller_id = :shopId
           AND il.is_active = TRUE
-        GROUP BY pv.id, pv.sku, ii.sku, p.title, pv.price
+        GROUP BY p.id, pv.id, pv.sku, ii.sku, p.title, pv.price
     ),
     sales AS (
         SELECT li.product_variant_id,
@@ -612,7 +613,8 @@ VALUES (
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
     )
-    SELECT si.sku AS sku,
+    SELECT si.product_id AS product_id,
+           si.sku AS sku,
            si.product AS product,
            si.available_quantity AS available_quantity,
            si.safety_stock_quantity AS safety_stock,
@@ -631,15 +633,14 @@ VALUES (
     ORDER BY revenue_at_risk DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Audit table listing low stock SKUs with sales velocity, stockout horizon, and revenue at risk.',
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
         "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
         "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -652,7 +653,7 @@ VALUES (
     '019fff82-e31e-748e-b205-28aafe15d0e8',
     'Out of Stock Report',
     'Product & Inventory Health/Replenishment & Stock Risk/TABLE/Out of Stock Report',
-    '
+    $$
     WITH sales_window AS (
         SELECT MIN(o.created_at::date) AS min_day,
                MAX(o.created_at::date) AS max_day
@@ -692,7 +693,7 @@ VALUES (
     sku_stock AS (
         SELECT pv.id AS variant_id,
                COALESCE(pv.sku, ii.sku) AS sku,
-               STRING_AGG(DISTINCT COALESCE(loc.name, ''Unknown''), CHR(44) || CHR(32)) AS location
+               STRING_AGG(DISTINCT loc.name, CHR(44) || CHR(32)) AS location
         FROM public.dim_inventory_levels il
         JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
         JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
@@ -703,7 +704,8 @@ VALUES (
         GROUP BY pv.id, pv.sku, ii.sku
         HAVING SUM(COALESCE(il.available_quantity, 0)) = 0
     )
-    SELECT ss.sku AS sku,
+    SELECT p.id AS product_id,
+           ss.sku AS sku,
            p.title AS product,
            p.vendor AS vendor,
            sh.last_sold_at::date::text AS last_sold_date,
@@ -718,15 +720,14 @@ VALUES (
     ORDER BY lost_revenue_proxy DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Out of stock SKU report showing last sold date, affected locations, and estimated lost revenue.',
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
         "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
         "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -843,15 +844,16 @@ VALUES (
     '019fff82-e31e-7dd0-8698-7e4c4a02a4c7',
     'Inventory Value Report',
     'Product & Inventory Health/Inventory Value & Capital/TABLE/Inventory Value Report',
-    '
+    $$
     WITH level_rows AS (
         SELECT p.title AS product,
+               p.id AS product_id,
                COALESCE(pv.sku, ii.sku) AS sku,
                ii.unit_cost AS unit_cost,
                COALESCE(il.on_hand_quantity, 0) AS on_hand_quantity,
                ROUND(COALESCE(il.on_hand_quantity, 0) * COALESCE(ii.unit_cost, 0), 2) AS inventory_value,
                p.vendor AS vendor,
-               COALESCE(loc.name, ''Unknown'') AS location
+               loc.name AS location
         FROM public.dim_inventory_levels il
         JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
         LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
@@ -861,21 +863,20 @@ VALUES (
           AND ii.seller_id = :shopId
           AND il.is_active = TRUE
     )
-    SELECT product, sku, unit_cost, on_hand_quantity, inventory_value, vendor, location,
+    SELECT product_id, product, sku, unit_cost, on_hand_quantity, inventory_value, vendor, location,
            COUNT(*) OVER() AS total_records
     FROM level_rows
     ORDER BY inventory_value DESC, sku, location
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Detailed valuation audit report listing product, SKU, unit cost, on-hand quantity, and total inventory value.',
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
         "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
         "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -888,9 +889,10 @@ VALUES (
     '019fff82-e31e-71c6-b90c-0940ff0790c1',
     'Dead Stock Report',
     'Product & Inventory Health/Inventory Value & Capital/TABLE/Dead Stock Report',
-    '
+    $$
     WITH sku_inventory AS (
         SELECT pv.id AS variant_id,
+               p.id AS product_id,
                COALESCE(pv.sku, ii.sku) AS sku,
                p.title AS product,
                SUM(COALESCE(il.on_hand_quantity, 0) * COALESCE(ii.unit_cost, 0)) AS inventory_value,
@@ -902,7 +904,7 @@ VALUES (
         WHERE ii.seller_id = :shopId
           AND il.seller_id = :shopId
           AND il.is_active = TRUE
-        GROUP BY pv.id, pv.sku, ii.sku, p.title
+        GROUP BY p.id, pv.id, pv.sku, ii.sku, p.title
     ),
     last_sale AS (
         SELECT li.product_variant_id,
@@ -925,7 +927,8 @@ VALUES (
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
     )
-    SELECT si.sku AS sku,
+    SELECT si.product_id AS product_id,
+           si.sku AS sku,
            si.product AS product,
            ROUND(si.inventory_value, 2) AS inventory_value,
            si.available_quantity AS available_stock,
@@ -939,15 +942,14 @@ VALUES (
     ORDER BY inventory_value DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Report listing dead stock SKUs, tied-up capital value, last sold date, and days without sale.',
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
         "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
         "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1008,7 +1010,7 @@ VALUES (
     '019fff82-e31e-7bfd-a6b5-2777df9b07ba',
     'Unfulfilled Inventory Report',
     'Product & Inventory Health/Fulfillment & Demand/TABLE/Unfulfilled Inventory Report',
-    '
+    $$
     WITH filtered_line_items AS (
         SELECT li.id AS line_id,
                o.id AS order_id,
@@ -1019,7 +1021,6 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
           AND li.unfulfilled_quantity > 0
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -1049,28 +1050,29 @@ VALUES (
         ORDER BY pv.id, il.available_quantity DESC, loc.name
     )
     SELECT fli.order_id,
-           COALESCE(pv.sku, pv.id::text) AS sku,
+           p.id AS product_id,
+           pv.sku AS sku,
            fli.unfulfilled_quantity AS unfulfilled_quantity,
            ROUND(COALESCE(fli.unfulfilled_discounted_total_amount, 0), 2) AS unfulfilled_value,
            COALESCE(ss.available_quantity, 0) AS available_stock,
-           COALESCE(pl.location, ''Unknown'') AS location,
+           pl.location AS location,
            COUNT(*) OVER() AS total_records
     FROM filtered_line_items fli
     JOIN public.dim_product_variants pv ON pv.id = fli.product_variant_id
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id
     LEFT JOIN sku_stock ss ON ss.variant_id = fli.product_variant_id
     LEFT JOIN primary_location pl ON pl.variant_id = fli.product_variant_id
     ORDER BY fli.unfulfilled_quantity DESC, fli.line_id
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
-    60,
+    30,
     'Audit table listing unfulfilled orders, item quantity, backlog value, available stock, and location.',
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
         "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
         "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
