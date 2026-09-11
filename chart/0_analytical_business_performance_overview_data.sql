@@ -14,7 +14,7 @@ VALUES (
         'f7b7070e-9dff-408b-b882-ee53fb22359c',
         'Revenue & Sales Trend',
         'Business Performance Overview/Overview/PLOT/Revenue & Sales Trend',
-        '
+        $$
     WITH
     /*date_granularity_cte*/
     filtered_orders AS (
@@ -28,7 +28,7 @@ VALUES (
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= :currentEndDate::date
+          AND o.created_at < dp.end_bucket + dp.step
     ),
     daily AS (
         SELECT f.bucket,
@@ -38,11 +38,11 @@ VALUES (
         GROUP BY f.bucket
     )
     SELECT CASE
-               WHEN dp.g = ''DAY''     THEN to_char(df.bucket, ''Mon DD'')
-               WHEN dp.g = ''WEEK''    THEN to_char(df.bucket, ''Mon DD'')
-               WHEN dp.g = ''MONTH''   THEN to_char(df.bucket, ''Mon YYYY'')
-               WHEN dp.g = ''QUARTER'' THEN ''Q'' || EXTRACT(QUARTER FROM df.bucket)::int || '' '' || EXTRACT(YEAR FROM df.bucket)::int
-               WHEN dp.g = ''YEAR''    THEN to_char(df.bucket, ''YYYY'')
+               WHEN dp.g = 'DAY'     THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'WEEK'    THEN to_char(df.bucket, 'Mon DD')
+               WHEN dp.g = 'MONTH'   THEN to_char(df.bucket, 'Mon YYYY')
+               WHEN dp.g = 'QUARTER' THEN 'Q' || EXTRACT(QUARTER FROM df.bucket)::int || ' ' || EXTRACT(YEAR FROM df.bucket)::int
+               WHEN dp.g = 'YEAR'    THEN to_char(df.bucket, 'YYYY')
            END AS period,
            df.bucket,
            ROUND(COALESCE(d.net_sales, 0), 2) AS net_sales,
@@ -51,7 +51,7 @@ VALUES (
     CROSS JOIN date_params dp
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
-    ',
+    $$,
         NULL,
         'PLOT',
         300,
@@ -59,7 +59,6 @@ VALUES (
         '{
       "filterMappings": {
         "shopId":          { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"  },
-        "userId":          { "source": "AUTH_CONTEXT",   "contextKey": "user_id"  },
         "currentStartDate":{ "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":  { "source": "REQUEST_FILTER", "filterKey": "endDate"   },
         "granularity":     { "source": "REQUEST_FILTER", "filterKey": "granularity" }

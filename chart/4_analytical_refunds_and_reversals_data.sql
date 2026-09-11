@@ -296,7 +296,7 @@ VALUES (
           AND o.test = FALSE
           
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= dp.end_bucket
+          AND o.created_at < dp.end_bucket + dp.step
     ),
     daily_shipping AS (
         SELECT f.bucket, SUM(f.refunded_shipping) AS refunded_shipping
@@ -324,7 +324,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }

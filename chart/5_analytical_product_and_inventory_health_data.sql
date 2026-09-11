@@ -490,7 +490,7 @@ VALUES (
     '019fff82-e31e-7a3e-859a-6ba09f321cc8',
     'Inventory Movement Trend',
     'Product & Inventory Health/Replenishment & Stock Risk/PLOT/Inventory Movement Trend',
-    '
+    $$
     WITH
     /*date_granularity_cte*/
     filtered_sales AS (
@@ -503,7 +503,7 @@ VALUES (
           AND o.test = FALSE
           
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= dp.end_bucket
+          AND o.created_at < dp.end_bucket + dp.step
         GROUP BY date_trunc(LOWER(dp.g), o.created_at)
     ),
     current_stock AS (
@@ -521,11 +521,11 @@ VALUES (
         LEFT JOIN filtered_sales fs ON fs.bucket = df.bucket
     )
     SELECT CASE
-               WHEN dp.g = ''DAY''     THEN to_char(sa.bucket, ''Mon DD'')
-               WHEN dp.g = ''WEEK''    THEN to_char(sa.bucket, ''Mon DD'')
-               WHEN dp.g = ''MONTH''   THEN to_char(sa.bucket, ''Mon YYYY'')
-               WHEN dp.g = ''QUARTER'' THEN ''Q'' || EXTRACT(QUARTER FROM sa.bucket)::int || '' '' || EXTRACT(YEAR FROM sa.bucket)::int
-               WHEN dp.g = ''YEAR''    THEN to_char(sa.bucket, ''YYYY'')
+               WHEN dp.g = 'DAY'     THEN to_char(sa.bucket, 'Mon DD')
+               WHEN dp.g = 'WEEK'    THEN to_char(sa.bucket, 'Mon DD')
+               WHEN dp.g = 'MONTH'   THEN to_char(sa.bucket, 'Mon YYYY')
+               WHEN dp.g = 'QUARTER' THEN 'Q' || EXTRACT(QUARTER FROM sa.bucket)::int || ' ' || EXTRACT(YEAR FROM sa.bucket)::int
+               WHEN dp.g = 'YEAR'    THEN to_char(sa.bucket, 'YYYY')
            END AS period,
            sa.bucket,
            sa.units_sold AS units_sold,
@@ -534,7 +534,7 @@ VALUES (
     CROSS JOIN date_params dp
     CROSS JOIN current_stock cs
     ORDER BY sa.bucket ASC
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -542,7 +542,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"   },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"     },
         "granularity":      { "source": "REQUEST_FILTER", "filterKey": "granularity" }

@@ -83,7 +83,7 @@ ORDER BY df.bucket ASC
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
       AND o.customer_id IS NOT NULL
-      AND o.created_at <= dp.end_bucket
+      AND o.created_at < dp.end_bucket + dp.step
 ),
 guest_orders AS (
     SELECT
@@ -94,7 +94,7 @@ guest_orders AS (
       AND o.test = FALSE
       AND o.customer_id IS NULL
       AND o.created_at >= dp.start_bucket
-      AND o.created_at <= dp.end_bucket
+      AND o.created_at < dp.end_bucket + dp.step
 ),
 daily AS (
     SELECT
@@ -108,7 +108,7 @@ daily AS (
     FROM customer_order_ranks r
     CROSS JOIN date_params dp
     WHERE r.created_at >= dp.start_bucket
-      AND r.created_at <= dp.end_bucket
+      AND r.created_at < dp.end_bucket + dp.step
     GROUP BY r.bucket
 ),
 daily_guests AS (
@@ -153,7 +153,6 @@ ORDER BY df.bucket ASC;
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }

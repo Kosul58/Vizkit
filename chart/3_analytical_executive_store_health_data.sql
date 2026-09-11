@@ -23,7 +23,7 @@ VALUES (
           AND o.test = FALSE
           
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= dp.end_bucket
+          AND o.created_at < dp.end_bucket + dp.step
     ),
     scoped_refunds AS (
         SELECT date_trunc(LOWER(dp.g), r.created_at) AS bucket,
@@ -35,7 +35,7 @@ VALUES (
           AND o.test = FALSE
           
           AND r.created_at >= dp.start_bucket
-          AND r.created_at <= dp.end_bucket
+          AND r.created_at < dp.end_bucket + dp.step
     ),
     daily_gross AS (
         SELECT f.bucket, SUM(li.original_unit_price * li.quantity) AS gross_sales
@@ -78,7 +78,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "granularity":      { "source": "REQUEST_FILTER", "filterKey": "granularity"   }
@@ -109,7 +108,7 @@ VALUES (
           AND o.test = FALSE
           
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= dp.end_bucket
+          AND o.created_at < dp.end_bucket + dp.step
     ),
     order_totals AS (
         SELECT f.bucket,
@@ -135,7 +134,7 @@ VALUES (
           AND o.test = FALSE
           
           AND r.created_at >= dp.start_bucket
-          AND r.created_at <= dp.end_bucket
+          AND r.created_at < dp.end_bucket + dp.step
     ),
     refund_totals AS (
         SELECT s.bucket,
@@ -163,10 +162,10 @@ VALUES (
         LEFT JOIN order_totals t ON t.bucket = df.bucket
     )
     SELECT s.period_label AS category,
-           s.gross_sales  AS "gross_sales",
-           s.discount     AS "discount",
-           s.refunds      AS "refunds",
-           s.net_sales    AS "net_sales"
+           s.gross_sales  AS gross_sales,
+           s.discount     AS discount,
+           s.refunds      AS refunds,
+           s.net_sales    AS net_sales
     FROM stages s
     ORDER BY s.bucket
     $$,
@@ -177,7 +176,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"   },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"     },
         "granularity":      { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -207,7 +205,7 @@ VALUES (
           AND o.test = FALSE
           
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= dp.end_bucket
+          AND o.created_at < dp.end_bucket + dp.step
     ),
     daily AS (
         SELECT f.bucket,
@@ -238,7 +236,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"   },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"     },
         "granularity":      { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -271,7 +268,7 @@ VALUES (
           AND o.test = FALSE
           
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= dp.end_bucket
+          AND o.created_at < dp.end_bucket + dp.step
     ),
     daily AS (
         SELECT f.bucket,
@@ -303,7 +300,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"   },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"     },
         "granularity":      { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -332,7 +328,7 @@ VALUES (
           AND o.test = FALSE
           
           AND r.created_at >= dp.start_bucket
-          AND r.created_at <= dp.end_bucket
+          AND r.created_at < dp.end_bucket + dp.step
     ),
     daily AS (
         SELECT s.bucket,
@@ -363,7 +359,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"   },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"     },
         "granularity":      { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -552,7 +547,7 @@ OFFSET COALESCE(:offset, 0)
           AND o.test = FALSE
           
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= dp.end_bucket
+          AND o.created_at < dp.end_bucket + dp.step
     ),
     daily AS (
         SELECT f.bucket,
@@ -587,7 +582,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"   },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"     },
         "granularity":      { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -692,7 +686,7 @@ OFFSET COALESCE(:offset, 0)
           AND o.test = FALSE
           
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= dp.end_bucket
+          AND o.created_at < dp.end_bucket + dp.step
     ),
     customer_first AS (
         SELECT o.customer_id,
@@ -736,7 +730,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"   },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"     },
         "granularity":      { "source": "REQUEST_FILTER", "filterKey": "granularity" }
