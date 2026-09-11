@@ -594,7 +594,7 @@ VALUES (
     '019fff82-e31b-7bfb-ae14-6b2e4c98ee78',
     'Product Revenue Pareto',
     'Order Line Item Analytics/Product Portfolio/PLOT/Product Revenue Pareto',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
@@ -620,7 +620,8 @@ VALUES (
                  / SUM(ps.net_sales) OVER (), 2) AS cumulative_pct
     FROM product_sales ps
     ORDER BY ps.net_sales DESC
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -767,10 +768,11 @@ OFFSET COALESCE(:offset, 0)
     '019fff82-e31b-7d85-9cd5-abac703c0eab',
     'Gross vs Net Sales by Product',
     'Order Line Item Analytics/Product Portfolio/PLOT/Gross vs Net Sales by Product',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                COALESCE(li.original_total_amount, 0) AS gross_sales,
+               COALESCE(li.total_discount_amount, 0) AS discounts,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id
@@ -781,6 +783,7 @@ OFFSET COALESCE(:offset, 0)
     )
     SELECT COALESCE(p.title, pv.sku, pv.id) AS product,
            ROUND(SUM(f.gross_sales), 2) AS gross_sales,
+           ROUND(SUM(f.discounts), 2) AS discounts,
            ROUND(SUM(f.net_sales), 2) AS net_sales
     FROM filtered_lines f
     JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
@@ -788,9 +791,8 @@ OFFSET COALESCE(:offset, 0)
     GROUP BY COALESCE(p.title, pv.sku, pv.id)
     HAVING SUM(f.gross_sales) > 0
     ORDER BY net_sales DESC
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -798,7 +800,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },

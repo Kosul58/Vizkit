@@ -188,6 +188,7 @@ VALUES (
     JOIN public.fact_order_headers o ON o.id = li.order_id
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
+      AND o.cancelled_at IS NULL
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -198,7 +199,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -559,6 +559,7 @@ VALUES (
             JOIN public.fact_order_headers o ON o.id = li.order_id
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
+              AND o.cancelled_at IS NULL
         ) t
         WHERE t.is_current OR t.is_prior
     )
