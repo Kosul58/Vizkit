@@ -137,9 +137,9 @@ NULL,
         SELECT t.bucket,
                t.net_sales,
                CASE WHEN t.channel_name IS NULL                                       THEN 5
-                    WHEN LOWER(t.channel_name) IN ('Online Store')          THEN 1
-                    WHEN LOWER(t.channel_name) IN ('Point of Sale')         THEN 2
-                    WHEN LOWER(t.channel_name) IN ('Shop')            THEN 3
+                    WHEN LOWER(t.channel_name) IN ('online store', 'web')  THEN 1
+                    WHEN LOWER(t.channel_name) IN ('point of sale', 'pos') THEN 2
+                    WHEN LOWER(t.channel_name) IN ('shop')                THEN 3
                     ELSE 4 END AS channel_bucket
         FROM (
             SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket,
@@ -1405,9 +1405,9 @@ NULL,
         SELECT t.country,
                t.net_sales,
                CASE WHEN t.channel_name IS NULL                                       THEN 5
-                    WHEN LOWER(t.channel_name) IN ('Online Store')          THEN 1
-                    WHEN LOWER(t.channel_name) IN ('Point of Sale')         THEN 2
-                    WHEN LOWER(t.channel_name) IN ('Shop')            THEN 3
+                    WHEN LOWER(t.channel_name) IN ('online store', 'web')  THEN 1
+                    WHEN LOWER(t.channel_name) IN ('point of sale', 'pos') THEN 2
+                    WHEN LOWER(t.channel_name) IN ('shop')                THEN 3
                     ELSE 4 END AS channel_bucket
         FROM (
             SELECT COALESCE(

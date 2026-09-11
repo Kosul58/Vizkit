@@ -54,7 +54,7 @@ VALUES (
     $$,
         NULL,
         'PLOT',
-        300,
+        30,
         'Combo chart: net sales as bars, order count as a line, grouped by dynamic date granularity.',
         '{
       "filterMappings": {
@@ -74,7 +74,7 @@ VALUES (
         '96f2558c-40ab-400c-8f3c-692c8f3bfd7f',
         'Revenue by Category',
         'Business Performance Overview/Overview/PLOT/Revenue by Category',
-        '
+        $$
     WITH
     filtered_lines AS (
         SELECT li.product_variant_id,
@@ -86,20 +86,20 @@ VALUES (
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
-    SELECT COALESCE(tc.name, p.product_type, ''Uncategorized'') AS category,
+    SELECT COALESCE(tc.name, p.product_type, 'Uncategorized') AS category,
            ROUND(SUM(f.net_sales), 2) AS net_sales
     FROM filtered_lines f
     JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
     LEFT JOIN public.dim_products p ON p.id = pv.product_id
-    LEFT JOIN public.dim_taxonomy_categories tc ON tc.id = p.category_id
-    GROUP BY COALESCE(tc.name, p.product_type, ''Uncategorized'')
+    LEFT JOIN public.dim_taxonomy_categories tc ON tc.id = p.category_id AND tc.seller_id = p.seller_id
+    GROUP BY COALESCE(tc.name, p.product_type, 'Uncategorized')
     HAVING SUM(f.net_sales) > 0
     ORDER BY net_sales DESC
     LIMIT 10
-    ',
+    $$,
         NULL,
         'PLOT',
-        300,
+        30,
         'Horizontal bar chart of net sales by category.',
         '{
       "filterMappings": {
@@ -193,7 +193,7 @@ VALUES (
     ',
         NULL,
         'PLOT',
-        300,
+        30,
         'Bar chart of net sales by product.',
         '{
       "filterMappings": {

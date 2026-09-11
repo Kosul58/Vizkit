@@ -17,7 +17,7 @@ VALUES (
     $$,
     NULL,
     'KPI',
-    300,
+    30,
     'Gross line item revenue before discounts, for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -47,7 +47,7 @@ VALUES (
     $$,
     NULL,
     'KPI',
-    300,
+    30,
     'Net sales (order total less tax and shipping) for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -78,7 +78,7 @@ VALUES (
     $$,
     NULL,
     'KPI',
-    300,
+    30,
     'Average order value (net sales per order) for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -106,7 +106,7 @@ VALUES (
     $$,
     NULL,
     'KPI',
-    300,
+    30,
     'Total order volume for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -134,7 +134,7 @@ VALUES (
     $$,
     NULL,
     'KPI',
-    300,
+    30,
     'Distinct identified customers who ordered in the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -163,7 +163,7 @@ VALUES (
     $$,
     NULL,
     'KPI',
-    300,
+    30,
     'Total capital tied up in on-hand inventory at unit cost.',
     '{
       "filterMappings": {
