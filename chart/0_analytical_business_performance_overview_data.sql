@@ -169,7 +169,7 @@ VALUES (
         'c449c454-e9b6-41a0-8081-85360d32df5e',
         'Top Products Performance',
         'Business Performance Overview/Overview/PLOT/Top Products Performance',
-        '
+        $$
     WITH
     filtered_lines AS (
         SELECT li.product_variant_id,
@@ -190,7 +190,7 @@ VALUES (
     HAVING SUM(f.net_sales) > 0
     ORDER BY net_sales DESC
     LIMIT 10
-    ',
+    $$,
         NULL,
         'PLOT',
         30,

@@ -257,6 +257,7 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
+          AND o.financialstatus != 'VOIDED'
           AND r.created_at >= dp.start_bucket
           AND r.created_at < dp.end_bucket + dp.step
     ),
@@ -378,7 +379,7 @@ VALUES (
     '019fff82-e31d-769a-bc42-f99a7173de6a',
     'Orders Detail Report',
     'Order Reports/Sales & Revenue/TABLE/Orders Detail Report',
-    '
+    $$
     WITH filtered_orders AS (
         SELECT
             o.id,
@@ -389,8 +390,11 @@ VALUES (
             o.source_name,
             o.financialStatus AS financial_status,
             o.fulfillmentStatus AS fulfillment_status,
-            COALESCE(o.original_total_price, 0) AS gross_sales,
-            COALESCE(o.total_discounts_amount, 0) AS discounts,
+            CASE
+                WHEN =o.financialStatus = 'VOIDED' THEN 0
+                ELSE COALESCE(o.original_total_price, 0)
+            END AS gross_sales,
+            COALESCE(o.current_total_discounts, 0) AS discounts,
             COALESCE(o.current_total_price, 0)
                 - COALESCE(o.current_total_tax, 0)
                 - COALESCE(o.current_shipping_price, 0) AS net_sales,
@@ -421,12 +425,12 @@ VALUES (
                 CONCAT_WS(CHR(32), c.first_name, c.last_name)
             ) > 0
             THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
-            ELSE COALESCE(c.email, ''Guest'')
+            ELSE COALESCE(c.email, 'Guest')
         END AS customer,
         COALESCE(
             f.attribution_displayname,
             f.source_name,
-            ''unknown''
+            'unknown'
         ) AS channel,
         f.source_name AS source,
         f.financial_status,
@@ -444,7 +448,7 @@ VALUES (
     ORDER BY f.created_at DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
     60,
@@ -454,10 +458,6 @@ VALUES (
             "shopId": {
                 "source": "AUTH_CONTEXT",
                 "contextKey": "shopGid"
-            },
-            "userId": {
-                "source": "AUTH_CONTEXT",
-                "contextKey": "user_id"
             },
             "limit": {
                 "source": "REQUEST_FILTER",
