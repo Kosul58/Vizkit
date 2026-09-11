@@ -8,7 +8,7 @@ VALUES (
     '019fff9a-1dfa-7282-8db8-0ad49fdec2cc',
     'Customer Growth Trend',
     'Customer Retention/Customer Overview/PLOT/Customer Growth Trend',
-    '
+    $$
     WITH
     /*date_granularity_cte*/
     scoped_customers AS (
@@ -21,7 +21,7 @@ VALUES (
           
           AND c.created_at IS NOT NULL
           AND c.created_at >= dp.start_bucket
-          AND c.created_at <= :currentEndDate::date
+          AND c.created_at < dp.end_bucket + dp.step
     ),
     daily_new AS (
         SELECT sc.bucket, COUNT(*) AS new_customers
@@ -41,7 +41,7 @@ FROM date_filler df
 CROSS JOIN date_params dp
 LEFT JOIN daily_new n ON n.bucket = df.bucket
 ORDER BY df.bucket ASC
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -49,7 +49,6 @@ ORDER BY df.bucket ASC
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -352,7 +351,7 @@ VALUES (
           
           AND o.customer_id IS NOT NULL
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= :currentEndDate::date
+          AND o.created_at < dp.end_bucket + dp.step
     ),
     guest_orders AS (
         SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket,
@@ -366,7 +365,7 @@ VALUES (
           
           AND o.customer_id IS NULL
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= :currentEndDate::date
+          AND o.created_at < dp.end_bucket + dp.step
     ),
     daily AS (
         SELECT r.bucket,
@@ -403,7 +402,6 @@ ORDER BY df.bucket ASC
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -419,7 +417,7 @@ ORDER BY df.bucket ASC
     '019fff9a-1dfb-7d54-ae3f-df0d8febed39',
     'Revenue by Customer Segment',
     'Customer Retention/Customer Revenue & Value/PLOT/Revenue by Customer Segment',
-    '
+    $$
     WITH per_customer AS (
         SELECT o.customer_id,
                SUM(COALESCE(o.current_total_price, 0)
@@ -458,10 +456,10 @@ ORDER BY df.bucket ASC
         SELECT p.revenue,
                CASE WHEN w.req_start IS NOT NULL
                      AND s.first_order >= w.req_start
-                     AND (w.req_end IS NULL OR s.first_order <= w.req_end)   THEN ''New''
-                    WHEN v.vip_cut IS NOT NULL AND p.revenue >= v.vip_cut    THEN ''VIP''
-                    WHEN s.last_order < w.end_day - 60                       THEN ''At-risk''
-                    ELSE ''Repeat'' END AS segment
+                     AND (w.req_end IS NULL OR s.first_order <= w.req_end)   THEN 'New'
+                    WHEN v.vip_cut IS NOT NULL AND p.revenue >= v.vip_cut    THEN 'VIP'
+                    WHEN s.last_order < w.end_day - 60                       THEN 'At-risk'
+                    ELSE 'Repeat' END AS segment
         FROM per_customer p
         JOIN customer_span s ON s.customer_id = p.customer_id
         CROSS JOIN win w
@@ -473,14 +471,14 @@ ORDER BY df.bucket ASC
         GROUP BY segment
     ),
     segments(segment, sort_order) AS (
-        VALUES (''New'', 1), (''At-risk'', 2), (''VIP'', 3), (''Repeat'', 4)
+        VALUES ('New', 1), ('At-risk', 2), ('VIP', 3), ('Repeat', 4)
     )
     SELECT sg.segment AS segment,
            ROUND(COALESCE(st.revenue, 0), 2) AS revenue
     FROM segments sg
     LEFT JOIN segment_totals st ON st.segment = sg.segment
     ORDER BY sg.sort_order
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -488,7 +486,6 @@ ORDER BY df.bucket ASC
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -499,7 +496,7 @@ ORDER BY df.bucket ASC
     '019fff9a-1dfb-7047-bd5e-e1400ef79384',
     'Top Customers by Revenue',
     'Customer Retention/Customer Revenue & Value/PLOT/Top Customers by Revenue',
-    '
+    $$
     WITH per_customer AS (
         SELECT o.customer_id,
                SUM(COALESCE(o.current_total_price, 0)
@@ -519,14 +516,13 @@ ORDER BY df.bucket ASC
                      || CHR(32) || CHR(40)
                      || COALESCE(c.email, c.id::text)
                      || CHR(41)
-                ELSE COALESCE(c.email, ''Guest'') END AS customer,
+                ELSE COALESCE(c.email, 'Guest') END AS customer,
            ROUND(p.revenue, 2) AS revenue
     FROM per_customer p
     JOIN public.dim_customers c ON c.id = p.customer_id
     ORDER BY p.revenue DESC, c.id
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -534,9 +530,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -705,7 +698,7 @@ VALUES (
     '019fff9a-1dfb-70e1-9bb5-d0221b4e1569',
     'Customer Revenue Cohort',
     'Customer Retention/Customer Retention & Loyalty/PLOT/Customer Revenue Cohort',
-    '
+    $$
     WITH ranked AS (
         SELECT o.customer_id,
                o.created_at::date AS day,
@@ -747,31 +740,31 @@ VALUES (
     SELECT EXTRACT(YEAR FROM cl.cohort_month)::text || CHR(45)
              || LPAD(EXTRACT(MONTH FROM cl.cohort_month)::text, 2, CHR(48)) AS cohort,
            ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 0), 0), 2) AS "Month 0",
-           CASE WHEN cl.cohort_month + INTERVAL ''1 month''
-                     <= date_trunc(''month'', CURRENT_DATE)
+           CASE WHEN cl.cohort_month + INTERVAL '1 month'
+                     <= date_trunc('month', CURRENT_DATE)
                 THEN ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 1), 0), 2)
                 END AS "Month 1",
-           CASE WHEN cl.cohort_month + INTERVAL ''2 month''
-                     <= date_trunc(''month'', CURRENT_DATE)
+           CASE WHEN cl.cohort_month + INTERVAL '2 month'
+                     <= date_trunc('month', CURRENT_DATE)
                 THEN ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 2), 0), 2)
                 END AS "Month 2",
-           CASE WHEN cl.cohort_month + INTERVAL ''3 month''
-                     <= date_trunc(''month'', CURRENT_DATE)
+           CASE WHEN cl.cohort_month + INTERVAL '3 month'
+                     <= date_trunc('month', CURRENT_DATE)
                 THEN ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 3), 0), 2)
                 END AS "Month 3",
-           CASE WHEN cl.cohort_month + INTERVAL ''4 month''
-                     <= date_trunc(''month'', CURRENT_DATE)
+           CASE WHEN cl.cohort_month + INTERVAL '4 month'
+                     <= date_trunc('month', CURRENT_DATE)
                 THEN ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 4), 0), 2)
                 END AS "Month 4",
-           CASE WHEN cl.cohort_month + INTERVAL ''5 month''
-                     <= date_trunc(''month'', CURRENT_DATE)
+           CASE WHEN cl.cohort_month + INTERVAL '5 month'
+                     <= date_trunc('month', CURRENT_DATE)
                 THEN ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset >= 5), 0), 2)
                 END AS "Month 5+"
     FROM cohort_list cl
     LEFT JOIN cohort_totals ct ON ct.cohort_month = cl.cohort_month
     GROUP BY cl.cohort_month
     ORDER BY cl.cohort_month
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -779,7 +772,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -859,7 +851,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -934,15 +925,15 @@ VALUES (
     '019fff9a-1dfb-702e-87f5-5d558c3b3a79',
     'Refund-Risk Customer Report',
     'Customer Retention/Customer Risk & Refund Analysis/TABLE/Refund-Risk Customer Report',
-    '
+    $$
     WITH scoped_orders AS (
         SELECT o.id,
                o.customer_id,
+               o.financialstatus,
                COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -956,6 +947,7 @@ VALUES (
                MAX(COALESCE(r.processed_at, r.created_at))::date AS last_refund_date
         FROM scoped_orders s
         LEFT JOIN public.fact_order_refunds r ON r.order_id = s.id
+        AND s.financialstatus != 'VOIDED'
         GROUP BY s.id, s.customer_id, s.gross
     ),
     per_customer AS (
@@ -970,7 +962,7 @@ VALUES (
     )
     SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
                 THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
-                ELSE COALESCE(c.email, ''Guest'') END AS customer,
+                ELSE COALESCE(c.email, 'Guest') END AS customer,
            p.orders AS orders,
            p.refunded_orders AS refunded_orders,
            ROUND(p.refunded, 2) AS refunded_amount,
@@ -983,7 +975,7 @@ VALUES (
     ORDER BY p.refunded DESC, c.id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
     60,
@@ -991,7 +983,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1009,9 +1000,9 @@ VALUES (
     '019fff9a-1dfb-7d51-aba5-9eac6880bcee',
     'Customer Geography',
     'Customer Retention/Customer Geography & Segmentation/PLOT/Customer Geography',
-    '
+    $$
     WITH located_orders AS (
-        SELECT COALESCE(o.shipping_address #>> ''{country}'', ''Unknown'') AS country,
+        SELECT COALESCE(o.shipping_address #>> '{country}', 'Unknown') AS country,
                o.customer_id,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
@@ -1030,9 +1021,8 @@ VALUES (
     FROM located_orders
     GROUP BY country
     ORDER BY SUM(net_sales) DESC
-    LIMIT COALESCE(:limit, 10)
-    OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1040,9 +1030,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -1053,11 +1040,11 @@ VALUES (
     '019fff9a-1dfb-7501-9628-e35284463dde',
     'Customer Location Revenue Ranking',
     'Customer Retention/Customer Geography & Segmentation/PLOT/Customer Location Revenue Ranking',
-    '
+    $$
     WITH located_orders AS (
-        SELECT COALESCE(o.shipping_address #>> ''{city}'', ''Unknown'') AS city,
-               COALESCE(o.shipping_address #>> ''{province}'', ''Unknown'') AS province,
-               COALESCE(o.shipping_address #>> ''{country}'', ''Unknown'') AS country,
+        SELECT COALESCE(o.shipping_address #>> '{city}', 'Unknown') AS city,
+               COALESCE(o.shipping_address #>> '{province}', 'Unknown') AS province,
+               COALESCE(o.shipping_address #>> '{country}', 'Unknown') AS country,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
                  - COALESCE(o.current_shipping_price, 0) AS net_sales
@@ -1068,15 +1055,14 @@ VALUES (
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
-    SELECT CONCAT_WS(CHR(44) || CHR(32), NULLIF(city, ''Unknown''), NULLIF(province, ''Unknown''), NULLIF(country, ''Unknown'')) AS location,
+    SELECT CONCAT_WS(CHR(44) || CHR(32), NULLIF(city, 'Unknown'), NULLIF(province, 'Unknown'), NULLIF(country, 'Unknown')) AS location,
            ROUND(SUM(net_sales), 2) AS revenue,
            ROUND(SUM(net_sales) / NULLIF(COUNT(*), 0), 2) AS aov
     FROM located_orders
     GROUP BY city, province, country
     ORDER BY SUM(net_sales) DESC
-    LIMIT COALESCE(:limit, 10)
-    OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1084,9 +1070,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -1097,11 +1080,11 @@ VALUES (
     '019fff9a-1dfb-73e3-b8cb-cf8d48dde497',
     'Customer Geography Report',
     'Customer Retention/Customer Geography & Segmentation/TABLE/Customer Geography Report',
-    '
+    $$
     WITH located_orders AS (
-        SELECT COALESCE(o.shipping_address #>> ''{country}'', ''Unknown'') AS country,
-               COALESCE(o.shipping_address #>> ''{province}'', ''Unknown'') AS province,
-               COALESCE(o.shipping_address #>> ''{city}'', ''Unknown'') AS city,
+        SELECT COALESCE(o.shipping_address #>> '{country}', 'Unknown') AS country,
+               COALESCE(o.shipping_address #>> '{province}', 'Unknown') AS province,
+               COALESCE(o.shipping_address #>> '{city}', 'Unknown') AS city,
                o.customer_id,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
@@ -1126,7 +1109,7 @@ VALUES (
     ORDER BY SUM(net_sales) DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
     60,
@@ -1134,7 +1117,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1152,10 +1134,10 @@ VALUES (
     '019fff9a-1dfb-74e4-ac8d-73f6dc14ac98',
     'Tax-Exempt Customer Revenue',
     'Customer Retention/Customer Operations & Compliance/PLOT/Tax-Exempt Customer Revenue',
-    '
+    $$
     WITH order_status AS (
         SELECT CASE WHEN COALESCE(c.taxExempt, FALSE)
-                    THEN ''Tax-Exempt'' ELSE ''Not Tax-Exempt'' END AS status,
+                    THEN 'Tax-Exempt' ELSE 'Not Tax-Exempt' END AS status,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
                  - COALESCE(o.current_shipping_price, 0) AS net_sales
@@ -1173,14 +1155,14 @@ VALUES (
         GROUP BY status
     ),
     statuses(status, sort_order) AS (
-        VALUES (''Tax-Exempt'', 1), (''Not Tax-Exempt'', 2)
+        VALUES ('Tax-Exempt', 1), ('Not Tax-Exempt', 2)
     )
     SELECT s.status AS tax_status,
            ROUND(COALESCE(t.revenue, 0), 2) AS revenue
     FROM statuses s
     LEFT JOIN status_totals t ON t.status = s.status
     ORDER BY s.sort_order
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1188,7 +1170,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -1368,7 +1349,7 @@ VALUES (
     '019fff9a-1dfb-7217-b231-2c8856fc75a5',
     'Address Quality Report',
     'Customer Retention/Customer Operations & Compliance/TABLE/Address Quality Report',
-    '
+    $$
     WITH scoped_customers AS (
         SELECT DISTINCT o.customer_id
         FROM public.fact_order_headers o
@@ -1389,13 +1370,13 @@ VALUES (
            COALESCE(ca.coordinates_validated, FALSE) AS coordinates_validated,
            CONCAT_WS(CHR(44) || CHR(32),
                CASE WHEN COALESCE(ca.coordinates_validated, FALSE) = FALSE
-                    THEN ''Unvalidated coordinates'' END,
+                    THEN 'Unvalidated coordinates' END,
                CASE WHEN COALESCE(LENGTH(TRIM(ca.address1)), 0) = 0
                       OR COALESCE(LENGTH(TRIM(ca.city)), 0) = 0
                       OR COALESCE(LENGTH(TRIM(ca.province)), 0) = 0
                       OR COALESCE(LENGTH(TRIM(ca.country)), 0) = 0
                       OR COALESCE(LENGTH(TRIM(ca.zip)), 0) = 0
-                    THEN ''Incomplete fields'' END) AS issues,
+                    THEN 'Incomplete fields' END) AS issues,
            COUNT(*) OVER() AS total_records
     FROM public.dim_customer_addresses ca
     JOIN scoped_customers s ON s.customer_id = ca.customer_id
@@ -1410,7 +1391,7 @@ VALUES (
     ORDER BY c.id, ca.id
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'TABLE',
     60,
@@ -1418,7 +1399,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },

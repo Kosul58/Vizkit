@@ -96,7 +96,7 @@ OFFSET COALESCE(:offset, 0)
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= :currentEndDate::date
+          AND o.created_at < dp.end_bucket + dp.step
     ),
     daily AS (
         SELECT f.bucket,
@@ -321,8 +321,7 @@ VALUES (
     GROUP BY COALESCE(pv.sku, pv.id)
     HAVING SUM(f.discounts) > 0
     ORDER BY discount_amount DESC
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
+    LIMIT 20
     ',
     NULL,
     'PLOT',
@@ -331,9 +330,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -685,7 +681,7 @@ VALUES (
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= :currentEndDate::date
+          AND o.created_at < dp.end_bucket + dp.step
     ),
     daily AS (
         SELECT f.bucket,

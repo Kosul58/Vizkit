@@ -41,10 +41,10 @@ VALUES (
     scoped_txn AS (
         SELECT date_trunc(LOWER(dp.g), COALESCE(t.processed_at, t.created_at)) AS bucket,
                COALESCE(t.amount, 0) AS amount,
-               (UPPER(t.kind) IN ('SALE', 'CAPTURE')
-            AND UPPER(t.status) = 'SUCCESS') AS is_payment,
-               (UPPER(t.kind) = 'REFUND'
-            AND UPPER(t.status) = 'SUCCESS') AS is_refund
+               (t.kind IN ('SALE', 'CAPTURE')
+            AND t.status = 'SUCCESS') AS is_payment,
+               (t.kind = 'REFUND'
+            AND t.status = 'SUCCESS') AS is_refund
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id
         CROSS JOIN date_params dp
@@ -53,7 +53,7 @@ VALUES (
           
           AND t.test = FALSE
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
-          AND COALESCE(t.processed_at, t.created_at) <= :currentEndDate::date
+          AND COALESCE(t.processed_at, t.created_at) < dp.end_bucket + dp.step
     ),
     daily AS (
         SELECT s.bucket,
@@ -162,9 +162,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -372,7 +369,7 @@ VALUES (
           AND UPPER(t.kind) IN ('SALE', 'CAPTURE')
           AND UPPER(t.status) = 'SUCCESS'
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
-          AND COALESCE(t.processed_at, t.created_at) <= :currentEndDate::date
+          AND COALESCE(t.processed_at, t.created_at) < dp.end_bucket + dp.step
     ),
     daily AS (
         SELECT s.bucket,
@@ -476,12 +473,12 @@ VALUES (
     '019fffa3-ddd3-795f-a999-4897d4e273db',
     'Transaction Status Mix',
     'Payments & Transactions/Payment Health & Reliability/PLOT/Transaction Status Mix',
-    '
+    $$
     WITH classified AS (
-        SELECT CASE WHEN UPPER(t.status) IN (''FAILURE'', ''ERROR'')             THEN ''Failed''
-                    WHEN UPPER(t.status) IN (''PENDING'', ''AWAITING_RESPONSE'') THEN ''Pending''
-                    WHEN UPPER(t.status) = ''SUCCESS''                           THEN ''Success''
-                    ELSE ''Other'' END AS status
+        SELECT CASE WHEN UPPER(t.status) IN ('FAILURE', 'ERROR')             THEN 'Failed'
+                    WHEN UPPER(t.status) IN ('PENDING', 'AWAITING_RESPONSE') THEN 'Pending'
+                    WHEN UPPER(t.status) = 'SUCCESS'                           THEN 'Success'
+                    ELSE 'Other' END AS status
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id
         WHERE o.seller_id = :shopId
@@ -492,7 +489,7 @@ VALUES (
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     ),
     bands(ord, status) AS (
-        VALUES (1, ''Success''), (2, ''Failed''), (3, ''Pending''), (4, ''Other'')
+        VALUES (1, 'Success'), (2, 'Failed'), (3, 'Pending'), (4, 'Other')
     )
     SELECT b.status AS status,
            COUNT(c.status) AS "Transaction Count"
@@ -500,7 +497,7 @@ VALUES (
     LEFT JOIN classified c ON c.status = b.status
     GROUP BY b.ord, b.status
     ORDER BY b.ord
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -534,7 +531,7 @@ VALUES (
           
           AND t.test = FALSE
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
-          AND COALESCE(t.processed_at, t.created_at) <= :currentEndDate::date
+          AND COALESCE(t.processed_at, t.created_at) < dp.end_bucket + dp.step
     ),
     daily AS (
         SELECT s.bucket,
@@ -684,7 +681,7 @@ VALUES (
           AND o.test = FALSE
           
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= :currentEndDate::date
+          AND o.created_at < dp.end_bucket + dp.step
     ),
     daily_orders AS (
         SELECT f.bucket, SUM(f.order_total) AS order_total
@@ -723,7 +720,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -783,7 +779,7 @@ VALUES (
           AND UPPER(t.kind) = 'REFUND'
           AND UPPER(t.status) = 'SUCCESS'
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
-          AND COALESCE(t.processed_at, t.created_at) <= :currentEndDate::date
+          AND COALESCE(t.processed_at, t.created_at) < dp.end_bucket + dp.step
     ),
     daily AS (
         SELECT s.bucket,
@@ -1004,9 +1000,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -1099,10 +1092,10 @@ VALUES (
     '019fffa3-ddd3-7ac0-84ad-a47393da0230',
     'Manual vs Automated Payments',
     'Payments & Transactions/POS & Alternative Payment Operations/PLOT/Manual vs Automated Payments',
-    '
+    $$
     WITH classified AS (
-        SELECT CASE WHEN t.manual_payment_gateway THEN ''Manual''
-                    ELSE ''Automated'' END AS payment_type,
+        SELECT CASE WHEN t.manual_payment_gateway THEN 'Manual'
+                    ELSE 'Automated' END AS payment_type,
                COALESCE(t.amount, 0) AS amount
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id
@@ -1110,13 +1103,13 @@ VALUES (
           AND o.test = FALSE
           
           AND t.test = FALSE
-          AND UPPER(t.kind) IN (''SALE'', ''CAPTURE'')
-          AND UPPER(t.status) = ''SUCCESS''
+          AND UPPER(t.kind) IN ('SALE', 'CAPTURE')
+          AND UPPER(t.status) = 'SUCCESS'
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     ),
     bands(ord, payment_type) AS (
-        VALUES (1, ''Automated''), (2, ''Manual'')
+        VALUES (1, 'Automated'), (2, 'Manual')
     )
     SELECT b.payment_type AS payment_type,
            ROUND(COALESCE(SUM(c.amount), 0), 2) AS payment_amount
@@ -1124,7 +1117,7 @@ VALUES (
     LEFT JOIN classified c ON c.payment_type = b.payment_type
     GROUP BY b.ord, b.payment_type
     ORDER BY b.ord
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1132,7 +1125,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -1168,9 +1160,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -1181,7 +1170,7 @@ VALUES (
     '019fffa3-ddd3-70da-a2b4-ba575ac4d820',
     'Card Brand Mix',
     'Payments & Transactions/POS & Alternative Payment Operations/PLOT/Card Brand Mix',
-    '
+    $$
     SELECT tt.transaction_credit_card_company AS card_brand,
            ROUND(SUM(COALESCE(tt.amount, 0)), 2) AS "Card Payment Amount"
     FROM public.dim_tender_transactions tt
@@ -1195,7 +1184,7 @@ VALUES (
     GROUP BY 1
     ORDER BY SUM(COALESCE(tt.amount, 0)) DESC, 1 ASC
     LIMIT 20
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1203,9 +1192,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -1262,7 +1248,7 @@ VALUES (
           
           AND t.test = FALSE
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
-          AND COALESCE(t.processed_at, t.created_at) <= :currentEndDate::date
+          AND COALESCE(t.processed_at, t.created_at) < dp.end_bucket + dp.step
     ),
     daily AS (
         SELECT s.bucket, SUM(s.rounding) AS rounding_amount

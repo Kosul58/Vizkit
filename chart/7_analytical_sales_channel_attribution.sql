@@ -19,10 +19,10 @@ VALUES (
 '019fffa2-0f80-77ca-b168-dec3d25e1385',
         'Revenue by Channel',
         'Sales Channel Attribution/Channel Performance/PLOT/Revenue by Channel',
-        '
+        $$
     WITH filtered_orders AS (
 SELECT COALESCE(
-        o.attribution_displayname, o.order_app_name, o.source_name, ''Unattributed''
+        o.attribution_displayname, o.order_app_name, o.source_name, 'Unattributed'
     ) AS channel,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
@@ -38,9 +38,8 @@ AND o.test = FALSE
     FROM filtered_orders f
     GROUP BY f.channel
     ORDER BY SUM(f.net_sales) DESC, f.channel ASC
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
 NULL,
         'PLOT',
         60,
@@ -48,9 +47,6 @@ NULL,
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -61,10 +57,10 @@ NULL,
 '019fffa2-0f80-75e3-b775-87a0a8633e24',
         'Orders by Channel',
         'Sales Channel Attribution/Channel Performance/PLOT/Orders by Channel',
-        '
+        $$
     WITH filtered_orders AS (
 SELECT COALESCE(
-        o.attribution_displayname, o.order_app_name, o.source_name, ''Unattributed''
+        o.attribution_displayname, o.order_app_name, o.source_name, 'Unattributed'
     ) AS channel
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
@@ -77,9 +73,8 @@ AND o.test = FALSE
     FROM filtered_orders f
     GROUP BY f.channel
     ORDER BY COUNT(*) DESC, f.channel ASC
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
 NULL,
         'PLOT',
         60,
@@ -87,9 +82,6 @@ NULL,
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -100,10 +92,10 @@ NULL,
 '019fffa2-0f80-7d9e-8291-cc8dd6928cfd',
         'Channel AOV Comparison',
         'Sales Channel Attribution/Channel Performance/PLOT/Channel AOV Comparison',
-        '
+        $$
     WITH filtered_orders AS (
 SELECT COALESCE(
-        o.attribution_displayname, o.order_app_name, o.source_name, ''Unattributed''
+        o.attribution_displayname, o.order_app_name, o.source_name, 'Unattributed'
     ) AS channel,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
@@ -119,9 +111,8 @@ AND o.test = FALSE
     FROM filtered_orders f
     GROUP BY f.channel
     ORDER BY SUM(f.net_sales) / NULLIF(COUNT(*), 0) DESC NULLS LAST, f.channel ASC
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
 NULL,
         'PLOT',
         60,
@@ -129,9 +120,6 @@ NULL,
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -166,7 +154,7 @@ NULL,
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
               AND o.created_at >= dp.start_bucket
-              AND o.created_at <= :currentEndDate::date
+              AND o.created_at < dp.end_bucket + dp.step
         ) t
     ),
     daily AS (
@@ -207,11 +195,10 @@ SELECT
 NULL,
         'PLOT',
         60,
-        'Revenue trend by sales channel, grouped by dynamic date granularity. Channels come from the order attribution display name; Other Channels holds any named channel outside the first three, and Unattributed holds orders carrying no channel information at all.',
+        'Revenue trend by sales channel, grouped by dynamic date granularity.',
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -465,10 +452,10 @@ NULL,
 '019fffa2-0f80-75b9-ab4b-b31d2a23ed61',
         'Net Revenue After Refunds by Channel',
         'Sales Channel Attribution/Channel Quality & Profitability/PLOT/Net Revenue After Refunds by Channel',
-        '
+        $$
     WITH filtered_orders AS (
 SELECT COALESCE(
-        o.attribution_displayname, o.order_app_name, o.source_name, ''Unattributed''
+        o.attribution_displayname, o.order_app_name, o.source_name, 'Unattributed'
     ) AS channel,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
@@ -484,9 +471,8 @@ AND o.test = FALSE
     FROM filtered_orders f
     GROUP BY f.channel
     ORDER BY SUM(f.net_sales) DESC, f.channel ASC
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
 NULL,
         'PLOT',
         60,
@@ -494,9 +480,6 @@ NULL,
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -507,14 +490,14 @@ NULL,
 '019fffa2-0f80-70c4-9a28-0385c2cf3627',
         'Refund Rate by Channel',
         'Sales Channel Attribution/Channel Quality & Profitability/PLOT/Refund Rate by Channel',
-        '
+        $$
     WITH filtered_orders AS (
         SELECT o.id,
 COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    ''Unattributed''
+    'Unattributed'
 ) AS channel,
                COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales
 FROM public.fact_order_headers o
@@ -542,9 +525,8 @@ FROM public.fact_order_refunds r
     LEFT JOIN channel_refunds cr ON cr.channel IS NOT DISTINCT FROM cg.channel
     ORDER BY 100 * COALESCE(cr.refunded, 0) / NULLIF(cg.gross_sales, 0) DESC NULLS LAST,
              cg.channel ASC
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
 NULL,
         'PLOT',
         60,
@@ -552,9 +534,6 @@ NULL,
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -565,10 +544,10 @@ NULL,
 '019fffa2-0f80-776e-972e-acecde275b53',
         'Discount Rate by Channel',
         'Sales Channel Attribution/Channel Quality & Profitability/PLOT/Discount Rate by Channel',
-        '
+        $$
     WITH filtered_orders AS (
 SELECT COALESCE(
-        o.attribution_displayname, o.order_app_name, o.source_name, ''Unattributed''
+        o.attribution_displayname, o.order_app_name, o.source_name, 'Unattributed'
     ) AS channel,
                COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales,
                COALESCE(o.total_discounts_amount, 0) AS discounts
@@ -584,9 +563,8 @@ AND o.test = FALSE
     GROUP BY f.channel
     ORDER BY 100 * SUM(f.discounts) / NULLIF(SUM(f.gross_sales), 0) DESC NULLS LAST,
              f.channel ASC
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
 NULL,
         'PLOT',
         60,
@@ -594,9 +572,6 @@ NULL,
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -788,9 +763,9 @@ VALUES (
 '019fffa2-0f80-70ef-9a0f-c359403e905d',
         'UTM Campaign Revenue',
         'Sales Channel Attribution/Marketing Attribution/PLOT/UTM Campaign Revenue',
-        '
+        $$
     WITH filtered_orders AS (
-SELECT NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,campaign}''), '''') AS utm_campaign,
+SELECT NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,campaign}'), '') AS utm_campaign,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
                  - COALESCE(o.current_shipping_price, 0) AS net_sales
@@ -806,9 +781,8 @@ AND o.test = FALSE
     WHERE f.utm_campaign IS NOT NULL
     GROUP BY f.utm_campaign
     ORDER BY SUM(f.net_sales) DESC, f.utm_campaign ASC
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
 NULL,
         'PLOT',
         60,
@@ -816,9 +790,6 @@ NULL,
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -829,10 +800,10 @@ NULL,
 '019fffa2-0f80-71ce-a2f8-1d91eb3cf4e6',
         'UTM Source / Medium Performance',
         'Sales Channel Attribution/Marketing Attribution/PLOT/UTM Source / Medium Performance',
-        '
+        $$
     WITH filtered_orders AS (
-SELECT LOWER(NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,source}''), '''')) AS utm_source,
-               LOWER(NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,medium}''), '''')) AS utm_medium,
+SELECT LOWER(NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,source}'), '')) AS utm_source,
+               LOWER(NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,medium}'), '')) AS utm_medium,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
                  - COALESCE(o.current_shipping_price, 0) AS net_sales
@@ -843,8 +814,8 @@ AND o.test = FALSE
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
     labelled AS (
-        SELECT COALESCE(f.utm_source, ''unknown'') || CHR(32) || CHR(47) || CHR(32)
-                 || COALESCE(f.utm_medium, ''unknown'') AS source_medium,
+        SELECT COALESCE(f.utm_source, 'unknown') || CHR(32) || CHR(47) || CHR(32)
+                 || COALESCE(f.utm_medium, 'unknown') AS source_medium,
                f.net_sales
         FROM filtered_orders f
         WHERE f.utm_source IS NOT NULL OR f.utm_medium IS NOT NULL
@@ -856,9 +827,8 @@ AND o.test = FALSE
     FROM labelled l
     GROUP BY l.source_medium
     ORDER BY SUM(l.net_sales) DESC, l.source_medium ASC
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
 NULL,
         'PLOT',
         60,
@@ -866,9 +836,6 @@ NULL,
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -879,9 +846,9 @@ NULL,
 '019fffa2-0f80-73f6-a81c-b324e3603939',
         'Referral Site Revenue',
         'Sales Channel Attribution/Marketing Attribution/PLOT/Referral Site Revenue',
-        '
+        $$
     WITH filtered_orders AS (
-SELECT o.customer_journey_summary #>> ''{lastVisit,referrerUrl}'' AS referring_site,
+SELECT o.customer_journey_summary #>> '{lastVisit,referrerUrl}' AS referring_site,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
                  - COALESCE(o.current_shipping_price, 0) AS net_sales
@@ -897,9 +864,8 @@ AND o.test = FALSE
     WHERE f.referring_site IS NOT NULL
     GROUP BY f.referring_site
     ORDER BY SUM(f.net_sales) DESC, f.referring_site ASC
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
 NULL,
         'PLOT',
         60,
@@ -907,9 +873,6 @@ NULL,
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -920,9 +883,9 @@ NULL,
 '019fffa2-0f80-79ee-84eb-b644d7b1d5c4',
         'Paid vs Organic Revenue Mix',
         'Sales Channel Attribution/Marketing Attribution/PLOT/Paid vs Organic Revenue Mix',
-        '
+        $$
     WITH filtered_orders AS (
-SELECT LOWER(NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,medium}''), '''')) AS utm_medium,
+SELECT LOWER(NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,medium}'), '')) AS utm_medium,
                COALESCE(o.current_total_price, 0)
                  - COALESCE(o.current_total_tax, 0)
                  - COALESCE(o.current_shipping_price, 0) AS net_sales
@@ -933,16 +896,16 @@ AND o.test = FALSE
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
     classified AS (
-        SELECT CASE WHEN f.utm_medium IN (''cpc'', ''ppc'', ''paid'', ''paidsearch'', ''paid_search'',
-                                          ''paid-search'', ''cpm'', ''cpv'', ''display'', ''banner'',
-                                          ''retargeting'')                                   THEN 1
-                    WHEN f.utm_medium IN (''organic'', ''seo'', ''organic_search'',
-                                          ''organic-search'')                                THEN 2
-                    WHEN f.utm_medium IN (''referral'', ''referrer'', ''ref'')                THEN 3
-                    WHEN f.utm_medium IN (''email'', ''e-mail'', ''newsletter'', ''mail'')     THEN 4
-                    WHEN f.utm_medium IN (''social'', ''social_media'', ''social-media'',
-                                          ''socialmedia'', ''sm'', ''facebook'', ''instagram'',
-                                          ''twitter'', ''tiktok'', ''pinterest'', ''linkedin'') THEN 5
+        SELECT CASE WHEN f.utm_medium IN ('cpc', 'ppc', 'paid', 'paidsearch', 'paid_search',
+                                          'paid-search', 'cpm', 'cpv', 'display', 'banner',
+                                          'retargeting')                                   THEN 1
+                    WHEN f.utm_medium IN ('organic', 'seo', 'organic_search',
+                                          'organic-search')                                THEN 2
+                    WHEN f.utm_medium IN ('referral', 'referrer', 'ref')                THEN 3
+                    WHEN f.utm_medium IN ('email', 'e-mail', 'newsletter', 'mail')     THEN 4
+                    WHEN f.utm_medium IN ('social', 'social_media', 'social-media',
+                                          'socialmedia', 'sm', 'facebook', 'instagram',
+                                          'twitter', 'tiktok', 'pinterest', 'linkedin') THEN 5
                     ELSE 6 END AS medium_group,
                f.net_sales
         FROM filtered_orders f
@@ -957,7 +920,7 @@ AND o.test = FALSE
                COALESCE(SUM(net_sales) FILTER (WHERE medium_group = 6), 0) AS direct
         FROM classified
     )
-    SELECT ''Revenue Mix'' AS mix,
+    SELECT 'Revenue Mix' AS mix,
            COALESCE(ROUND(100 * t.paid     / NULLIF(t.total_net, 0), 2), 0) AS "Paid",
            COALESCE(ROUND(100 * t.organic  / NULLIF(t.total_net, 0), 2), 0) AS "Organic",
            COALESCE(ROUND(100 * t.referral / NULLIF(t.total_net, 0), 2), 0) AS "Referral",
@@ -965,7 +928,7 @@ AND o.test = FALSE
            COALESCE(ROUND(100 * t.social   / NULLIF(t.total_net, 0), 2), 0) AS "Social",
            COALESCE(ROUND(100 * t.direct   / NULLIF(t.total_net, 0), 2), 0) AS "Direct / Unknown"
     FROM totals t
-    ',
+    $$,
 NULL,
         'PLOT',
         60,
@@ -973,7 +936,6 @@ NULL,
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -1128,24 +1090,24 @@ VALUES (
 '019fffa2-0f80-7aec-b21a-cf83cf3fd204',
         'Unattributed Orders Trend',
         'Sales Channel Attribution/Attribution Health/PLOT/Unattributed Orders Trend',
-        '
+        $$
     WITH
     /*date_granularity_cte*/
     filtered_orders AS (
         SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket,
-(NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,source}''), '''') IS NULL
-            AND NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,medium}''), '''') IS NULL
-            AND NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,campaign}''), '''') IS NULL) AS missing_utm,
-               (o.customer_journey_summary #>> ''{lastVisit,referrerUrl}'' IS NULL) AS missing_referring_site,
+(NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,source}'), '') IS NULL
+            AND NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,medium}'), '') IS NULL
+            AND NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,campaign}'), '') IS NULL) AS missing_utm,
+               (o.customer_journey_summary #>> '{lastVisit,referrerUrl}' IS NULL) AS missing_referring_site,
                (o.attribution_displayname IS NULL
             AND o.order_app_id IS NULL
-            AND NULLIF(TRIM(o.source_name), '''') IS NULL) AS missing_channel
+            AND NULLIF(TRIM(o.source_name), '') IS NULL) AS missing_channel
 FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
           AND o.created_at >= dp.start_bucket
-          AND o.created_at <= :currentEndDate::date
+          AND o.created_at < dp.end_bucket + dp.step
     ),
     daily AS (
         SELECT f.bucket, COUNT(*) AS unattributed_orders
@@ -1155,17 +1117,17 @@ AND o.test = FALSE
     )
 SELECT
     CASE
-        WHEN dp.g = ''DAY'' THEN to_char(df.bucket, ''Mon DD'')
-        WHEN dp.g = ''WEEK'' THEN to_char(df.bucket, ''Mon DD'')
-        WHEN dp.g = ''MONTH'' THEN to_char(df.bucket, ''Mon YYYY'')
-        WHEN dp.g = ''QUARTER'' THEN ''Q'' || EXTRACT(
+        WHEN dp.g = 'DAY' THEN to_char(df.bucket, 'Mon DD')
+        WHEN dp.g = 'WEEK' THEN to_char(df.bucket, 'Mon DD')
+        WHEN dp.g = 'MONTH' THEN to_char(df.bucket, 'Mon YYYY')
+        WHEN dp.g = 'QUARTER' THEN 'Q' || EXTRACT(
             QUARTER
             FROM df.bucket
-        )::int || '' '' || EXTRACT(
+        )::int || ' ' || EXTRACT(
             YEAR
             FROM df.bucket
         )::int
-        WHEN dp.g = ''YEAR'' THEN to_char(df.bucket, ''YYYY'')
+        WHEN dp.g = 'YEAR' THEN to_char(df.bucket, 'YYYY')
     END AS period,
            df.bucket,
            COALESCE(d.unattributed_orders, 0) AS unattributed_orders
@@ -1173,7 +1135,7 @@ SELECT
     CROSS JOIN date_params dp
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
-    ',
+    $$,
 NULL,
         'PLOT',
         60,
@@ -1181,7 +1143,6 @@ NULL,
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
         "granularity":    { "source": "REQUEST_FILTER", "filterKey": "granularity" }
@@ -1391,14 +1352,14 @@ VALUES (
 '019fffa2-0f80-763a-b2bb-f4448a711028',
         'Channel Fulfillment Backlog',
         'Sales Channel Attribution/Operations & Fulfillment/PLOT/Channel Fulfillment Backlog',
-        '
+        $$
     WITH filtered_orders AS (
         SELECT o.id,
 COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    ''Unattributed''
+    'Unattributed'
 ) AS channel
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
@@ -1420,9 +1381,8 @@ FROM public.fact_order_line_items li
     WHERE ou.unfulfilled_value > 0
     GROUP BY f.channel
     ORDER BY SUM(ou.unfulfilled_value) DESC, f.channel ASC
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
 NULL,
         'PLOT',
         60,
@@ -1430,9 +1390,6 @@ NULL,
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -1481,8 +1438,7 @@ NULL,
     FROM filtered_orders f
     GROUP BY f.country
     ORDER BY SUM(f.net_sales) DESC, f.country ASC
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
+    LIMIT 20
     $$,
 NULL,
         'PLOT',
@@ -1491,9 +1447,6 @@ NULL,
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
@@ -1541,9 +1494,9 @@ FROM public.fact_order_line_items li
            COUNT(*) AS unfulfilled_orders,
            ROUND(SUM(b.unfulfilled_value), 2) AS unfulfilled_value,
            COUNT(*) FILTER (
-               WHERE UPPER(b.fulfillment_status) = 'UNFULFILLED') AS fully_unfulfilled,
+               WHERE b.fulfillment_status = 'UNFULFILLED') AS fully_unfulfilled,
            COUNT(*) FILTER (
-               WHERE UPPER(b.fulfillment_status) = 'PARTIALLY_FULFILLED') AS partially_fulfilled,
+               WHERE b.fulfillment_status = 'PARTIALLY_FULFILLED') AS partially_fulfilled,
            ROUND(AVG(b.aging_days), 1) AS avg_aging_days,
            MAX(b.aging_days) AS max_aging_days,
            COUNT(*) OVER() AS total_records
@@ -1560,7 +1513,6 @@ NULL,
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },

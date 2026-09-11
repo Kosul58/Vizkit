@@ -326,7 +326,7 @@ VALUES (
     '019fff82-e31e-7fec-a16b-dd174e41fe83',
     'Low Stock Revenue Risk by SKU',
     'Product & Inventory Health/Replenishment & Stock Risk/PLOT/Low Stock Revenue Risk by SKU',
-    '
+    $$
     WITH sales_window AS (
         SELECT MIN(o.created_at::date) AS min_day,
                MAX(o.created_at::date) AS max_day
@@ -372,9 +372,7 @@ VALUES (
         GROUP BY li.product_variant_id
     ),
     risk AS (
-        SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32) || CHR(45) || CHR(32), si.product_title, si.sku)) > 0
-                    THEN CONCAT_WS(CHR(32) || CHR(45) || CHR(32), si.product_title, si.sku)
-                    ELSE si.variant_id::text END AS name,
+        SELECT COALESCE(si.product_title, si.sku) AS name,
                ROUND(
                    (COALESCE(s.units_sold, 0)::numeric / per.days_in_period)
                      * GREATEST(14 - si.available_quantity
@@ -393,9 +391,8 @@ VALUES (
     FROM risk r
     WHERE r.revenue_at_risk > 0
     ORDER BY r.revenue_at_risk DESC
-    LIMIT COALESCE(:limit, 10)
-    OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -403,9 +400,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
-        "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
-        "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"   }
       },
@@ -416,7 +410,7 @@ VALUES (
     '019fff82-e31e-7c77-934f-8e50724277f0',
     'Stock Coverage Days by SKU',
     'Product & Inventory Health/Replenishment & Stock Risk/PLOT/Stock Coverage Days by SKU',
-    '
+    $$
     WITH sales_window AS (
         SELECT MIN(o.created_at::date) AS min_day,
                MAX(o.created_at::date) AS max_day
@@ -458,18 +452,15 @@ VALUES (
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
     )
-    SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32) || CHR(45) || CHR(32), si.product_title, si.sku)) > 0
-                THEN CONCAT_WS(CHR(32) || CHR(45) || CHR(32), si.product_title, si.sku)
-                ELSE si.variant_id::text END AS name,
+    SELECT COALESCE(si.product_title, si.sku) AS name,
            ROUND(si.available_quantity / NULLIF(s.units_sold::numeric / per.days_in_period, 0), 1) AS stock_coverage_days
     FROM sku_inventory si
     CROSS JOIN period per
     JOIN sales s ON s.product_variant_id = si.variant_id
     WHERE s.units_sold > 0
     ORDER BY stock_coverage_days ASC
-    LIMIT COALESCE(:limit, 10)
-    OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -477,9 +468,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
-        "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
-        "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"   }
       },
@@ -744,7 +732,7 @@ VALUES (
     '019fff82-e31e-78ef-874d-087573437963',
     'Inventory Value by Product',
     'Product & Inventory Health/Inventory Value & Capital/PLOT/Inventory Value by Product',
-    '
+    $$
     WITH sku_inventory AS (
         SELECT pv.product_id,
                p.title AS product_title,
@@ -763,9 +751,8 @@ VALUES (
     FROM sku_inventory
     WHERE inventory_value > 0
     ORDER BY inventory_value DESC
-    LIMIT COALESCE(:limit, 10)
-    OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -773,9 +760,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
-        "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
-        "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"   }
       },
@@ -786,7 +770,7 @@ VALUES (
     '019fff82-e31e-742f-b74d-ffe5fc4f9a83',
     'Dead Stock by Product',
     'Product & Inventory Health/Inventory Value & Capital/PLOT/Dead Stock by Product',
-    '
+    $$
     WITH sku_inventory AS (
         SELECT pv.id AS variant_id,
                pv.product_id,
@@ -820,9 +804,8 @@ VALUES (
     GROUP BY si.product_title
     HAVING SUM(si.inventory_value) > 0
     ORDER BY dead_stock_value DESC
-    LIMIT COALESCE(:limit, 10)
-    OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -830,9 +813,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
-        "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
-        "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"   }
       },
@@ -966,7 +946,7 @@ VALUES (
     '019fff82-e31e-7ab0-8fde-619cbe1d3f63',
     'Unfulfilled Quantity by Product',
     'Product & Inventory Health/Fulfillment & Demand/PLOT/Unfulfilled Quantity by Product',
-    '
+    $$
     WITH filtered_line_items AS (
         SELECT li.product_variant_id,
                li.unfulfilled_quantity
@@ -986,9 +966,8 @@ VALUES (
     GROUP BY COALESCE(p.title, pv.sku, pv.id::text)
     HAVING SUM(COALESCE(fli.unfulfilled_quantity, 0)) > 0
     ORDER BY unfulfilled_quantity DESC
-    LIMIT COALESCE(:limit, 10)
-    OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -996,9 +975,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
-        "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
-        "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"   }
       },
@@ -1089,8 +1065,8 @@ VALUES (
     '019fff82-e31e-741a-9b77-036f24795d55',
     'Inventory by Location',
     'Product & Inventory Health/Locations & Operations/PLOT/Inventory by Location',
-    '
-    SELECT COALESCE(loc.name, ''Unknown'') AS name,
+    $$
+    SELECT COALESCE(loc.name, 'Unknown') AS name,
            COALESCE(SUM(il.available_quantity), 0) AS available_quantity,
            COALESCE(SUM(il.committed_quantity), 0) AS committed_quantity,
            COALESCE(SUM(il.reserved_quantity), 0) AS reserved_quantity
@@ -1100,9 +1076,8 @@ VALUES (
       AND il.is_active = TRUE
     GROUP BY loc.id, loc.name
     ORDER BY available_quantity DESC
-    LIMIT COALESCE(:limit, 10)
-    OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1110,9 +1085,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
-        "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
-        "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"   }
       },
@@ -1123,8 +1095,8 @@ VALUES (
     '019fff82-e31e-7b01-8e90-b7e72ea47d3d',
     'Damaged / QC / Safety Stock Mix',
     'Product & Inventory Health/Locations & Operations/PLOT/Damaged / QC / Safety Stock Mix',
-    '
-    SELECT COALESCE(loc.name, ''Unknown'') AS name,
+    $$
+    SELECT COALESCE(loc.name, 'Unknown') AS name,
            COALESCE(SUM(il.damaged_quantity), 0) AS damaged_quantity,
            COALESCE(SUM(il.quality_control_quantity), 0) AS quality_control_quantity,
            COALESCE(SUM(il.safety_stock_quantity), 0) AS safety_stock_quantity
@@ -1136,9 +1108,8 @@ VALUES (
     ORDER BY (COALESCE(SUM(il.damaged_quantity), 0)
               + COALESCE(SUM(il.quality_control_quantity), 0)
               + COALESCE(SUM(il.safety_stock_quantity), 0)) DESC
-    LIMIT COALESCE(:limit, 10)
-    OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1146,9 +1117,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
-        "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
-        "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"   }
       },
@@ -1201,8 +1169,8 @@ VALUES (
     '019fff82-e31e-7444-b17e-549809be2b6b',
     'Inventory Value by Vendor',
     'Product & Inventory Health/Vendor & Collection Analysis/PLOT/Inventory Value by Vendor',
-    '
-    SELECT COALESCE(p.vendor, ''Unknown'') AS name,
+    $$
+    SELECT COALESCE(p.vendor, 'Unknown') AS name,
            ROUND(COALESCE(SUM(COALESCE(il.on_hand_quantity, 0) * COALESCE(ii.unit_cost, 0)), 0), 2) AS inventory_value
     FROM public.dim_inventory_levels il
     JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
@@ -1214,9 +1182,8 @@ VALUES (
     GROUP BY p.vendor
     HAVING SUM(COALESCE(il.on_hand_quantity, 0) * COALESCE(ii.unit_cost, 0)) > 0
     ORDER BY inventory_value DESC
-    LIMIT COALESCE(:limit, 10)
-    OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1224,9 +1191,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
-        "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
-        "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"   }
       },
@@ -1237,8 +1201,8 @@ VALUES (
     '019fff82-e31e-752c-8bf6-3c3f866777c0',
     'Inventory Value by Collection',
     'Product & Inventory Health/Vendor & Collection Analysis/PLOT/Inventory Value by Collection',
-    '
-    SELECT COALESCE(col.title, ''Uncategorized'') AS name,
+    $$
+    SELECT COALESCE(col.title, 'Uncategorized') AS name,
            ROUND(COALESCE(SUM(COALESCE(il.on_hand_quantity, 0) * COALESCE(ii.unit_cost, 0)), 0), 2) AS inventory_value
     FROM public.dim_inventory_levels il
     JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
@@ -1252,9 +1216,8 @@ VALUES (
     GROUP BY col.id, col.title
     HAVING SUM(COALESCE(il.on_hand_quantity, 0) * COALESCE(ii.unit_cost, 0)) > 0
     ORDER BY inventory_value DESC
-    LIMIT COALESCE(:limit, 10)
-    OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1262,9 +1225,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
-        "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
-        "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"   }
       },
@@ -1275,8 +1235,8 @@ VALUES (
     '019fff82-e31e-7603-b866-cadd19d65482',
     'Origin Country Stock Mix',
     'Product & Inventory Health/Vendor & Collection Analysis/PLOT/Origin Country Stock Mix',
-    '
-    SELECT COALESCE(ii.country_code_of_origin, ''Unknown'') AS name,
+    $$
+    SELECT COALESCE(ii.country_code_of_origin, 'Unknown') AS name,
            COALESCE(SUM(COALESCE(il.on_hand_quantity, 0)), 0) AS units,
            ROUND(COALESCE(SUM(COALESCE(il.on_hand_quantity, 0) * COALESCE(ii.unit_cost, 0)), 0), 2) AS inventory_value
     FROM public.dim_inventory_levels il
@@ -1287,9 +1247,8 @@ VALUES (
     GROUP BY ii.country_code_of_origin
     HAVING SUM(COALESCE(il.on_hand_quantity, 0)) > 0
     ORDER BY inventory_value DESC
-    LIMIT COALESCE(:limit, 10)
-    OFFSET COALESCE(:offset, 0)
-    ',
+    LIMIT 20
+    $$,
     NULL,
     'PLOT',
     60,
@@ -1297,9 +1256,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
-        "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
-        "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"   }
       },
