@@ -260,7 +260,7 @@ OFFSET COALESCE(:offset, 0)
         FROM filtered_lines f
         JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
         LEFT JOIN public.dim_products p ON p.id = pv.product_id
-        LEFT JOIN public.dim_taxonomy_categories tc ON tc.id = p.category_id
+        LEFT JOIN public.dim_taxonomy_categories tc ON tc.id = p.category_id AND tc.seller_id = p.seller_id
     )
     SELECT  pl.product_id AS product_id,
            pl.product AS product,
@@ -274,7 +274,7 @@ OFFSET COALESCE(:offset, 0)
            ROUND(100 * (SUM(pl.gross_sales) - SUM(pl.net_sales)) / NULLIF(SUM(pl.gross_sales), 0), 2) AS discount_rate,
            COUNT(*) OVER() AS total_records
     FROM product_lines pl
-    GROUP BY pl.id, pl.product, pl.vendor, pl.product_type, pl.category
+    GROUP BY pl.product_id, pl.product, pl.vendor, pl.product_type, pl.category
     ORDER BY net_sales DESC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
@@ -697,7 +697,7 @@ VALUES (
                WHEN dp.g = 'YEAR'    THEN to_char(df.bucket, 'YYYY')
            END AS period,
            df.bucket,
-           d.average_unit_price AS average_unit_price
+           COALESCE(d.average_unit_price, 0) AS average_unit_price
     FROM date_filler df
     CROSS JOIN date_params dp
     LEFT JOIN daily d ON d.bucket = df.bucket
@@ -737,7 +737,7 @@ VALUES (
     FROM filtered_lines f
     JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
     LEFT JOIN public.dim_products p ON p.id = pv.product_id
-    LEFT JOIN public.dim_taxonomy_categories tc ON tc.id = p.category_id
+    LEFT JOIN public.dim_taxonomy_categories tc ON tc.id = p.category_id AND tc.seller_id = p.seller_id
     GROUP BY COALESCE(tc.name, p.product_type, pv.sku)
     HAVING SUM(f.net_sales) > 0
     ORDER BY net_sales DESC

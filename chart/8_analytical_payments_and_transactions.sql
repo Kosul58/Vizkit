@@ -229,70 +229,43 @@ VALUES (
     'Payment Method Report',
     'Payments & Transactions/Payment Overview/TABLE/Payment Method Report',
     $$
-    WITH scoped_orders AS (
-        SELECT o.id
-        FROM public.fact_order_headers o
+    WITH scoped_txn AS (
+        SELECT COALESCE(t.gateway, 'Unattributed') AS gateway,
+               t.kind AS kind,
+               t.status AS status,
+               COALESCE(t.amount, 0) AS amount
+        FROM public.fact_order_transactions t
+        JOIN public.fact_order_headers o ON o.id = t.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
+          AND t.test = FALSE
+          AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
+          AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     ),
-    scoped_tender AS (
-        SELECT tt.order_id,
-               INITCAP(REPLACE(COALESCE(tt.payment_method, 'Unattributed'),
-                               CHR(95), CHR(32))) AS method,
-               COALESCE(tt.amount, 0) AS amount
-        FROM public.dim_tender_transactions tt
-        JOIN scoped_orders so ON so.id = tt.order_id
-        WHERE tt.test = FALSE
-          AND (:currentStartDate IS NULL OR tt.processed_at::date >= :currentStartDate::date)
-          AND (:currentEndDate IS NULL OR tt.processed_at::date <= :currentEndDate::date)
-    ),
-    method_totals AS (
-        SELECT s.method,
-               COUNT(*) AS transaction_count,
-               SUM(s.amount) AS amount
-        FROM scoped_tender s
-        GROUP BY s.method
-    ),
-    order_method AS (
-        SELECT s.order_id, s.method, SUM(s.amount) AS amount
-        FROM scoped_tender s
-        GROUP BY s.order_id, s.method
-    ),
-    primary_method AS (
-        SELECT DISTINCT ON (om.order_id) om.order_id, om.method
-        FROM order_method om
-        ORDER BY om.order_id, om.amount DESC, om.method ASC
-    ),
-    order_txn AS (
-        SELECT t.order_id,
-               COALESCE(SUM(COALESCE(t.amount, 0)) FILTER (
-                   WHERE UPPER(t.kind) = 'REFUND'
-                     AND UPPER(t.status) = 'SUCCESS'), 0) AS refunded,
-               COUNT(*) FILTER (WHERE UPPER(t.status) IN ('FAILURE', 'ERROR')) AS failures
-        FROM public.fact_order_transactions t
-        JOIN scoped_orders so ON so.id = t.order_id
-        WHERE t.test = FALSE
-        GROUP BY t.order_id
-    ),
-    method_txn AS (
-        SELECT pm.method,
-               COALESCE(SUM(ot.refunded), 0) AS refund_amount,
-               COALESCE(SUM(ot.failures), 0) AS failure_count
-        FROM primary_method pm
-        LEFT JOIN order_txn ot ON ot.order_id = pm.order_id
-        GROUP BY pm.method
+    gateway_totals AS (
+        SELECT s.gateway,
+               COUNT(*) FILTER (
+                   WHERE s.kind IN ('SALE', 'CAPTURE')
+                     AND s.status = 'SUCCESS') AS transaction_count,
+               COALESCE(SUM(s.amount) FILTER (
+                   WHERE s.kind IN ('SALE', 'CAPTURE')
+                     AND s.status = 'SUCCESS'), 0) AS amount,
+               COALESCE(SUM(s.amount) FILTER (
+                   WHERE s.kind = 'REFUND'
+                     AND s.status = 'SUCCESS'), 0) AS refund_amount,
+               COUNT(*) FILTER (WHERE s.status IN ('FAILURE', 'ERROR')) AS failure_count
+        FROM scoped_txn s
+        GROUP BY s.gateway
     )
-    SELECT mt.method AS payment_method,
-           mt.transaction_count AS transaction_count,
-           ROUND(mt.amount, 2) AS amount,
-           ROUND(100 * mt.amount / NULLIF(SUM(mt.amount) OVER (), 0), 2) AS share,
-           ROUND(COALESCE(mx.refund_amount, 0), 2) AS refund_amount,
-           COALESCE(mx.failure_count, 0) AS failure_count,
+    SELECT gt.gateway AS payment_method,
+           gt.transaction_count AS transaction_count,
+           ROUND(gt.amount, 2) AS amount,
+           ROUND(100 * gt.amount / NULLIF(SUM(gt.amount) OVER (), 0), 2) AS share,
+           ROUND(gt.refund_amount, 2) AS refund_amount,
+           gt.failure_count AS failure_count,
            COUNT(*) OVER() AS total_records
-    FROM method_totals mt
-    LEFT JOIN method_txn mx ON mx.method = mt.method
-    ORDER BY mt.amount DESC, mt.method ASC
+    FROM gateway_totals gt
+    ORDER BY gt.amount DESC, gt.gateway ASC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
@@ -1173,7 +1146,7 @@ VALUES (
     $$
     SELECT tt.transaction_credit_card_company AS card_brand,
            ROUND(SUM(COALESCE(tt.amount, 0)), 2) AS "Card Payment Amount"
-    FROM public.dim_tender_transactions tt
+    FROM public.fact_tender_transactions tt
     JOIN public.fact_order_headers o ON o.id = tt.order_id
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
@@ -1363,7 +1336,7 @@ VALUES (
         SELECT tt.order_id,
                tt.payment_method AS method,
                SUM(COALESCE(tt.amount, 0)) AS amount
-        FROM public.dim_tender_transactions tt
+        FROM public.fact_tender_transactions tt
         JOIN scoped_orders so ON so.id = tt.order_id
         WHERE tt.test = FALSE
         GROUP BY tt.order_id,
@@ -1435,7 +1408,7 @@ VALUES (
         SELECT tt.order_id,
                tt.transaction_credit_card_company AS card_brand,
                COALESCE(tt.amount, 0) AS amount
-        FROM public.dim_tender_transactions tt
+        FROM public.fact_tender_transactions tt
         JOIN scoped_orders so ON so.id = tt.order_id
         WHERE tt.test = FALSE
           AND tt.transaction_credit_card_company IS NOT NULL

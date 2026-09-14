@@ -66,7 +66,7 @@ VALUES (
         SELECT pv.id AS variant_id,
                COALESCE(pv.sku, ii.sku) AS sku,
                p.title AS product_title,
-               SUM(COALESCE(il.available_quantity, 0)) AS available_quantity
+               SUM(GREATEST(COALESCE(il.available_quantity, 0), 0)) AS available_quantity
         FROM public.dim_inventory_items ii
         JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
         JOIN public.dim_products p ON p.id = pv.product_id
@@ -92,14 +92,14 @@ VALUES (
                 THEN CONCAT_WS(CHR(32) || CHR(45) || CHR(32), si.product_title, si.sku)
                 ELSE si.variant_id::text END AS name,
            ROUND(
-               100.0 * COALESCE(s.units_sold, 0)
-                 / NULLIF(si.available_quantity + COALESCE(s.units_sold, 0), 0),
+               100.0 * s.units_sold
+                 / NULLIF(si.available_quantity + s.units_sold, 0),
                2
            ) AS sell_through_rate
     FROM sku_inventory si
-    LEFT JOIN sales s ON s.product_variant_id = si.variant_id
-    WHERE COALESCE(s.units_sold, 0) > 0
-    ORDER BY sell_through_rate DESC
+    JOIN sales s ON s.product_variant_id = si.variant_id
+    WHERE s.units_sold > 0
+    ORDER BY sell_through_rate DESC, s.units_sold DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
@@ -110,7 +110,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
         "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
         "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -264,7 +263,7 @@ VALUES (
                COALESCE(pv.sku, ii.sku) AS sku,
                p.id AS product_id,
                p.title AS product,
-               SUM(COALESCE(il.available_quantity, 0)) AS available_quantity
+               SUM(GREATEST(COALESCE(il.available_quantity, 0), 0)) AS available_quantity
         FROM public.dim_inventory_items ii
         JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
         JOIN public.dim_products p ON p.id = pv.product_id
@@ -290,9 +289,9 @@ VALUES (
            si.product AS product,
            s.units_sold AS units_sold,
            ROUND(100.0 * s.units_sold
-                 / NULLIF(COALESCE(si.available_quantity, 0) + s.units_sold, 0), 2) AS sell_through_rate,
+                 / NULLIF(si.available_quantity + s.units_sold, 0), 2) AS sell_through_rate,
            COALESCE(si.available_quantity, 0) AS available_stock,
-           ROUND(GREATEST(si.available_quantity, 0)
+           ROUND(si.available_quantity
                  / NULLIF(s.units_sold::numeric / per.days_in_period, 0), 1) AS stock_coverage_days,
            COUNT(*) OVER() AS total_records
     FROM sales s
@@ -1271,7 +1270,7 @@ VALUES (
         SELECT pv.id AS variant_id,
                p.vendor,
                SUM(COALESCE(il.on_hand_quantity, 0)) AS on_hand_quantity,
-               SUM(COALESCE(il.available_quantity, 0)) AS available_quantity,
+               SUM(GREATEST(COALESCE(il.available_quantity, 0), 0)) AS available_quantity,
                SUM(COALESCE(il.on_hand_quantity, 0) * COALESCE(ii.unit_cost, 0)) AS inventory_value
         FROM public.dim_inventory_items ii
         JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
@@ -1311,11 +1310,10 @@ VALUES (
     NULL,
     'TABLE',
     60,
-    'Comprehensive scorecard table per vendor listing SKUs, inventory units, inventory value, sell-through %, and dead stock value.',
+    'Comprehensive scorecard table per vendor listing SKUs, inventory units, inventory value, pooled sell-through %, and dead stock value.',
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
         "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
         "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },

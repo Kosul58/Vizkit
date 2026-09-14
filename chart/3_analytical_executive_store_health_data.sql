@@ -61,9 +61,9 @@ VALUES (
                WHEN dp.g = 'YEAR'    THEN to_char(df.bucket, 'YYYY')
            END AS period,
            df.bucket,
-           COALESCE(g.gross_sales, 0) AS gross_sales,
-           COALESCE(n.net_sales, 0) AS net_sales,
-           COALESCE(r.refunds, 0) AS refunds
+           ROUND(COALESCE(g.gross_sales, 0), 2) AS gross_sales,
+           ROUND(COALESCE(n.net_sales, 0), 2) AS net_sales,
+           ROUND(COALESCE(r.refunds, 0), 2) AS refunds
     FROM date_filler df
     CROSS JOIN date_params dp
     LEFT JOIN daily_gross g ON g.bucket = df.bucket
@@ -326,7 +326,7 @@ VALUES (
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
+          AND o.financialstatus != 'VOIDED'
           AND r.created_at >= dp.start_bucket
           AND r.created_at < dp.end_bucket + dp.step
     ),

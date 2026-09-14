@@ -115,7 +115,7 @@ VALUES (
         SELECT INITCAP(REPLACE(COALESCE(tt.payment_method, 'Unattributed'),
                                CHR(95), CHR(32))) AS method,
                COALESCE(tt.amount, 0) AS amount
-        FROM public.dim_tender_transactions tt
+        FROM public.fact_tender_transactions tt
         JOIN public.fact_order_headers o ON o.id = tt.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -608,7 +608,7 @@ VALUES (
     WITH scoped_tender AS (
         SELECT INITCAP(REPLACE(tt.transaction_credit_card_company, CHR(95), CHR(32))) AS card_brand,
                COALESCE(tt.amount, 0) AS amount
-        FROM public.dim_tender_transactions tt
+        FROM public.fact_tender_transactions tt
         JOIN public.fact_order_headers o ON o.id = tt.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE

@@ -799,19 +799,14 @@ VALUES (
     first_order AS (
         SELECT customer_id, MIN(day) AS first_day FROM ranked GROUP BY customer_id
     ),
-    cohort_params AS (
-        SELECT 90 AS observation_days  
-    ),
     cohort_members AS (
         SELECT f.customer_id,
                f.first_day,
                make_date(EXTRACT(YEAR FROM f.first_day)::int,
                          EXTRACT(MONTH FROM f.first_day)::int, 1) AS cohort_month
         FROM first_order f
-        CROSS JOIN cohort_params cp
         WHERE (:currentStartDate IS NULL OR f.first_day >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR f.first_day <= :currentEndDate::date)
-          AND f.first_day <= CURRENT_DATE - cp.observation_days
     ),
     cohort_size AS (
         SELECT cohort_month, COUNT(*) AS active_customers
@@ -825,9 +820,7 @@ VALUES (
                COUNT(DISTINCT r.customer_id) AS retained_customers
         FROM ranked r
         JOIN cohort_members m ON m.customer_id = r.customer_id
-        CROSS JOIN cohort_params cp
         WHERE r.order_rank > 1
-          AND r.day <= m.first_day + cp.observation_days
         GROUP BY m.cohort_month
     )
     SELECT EXTRACT(YEAR FROM s.cohort_month)::text || CHR(45)

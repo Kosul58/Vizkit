@@ -26,7 +26,7 @@ This document contains the table schema, materialization strategies, indexes, an
   - [14. dim_product_variants](#14-dim_product_variantssql)
   - [15. dim_products](#15-dim_productssql)
   - [16. dim_taxonomy_categories](#16-dim_taxonomy_categoriessql)
-  - [17. dim_tender_transactions](#17-dim_tender_transactionssql)
+  - [17. fact_tender_transactions](#17-fact_tender_transactionssql)
 - [Facts](#part-2-fact-models-modelsfacts)
   - [1. fact_order_headers](#1-fact_order_headerssql)
   - [2. fact_order_line_items](#2-fact_order_line_itemssql)
@@ -403,9 +403,9 @@ This document contains the table schema, materialization strategies, indexes, an
 
 ---
 
-### 17. `dim_tender_transactions.sql`
+### 17. `fact_tender_transactions.sql`
 
-- **Path**: `models/dimensions/dim_tender_transactions.sql`
+- **Path**: `models/dimensions/fact_tender_transactions.sql`
 - **Materialization**: `incremental` (`unique_key: ['id']`)
 - **Source**: `{{ env_var('DBT_SOURCE_SCHEMA') }}.raw_tender_transactions`
 - **Indexes**: `id`, `(seller_id, id)`, `loaded_at desc`
