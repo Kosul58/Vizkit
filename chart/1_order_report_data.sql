@@ -391,10 +391,11 @@ VALUES (
             o.financialStatus AS financial_status,
             o.fulfillmentStatus AS fulfillment_status,
             CASE
-                WHEN =o.financialStatus = 'VOIDED' THEN 0
-                ELSE COALESCE(o.original_total_price, 0)
+                WHEN o.financialStatus = 'VOIDED' THEN 0
+                ELSE COALESCE(o.subtotal_price, 0)
+                 + COALESCE(o.total_discounts_amount, 0)
             END AS gross_sales,
-            COALESCE(o.current_total_discounts, 0) AS discounts,
+            COALESCE(o.total_discounts_amount, 0) AS discounts,
             COALESCE(o.current_total_price, 0)
                 - COALESCE(o.current_total_tax, 0)
                 - COALESCE(o.current_shipping_price, 0) AS net_sales,
