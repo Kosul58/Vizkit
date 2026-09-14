@@ -285,82 +285,185 @@ NULL,
       },
       "excludeExtraParams": true
     }'
-),
-    (
-'019fffa2-0f80-7a6c-a7fa-d1b9b8e71fd8',
-        'Channel Order Detail Report',
-        'Sales Channel Attribution/Channel Performance/TABLE/Channel Order Detail Report',
-        '
+),(
+    '019fffa2-0f80-7a6c-a7fa-d1b9b8e71fd8',
+    'Channel Order Detail Report',
+    'Sales Channel Attribution/Channel Performance/TABLE/Channel Order Detail Report',
+    '
     WITH filtered_orders AS (
-SELECT o.id,
-               o.created_at,
-               o.customer_id,
-               o.source_name,
-o.financialStatus AS financial_status,
-COALESCE(
-    o.attribution_displayname,
-    o.order_app_name,
-    o.source_name,
-    ''Unattributed''
-) AS channel,
-o.order_app_name AS app_name,
-               COALESCE(o.total_price, o.current_total_price, 0) AS order_total,
-               COALESCE(o.total_discounts_amount, 0) AS discounts,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
-FROM public.fact_order_headers o
+        SELECT
+            o.id,
+            o.created_at,
+            o.customer_id,
+            o.source_name,
+            o.financialStatus AS financial_status,
+            COALESCE(
+                o.attribution_displayname,
+                o.order_app_name,
+                o.source_name,
+                ''Unattributed''
+            ) AS channel,
+            o.order_app_name AS app_name,
+            COALESCE(
+                o.total_price,
+                o.current_total_price,
+                0
+            ) AS order_total,
+            COALESCE(
+                o.total_discounts_amount,
+                0
+            ) AS discounts,
+            COALESCE(
+                o.current_total_price,
+                0
+            )
+            - COALESCE(o.current_total_tax, 0)
+            - COALESCE(o.current_shipping_price, 0) AS net_sales
+        FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
-          AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
-          AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.test = FALSE
+          AND (
+              :currentStartDate IS NULL
+              OR o.created_at::date >= :currentStartDate::date
+          )
+          AND (
+              :currentEndDate IS NULL
+              OR o.created_at::date <= :currentEndDate::date
+          )
+          /*financial_status_filter*/
     ),
+
     order_refunds AS (
-        SELECT f.id,
-               SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
+        SELECT
+            f.id,
+            SUM(
+                COALESCE(r.total_refunded_amount, 0)
+            ) AS refunded
         FROM filtered_orders f
-LEFT JOIN public.fact_order_refunds r ON r.order_id = f.id
+        LEFT JOIN public.fact_order_refunds r
+            ON r.order_id = f.id
         GROUP BY f.id
     )
-SELECT f.id AS order_id,
-           f.created_at::date::text AS order_date,
-           CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
-                THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
-                ELSE COALESCE(c.email, ''Guest'') END AS customer,
-           f.channel AS channel,
-           COALESCE(f.source_name, ''Unknown'') AS source,
-           COALESCE(f.app_name, ''Unknown'') AS app,
-           ROUND(f.net_sales, 2) AS net_sales,
-           ROUND(f.discounts, 2) AS discounts,
-           CASE WHEN COALESCE(orf.refunded, 0) <= 0            THEN ''None''
-                WHEN orf.refunded >= f.order_total - 0.01      THEN ''Full''
-                ELSE ''Partial'' END AS refund_status,
-           f.financial_status AS financial_status,
-           COUNT(*) OVER() AS total_records
+
+    SELECT
+        f.id AS order_id,
+        f.created_at::date::text AS order_date,
+        CASE
+            WHEN LENGTH(
+                CONCAT_WS(
+                    CHR(32),
+                    c.first_name,
+                    c.last_name
+                )
+            ) > 0
+                THEN CONCAT_WS(
+                    CHR(32),
+                    c.first_name,
+                    c.last_name
+                )
+            ELSE COALESCE(c.email, ''Guest'')
+        END AS customer,
+        f.channel AS channel,
+        COALESCE(f.source_name, ''Unknown'') AS source,
+        COALESCE(f.app_name, ''Unknown'') AS app,
+        ROUND(
+            f.net_sales,
+            2
+        ) AS net_sales,
+        ROUND(
+            f.discounts,
+            2
+        ) AS discounts,
+        CASE
+            WHEN COALESCE(orf.refunded, 0) <= 0
+                THEN ''None''
+            WHEN orf.refunded >= f.order_total - 0.01
+                THEN ''Full''
+            ELSE ''Partial''
+        END AS refund_status,
+        f.financial_status AS financial_status,
+        COUNT(*) OVER() AS total_records
     FROM filtered_orders f
-    LEFT JOIN order_refunds orf ON orf.id = f.id
-LEFT JOIN public.dim_customers c ON c.id = f.customer_id
-    ORDER BY f.created_at DESC, f.id
+    LEFT JOIN order_refunds orf
+        ON orf.id = f.id
+    LEFT JOIN public.dim_customers c
+        ON c.id = f.customer_id
+    ORDER BY
+        f.created_at DESC,
+        f.id
     LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
+    OFFSET COALESCE(:offset, 0)
     ',
-NULL,
-        'TABLE',
-        60,
-        'Detailed audit log table of individual channel orders listing date, customer, channel, source, app, sales, discounts, refund status, and financial status.',
-        '{
+    '{
+      "filters": [
+        {
+          "id": "financialStatus",
+          "label": "Financial Status",
+          "options": [
+            "ALL",
+            "AUTHORIZED",
+            "EXPIRED",
+            "PAID",
+            "PARTIALLY_PAID",
+            "PARTIALLY_REFUNDED",
+            "PENDING",
+            "REFUNDED",
+            "VOIDED"
+          ],
+          "controlType": "MULTI_SELECT",
+          "defaultValue": "ALL"
+        }
+      ]
+    }',
+    'TABLE',
+    60,
+    'Detailed audit log table of individual channel orders listing date, customer, channel, source, app, sales, discounts, refund status, and financial status.',
+    '{
       "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
+        "shopId": {
+          "source": "AUTH_CONTEXT",
+          "contextKey": "shopGid"
+        },
+        "userId": {
+          "source": "AUTH_CONTEXT",
+          "contextKey": "user_id"
+        },
+        "limit": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "limit"
+        },
+        "offset": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "offset"
+        },
+        "currentStartDate": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "startDate"
+        },
+        "currentEndDate": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "endDate"
+        },
+        "financialStatus": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "financialStatus",
+          "type": "ARRAY"
+        }
       },
-      "excludeExtraParams": true
+      "excludeExtraParams": true,
+      "conditionalSegments": [
+        {
+          "provider": "ORDER_STATUS_FILTER",
+          "condition": "hasFilter:financialStatus",
+          "placeholder": "/*financial_status_filter*/",
+          "args": {
+            "statusColumn": "o.financialStatus",
+            "statusParam": "financialStatus"
+          }
+        }
+      ]
     }'
 );
-
 --changeset saugat:RW-46-2
 --comment seed Channel Quality & Profitability tab
 
@@ -1473,6 +1576,7 @@ FROM public.fact_order_headers o
 AND o.test = FALSE
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+            /*fulfillment_status_filter*/
     ),
     order_unfulfilled AS (
         SELECT li.order_id,

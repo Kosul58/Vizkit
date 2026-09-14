@@ -11,90 +11,55 @@ INSERT INTO
         configuration
     )
 VALUES (
-'019fff82-e31d-769a-bc42-f99a7173de6a',
-    'Orders Detail Report',
-    'Order Reports/Sales & Revenue/TABLE/Orders Detail Report',
+    '019fff82-e31b-786f-9d94-810596bff3e8',
+    'Unfulfilled Line Items Report',
+    'Order Line Item Analytics/Fulfillment & Backlog/TABLE/Unfulfilled Line Items Report',
     '
-    WITH filtered_orders AS (
-        SELECT o.id,
-o.id AS order_id,
-               o.created_at,
-o.customer_id, o.attribution_displayname,
-o.source_name,
-o.financialStatus AS financial_status,
-o.fulfillmentStatus AS fulfillment_status,
-COALESCE(o.original_total_price, 0) AS gross_sales,
-COALESCE(o.total_discounts_amount, 0) AS discounts,
-COALESCE(o.current_total_price, 0) - COALESCE(o.current_total_tax, 0) - COALESCE(o.current_shipping_price, 0) AS net_sales,
-COALESCE(o.current_total_tax, 0) AS tax,
-COALESCE(o.current_shipping_price, 0) AS shipping,
-COALESCE(o.total_outstanding_amount, 0) AS outstanding_amount
-FROM public.fact_order_headers o
+    WITH filtered_lines AS (
+        SELECT li.id AS line_id,
+               li.product_variant_id,
+               o.id AS order_id,
+               o.fulfillmentstatus AS fulfillment_status,
+               li.quantity AS units,
+               COALESCE(li.unfulfilled_quantity, 0) AS unfulfilled_units,
+               COALESCE(li.unfulfilled_discounted_total_amount, 0) AS unfulfilled_value
+        FROM public.fact_order_line_items li
+        JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+          AND o.test = FALSE
+          AND COALESCE(li.unfulfilled_quantity, 0) > 0
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
-/*financial_status_filter*/
-/*fulfillment_status_filter*/
-)
+    )
     SELECT f.order_id,
-           f.created_at::date::text AS order_date,
-           CASE
-               WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
-               THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
-               ELSE COALESCE(c.email, ''Guest'')
-           END AS customer,
-           COALESCE(f.attribution_displayname, f.source_name, ''unknown'') AS channel,
-           f.source_name AS source,
-           f.financial_status,
-           f.fulfillment_status,
-ROUND(f.gross_sales, 2) AS gross_sales,
-ROUND(f.discounts, 2) AS discounts,
-ROUND(f.net_sales, 2) AS net_sales,
-ROUND(f.tax, 2) AS tax,
-ROUND(f.shipping, 2) AS shipping,
-ROUND(f.outstanding_amount, 2) AS outstanding_amount,
+           p.id AS product_id,
+           pv.sku AS sku,
+           p.title AS product,
+           f.units AS quantity,
+           f.unfulfilled_units AS unfulfilled_quantity,
+           ROUND(f.unfulfilled_value, 2) AS unfulfilled_value,
+           f.fulfillment_status AS fulfillment_status,
            COUNT(*) OVER() AS total_records
-FROM filtered_orders f
-    LEFT JOIN public.dim_customers c ON c.id = f.customer_id
-ORDER BY f.created_at DESC
+    FROM filtered_lines f
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id
+    ORDER BY f.unfulfilled_value DESC, f.line_id
     LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE( : offset , 0 )
+OFFSET COALESCE(:offset, 0)
     ',
-NULL, 'TABLE', 60,
-'Comprehensive tabular report of all order transactions including financial status, sales totals, taxes, and shipping.',
+    NULL,
+    'TABLE',
+    60,
+    'Granular tabular audit of individual unfulfilled line items per order.',
     '{
       "filterMappings": {
-"shopId":            { "source": "AUTH_CONTEXT",   "contextKey": "shopGid" },
-        "userId":            { "source": "AUTH_CONTEXT",   "contextKey": "user_id" },
-        "limit":             { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset":            { "source": "REQUEST_FILTER", "filterKey": "offset" },
-        "currentStartDate":  { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":    { "source": "REQUEST_FILTER", "filterKey": "endDate" },
-        "financialStatus":   { "source": "REQUEST_FILTER", "filterKey": "financialStatus", "type": "ARRAY" },
-        "fulfillmentStatus": { "source": "REQUEST_FILTER", "filterKey": "fulfillmentStatus", "type": "ARRAY" }
+        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
+        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
+        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
+        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
+        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
       },
-      "excludeExtraParams": true,
-      "conditionalSegments": [
-        {
-          "provider": "ORDER_STATUS_FILTER",
-          "condition": "hasFilter:financialStatus",
-          "placeholder": "/*financial_status_filter*/",
-          "args": {
-            "statusColumn": "o.financialStatus",
-            "statusParam": "financialStatus"
-          }
-        },
-{
-          "provider": "ORDER_STATUS_FILTER",
-          "condition": "hasFilter:fulfillmentStatus",
-          "placeholder": "/*fulfillment_status_filter*/",
-          "args": {
-            "statusColumn": "o.fulfillmentStatus",
-            "statusParam": "fulfillmentStatus"
-          }
-        }
-      ]
+      "excludeExtraParams": true
     }'
 );
 

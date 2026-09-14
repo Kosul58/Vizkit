@@ -213,66 +213,162 @@ VALUES (
           "args": { "startDateParam": "currentStartDate", "endDateParam": "currentEndDate", "granularityParam": "granularity" } }
       ]
     }'
-),
-    (
+),(
     '019fff82-e31b-75ee-96c8-10a77eeb0a92',
     'Refunded Orders Report',
     'Refunds & Reversals/Refund Overview/TABLE/Refunded Orders Report',
-    $$
+    '
     WITH scoped_refunds AS (
-        SELECT r.order_id,
-               COALESCE(r.total_refunded_amount, 0) AS amount
+        SELECT
+            r.order_id,
+            COALESCE(r.total_refunded_amount, 0) AS amount
         FROM public.fact_order_refunds r
-        JOIN public.fact_order_headers o ON o.id = r.order_id
+        JOIN public.fact_order_headers o
+            ON o.id = r.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND o.financialstatus != 'VOIDED'
-          AND (:currentStartDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
-          AND (:currentEndDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date)
+          AND o.financialstatus != ''VOIDED''
+          AND (
+              :currentStartDate IS NULL
+              OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date
+          )
+          AND (
+              :currentEndDate IS NULL
+              OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date
+          )
+          /*financial_status_filter*/
     ),
+
     refunded_orders AS (
-        SELECT s.order_id, SUM(s.amount) AS refunded_amount
+        SELECT
+            s.order_id,
+            SUM(s.amount) AS refunded_amount
         FROM scoped_refunds s
         GROUP BY s.order_id
     ),
+
     order_gross AS (
-        SELECT li.order_id,
-               SUM(COALESCE(li.original_total_amount, li.original_unit_price * li.quantity, 0)) AS gross_sales
+        SELECT
+            li.order_id,
+            SUM(
+                COALESCE(
+                    li.original_total_amount,
+                    li.original_unit_price * li.quantity,
+                    0
+                )
+            ) AS gross_sales
         FROM public.fact_order_line_items li
-        JOIN refunded_orders ro ON ro.order_id = li.order_id
+        JOIN refunded_orders ro
+            ON ro.order_id = li.order_id
         GROUP BY li.order_id
     )
-    SELECT o.id AS order_id,
-           o.created_at::date::text AS order_date,
-           o.financialStatus AS financial_status,
-           ROUND(COALESCE(g.gross_sales, 0), 2) AS gross_sales,
-           ROUND(COALESCE(o.current_total_price, 0)
-                   - COALESCE(o.current_total_tax, 0)
-                   - COALESCE(o.current_shipping_price, 0), 2) AS net_sales,
-           ROUND(ro.refunded_amount, 2) AS refunded_amount,
-           ROUND(100 * ro.refunded_amount / NULLIF(g.gross_sales, 0), 2) AS refund_rate,
-           COALESCE(o.attribution_displayname,o.source_name, 'unknown') AS channel,
-           COUNT(*) OVER() AS total_records
+
+    SELECT
+        o.id AS order_id,
+        o.created_at::date::text AS order_date,
+        o.financialStatus AS financial_status,
+        ROUND(
+            COALESCE(g.gross_sales, 0),
+            2
+        ) AS gross_sales,
+        ROUND(
+            COALESCE(o.current_total_price, 0)
+            - COALESCE(o.current_total_tax, 0)
+            - COALESCE(o.current_shipping_price, 0),
+            2
+        ) AS net_sales,
+        ROUND(
+            ro.refunded_amount,
+            2
+        ) AS refunded_amount,
+        ROUND(
+            100 * ro.refunded_amount / NULLIF(g.gross_sales, 0),
+            2
+        ) AS refund_rate,
+        COALESCE(
+            o.attribution_displayname,
+            o.source_name,
+            ''unknown''
+        ) AS channel,
+        COUNT(*) OVER() AS total_records
+
     FROM refunded_orders ro
-    JOIN public.fact_order_headers o ON o.id = ro.order_id
-    LEFT JOIN order_gross g ON g.order_id = ro.order_id
+
+    JOIN public.fact_order_headers o
+        ON o.id = ro.order_id
+
+    LEFT JOIN order_gross g
+        ON g.order_id = ro.order_id
+
     ORDER BY refunded_amount DESC
+
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    $$,
-    NULL,
+    ',
+    '{
+      "filters": [
+        {
+          "id": "financialStatus",
+          "label": "Financial Status",
+          "options": [
+            "ALL",
+            "AUTHORIZED",
+            "EXPIRED",
+            "PAID",
+            "PARTIALLY_PAID",
+            "PARTIALLY_REFUNDED",
+            "PENDING",
+            "REFUNDED",
+            "VOIDED"
+          ],
+          "controlType": "MULTI_SELECT",
+          "defaultValue": "ALL"
+        }
+      ]
+    }',
     'TABLE',
     60,
     'Detailed tabular audit report of individual refunded orders.',
     '{
       "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
+        "shopId": {
+          "source": "AUTH_CONTEXT",
+          "contextKey": "shopGid"
+        },
+        "limit": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "limit"
+        },
+        "offset": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "offset"
+        },
+        "currentStartDate": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "startDate"
+        },
+        "currentEndDate": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "endDate"
+        },
+        "financialStatus": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "financialStatus",
+          "type": "ARRAY"
+        }
       },
-      "excludeExtraParams": true
+      "excludeExtraParams": true,
+      "conditionalSegments": [
+        {
+          "provider": "ORDER_STATUS_FILTER",
+          "condition": "hasFilter:financialStatus",
+          "placeholder": "/*financial_status_filter*/",
+          "args": {
+            "statusColumn": "o.financialStatus",
+            "statusParam": "financialStatus"
+          }
+        }
+      ]
     }'
 );
 
@@ -574,50 +670,138 @@ VALUES (
       },
       "excludeExtraParams": true
     }'
-),
-    (
+),(
     '019fff82-e31b-713f-b4fc-231044934ca5',
     'Partial vs Full Refund Report',
     'Refunds & Reversals/Revenue Impact/TABLE/Partial vs Full Refund Report',
-    $$
+    '
     WITH refunded_orders AS (
-        SELECT r.order_id,
-               SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded_amount
+        SELECT
+            r.order_id,
+            SUM(
+                COALESCE(r.total_refunded_amount, 0)
+            ) AS refunded_amount
         FROM public.fact_order_refunds r
-        JOIN public.fact_order_headers o ON o.id = r.order_id
+        JOIN public.fact_order_headers o
+            ON o.id = r.order_id
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          AND (:currentStartDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
-          AND (:currentEndDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date)
+          AND (
+              :currentStartDate IS NULL
+              OR COALESCE(
+                  r.processed_at,
+                  r.created_at
+              )::date >= :currentStartDate::date
+          )
+          AND (
+              :currentEndDate IS NULL
+              OR COALESCE(
+                  r.processed_at,
+                  r.created_at
+              )::date <= :currentEndDate::date
+          )
+          /*financial_status_filter*/
         GROUP BY r.order_id
-        HAVING SUM(COALESCE(r.total_refunded_amount, 0)) > 0
+        HAVING SUM(
+            COALESCE(r.total_refunded_amount, 0)
+        ) > 0
     )
-    SELECT o.id AS order_id,
-           o.financialStatus AS financial_status,
-           ROUND(COALESCE(o.total_price, 0), 2) AS total_price,
-           ROUND(COALESCE(o.current_total_price, 0), 2) AS current_total_price,
-           ROUND(ro.refunded_amount, 2) AS refunded_amount,
-           ROUND(COALESCE(o.total_price, 0) - ro.refunded_amount, 2) AS remaining_value,
-           COUNT(*) OVER() AS total_records
+
+    SELECT
+        o.id AS order_id,
+        o.financialStatus AS financial_status,
+        ROUND(
+            COALESCE(o.total_price, 0),
+            2
+        ) AS total_price,
+        ROUND(
+            COALESCE(o.current_total_price, 0),
+            2
+        ) AS current_total_price,
+        ROUND(
+            ro.refunded_amount,
+            2
+        ) AS refunded_amount,
+        ROUND(
+            COALESCE(o.total_price, 0) - ro.refunded_amount,
+            2
+        ) AS remaining_value,
+        COUNT(*) OVER() AS total_records
+
     FROM refunded_orders ro
-    JOIN public.fact_order_headers o ON o.id = ro.order_id
+
+    JOIN public.fact_order_headers o
+        ON o.id = ro.order_id
+
     ORDER BY refunded_amount DESC
+
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    $$,
-    NULL,
+    ',
+    '{
+      "filters": [
+        {
+          "id": "financialStatus",
+          "label": "Financial Status",
+          "options": [
+            "ALL",
+            "AUTHORIZED",
+            "EXPIRED",
+            "PAID",
+            "PARTIALLY_PAID",
+            "PARTIALLY_REFUNDED",
+            "PENDING",
+            "REFUNDED",
+            "VOIDED"
+          ],
+          "controlType": "MULTI_SELECT",
+          "defaultValue": "ALL"
+        }
+      ]
+    }',
     'TABLE',
     60,
     'Detailed report classifying partial vs full order refunds and remaining un-refunded order values.',
     '{
       "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
+        "shopId": {
+          "source": "AUTH_CONTEXT",
+          "contextKey": "shopGid"
+        },
+        "limit": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "limit"
+        },
+        "offset": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "offset"
+        },
+        "currentStartDate": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "startDate"
+        },
+        "currentEndDate": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "endDate"
+        },
+        "financialStatus": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "financialStatus",
+          "type": "ARRAY"
+        }
       },
-      "excludeExtraParams": true
+      "excludeExtraParams": true,
+      "conditionalSegments": [
+        {
+          "provider": "ORDER_STATUS_FILTER",
+          "condition": "hasFilter:financialStatus",
+          "placeholder": "/*financial_status_filter*/",
+          "args": {
+            "statusColumn": "o.financialStatus",
+            "statusParam": "financialStatus"
+          }
+        }
+      ]
     }'
 );
 

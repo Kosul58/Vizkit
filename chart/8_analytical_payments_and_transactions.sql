@@ -983,77 +983,204 @@ VALUES (
     '019fffa3-ddd3-7fa3-835b-cd566678e1df',
     'Authorization Capture Report',
     'Payments & Transactions/Authorization & Payment Risk/TABLE/Authorization Capture Report',
-    $$
+    '
     WITH filtered_orders AS (
-        SELECT o.id,
-               o.created_at,
-               o.financialstatus AS financial_status
+        SELECT
+            o.id,
+            o.created_at,
+            o.financialstatus AS financial_status
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
-          AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
-          AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND (
+              :currentStartDate IS NULL
+              OR o.created_at::date >= :currentStartDate::date
+          )
+          AND (
+              :currentEndDate IS NULL
+              OR o.created_at::date <= :currentEndDate::date
+          )
+          /*financial_status_filter*/
     ),
+
     order_txn AS (
-        SELECT t.order_id,
-               COALESCE(SUM(COALESCE(t.amount, 0)) FILTER (
-                   WHERE t.kind IN ('AUTHORIZATION', 'EMV_AUTHORIZATION')
-                     AND t.status = 'SUCCESS'), 0) AS authorized_amount,
-               COALESCE(SUM(COALESCE(t.amount, 0)) FILTER (
-                   WHERE t.kind IN ('SALE', 'CAPTURE')
-                     AND t.status = 'SUCCESS'), 0) AS captured_amount
+        SELECT
+            t.order_id,
+            COALESCE(
+                SUM(
+                    COALESCE(t.amount, 0)
+                ) FILTER (
+                    WHERE t.kind IN (
+                        ''AUTHORIZATION'',
+                        ''EMV_AUTHORIZATION''
+                    )
+                    AND t.status = ''SUCCESS''
+                ),
+                0
+            ) AS authorized_amount,
+            COALESCE(
+                SUM(
+                    COALESCE(t.amount, 0)
+                ) FILTER (
+                    WHERE t.kind IN (
+                        ''SALE'',
+                        ''CAPTURE''
+                    )
+                    AND t.status = ''SUCCESS''
+                ),
+                0
+            ) AS captured_amount
         FROM public.fact_order_transactions t
-        JOIN filtered_orders f ON f.id = t.order_id
+        JOIN filtered_orders f
+            ON f.id = t.order_id
         WHERE t.test = FALSE
         GROUP BY t.order_id
     ),
+
     order_gateway AS (
-        SELECT DISTINCT ON (g.order_id) g.order_id, g.gateway
+        SELECT DISTINCT ON (g.order_id)
+            g.order_id,
+            g.gateway
         FROM (
-            SELECT t.order_id,
-                   INITCAP(REPLACE(COALESCE(t.gateway, 'Unknown'),
-                                   CHR(95), CHR(32))) AS gateway,
-                   SUM(COALESCE(t.amount, 0)) AS amount
+            SELECT
+                t.order_id,
+                INITCAP(
+                    REPLACE(
+                        COALESCE(t.gateway, ''Unknown''),
+                        CHR(95),
+                        CHR(32)
+                    )
+                ) AS gateway,
+                SUM(
+                    COALESCE(t.amount, 0)
+                ) AS amount
             FROM public.fact_order_transactions t
-            JOIN filtered_orders f ON f.id = t.order_id
+            JOIN filtered_orders f
+                ON f.id = t.order_id
             WHERE t.test = FALSE
-            GROUP BY t.order_id,
-                     INITCAP(REPLACE(COALESCE(t.gateway, 'Unknown'),
-                                     CHR(95), CHR(32)))
+            GROUP BY
+                t.order_id,
+                INITCAP(
+                    REPLACE(
+                        COALESCE(t.gateway, ''Unknown''),
+                        CHR(95),
+                        CHR(32)
+                    )
+                )
         ) g
-        ORDER BY g.order_id, g.amount DESC, g.gateway ASC
+        ORDER BY
+            g.order_id,
+            g.amount DESC,
+            g.gateway ASC
     )
-    SELECT COALESCE(f.id, 'Unknown') AS order_id,
-           ROUND(COALESCE(ot.authorized_amount, 0), 2) AS authorized_amount,
-           ROUND(COALESCE(ot.captured_amount, 0), 2) AS captured_amount,
-           ROUND(GREATEST(COALESCE(ot.authorized_amount, 0)
-                          - COALESCE(ot.captured_amount, 0), 0), 2) AS uncaptured_amount,
-           COALESCE(f.financial_status, 'UNKNOWN') AS status,
-           COALESCE(og.gateway, 'Unknown') AS gateway,
-           COUNT(*) OVER() AS total_records
+
+    SELECT
+        COALESCE(f.id, ''Unknown'') AS order_id,
+        ROUND(
+            COALESCE(ot.authorized_amount, 0),
+            2
+        ) AS authorized_amount,
+        ROUND(
+            COALESCE(ot.captured_amount, 0),
+            2
+        ) AS captured_amount,
+        ROUND(
+            GREATEST(
+                COALESCE(ot.authorized_amount, 0)
+                - COALESCE(ot.captured_amount, 0),
+                0
+            ),
+            2
+        ) AS uncaptured_amount,
+        COALESCE(
+            f.financial_status,
+            ''UNKNOWN''
+        ) AS status,
+        COALESCE(
+            og.gateway,
+            ''Unknown''
+        ) AS gateway,
+        COUNT(*) OVER() AS total_records
     FROM filtered_orders f
-    LEFT JOIN order_txn ot ON ot.order_id = f.id
-    LEFT JOIN order_gateway og ON og.order_id = f.id
-    ORDER BY GREATEST(COALESCE(ot.authorized_amount, 0)
-                      - COALESCE(ot.captured_amount, 0), 0) DESC,
-             f.created_at DESC, f.id
+    LEFT JOIN order_txn ot
+        ON ot.order_id = f.id
+    LEFT JOIN order_gateway og
+        ON og.order_id = f.id
+    ORDER BY
+        GREATEST(
+            COALESCE(ot.authorized_amount, 0)
+            - COALESCE(ot.captured_amount, 0),
+            0
+        ) DESC,
+        f.created_at DESC,
+        f.id
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    $$,
-    NULL,
+    ',
+    '{
+      "filters": [
+        {
+          "id": "financialStatus",
+          "label": "Financial Status",
+          "options": [
+            "ALL",
+            "AUTHORIZED",
+            "EXPIRED",
+            "PAID",
+            "PARTIALLY_PAID",
+            "PARTIALLY_REFUNDED",
+            "PENDING",
+            "REFUNDED",
+            "VOIDED"
+          ],
+          "controlType": "MULTI_SELECT",
+          "defaultValue": "ALL"
+        }
+      ]
+    }',
     'TABLE',
     60,
     'Audit table for order authorizations listing authorized amount, captured amount, uncaptured balance, status, and gateway.',
     '{
       "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
+        "shopId": {
+          "source": "AUTH_CONTEXT",
+          "contextKey": "shopGid"
+        },
+        "limit": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "limit"
+        },
+        "offset": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "offset"
+        },
+        "currentStartDate": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "startDate"
+        },
+        "currentEndDate": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "endDate"
+        },
+        "financialStatus": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "financialStatus",
+          "type": "ARRAY"
+        }
       },
-      "excludeExtraParams": true
+      "excludeExtraParams": true,
+      "conditionalSegments": [
+        {
+          "provider": "ORDER_STATUS_FILTER",
+          "condition": "hasFilter:financialStatus",
+          "placeholder": "/*financial_status_filter*/",
+          "args": {
+            "statusColumn": "o.financialstatus",
+            "statusParam": "financialStatus"
+          }
+        }
+      ]
     }'
 );
 

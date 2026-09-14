@@ -754,58 +754,143 @@ VALUES (
       },
       "excludeExtraParams": true
     }'
-),
-    (
+),(
     '019fff82-e31d-772e-a943-97b7591e0ecd',
     'Unpaid Orders Queue',
     'Order Reports/Payments & Collections/TABLE/Unpaid Orders Queue',
-    $$
+'
     WITH filtered_orders AS (
-        SELECT o.id,
-               o.id AS order_id,
-               o.created_at,
-               o.customer_id,
-               o.financialStatus AS financial_status,
-               o.payment_gateway_names,
-               COALESCE(o.total_outstanding_amount, 0) AS outstanding_amount
+SELECT
+    o.id,
+    o.id AS order_id,
+    o.created_at,
+    o.customer_id,
+    o.financialStatus AS financial_status,
+    o.payment_gateway_names,
+COALESCE(o.total_outstanding_amount, 0) AS outstanding_amount
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
           AND o.total_outstanding_amount > 0
-          AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
-          AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+AND (
+:currentStartDate IS NULL
+    OR o.created_at::date >=:currentStartDate::date
+)
+AND (
+              :currentEndDate IS NULL
+              OR o.created_at::date <= :currentEndDate::date
+          )
+          /*financial_status_filter*/
     )
-    SELECT f.order_id,
-           CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
-                THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
-                ELSE COALESCE(c.email, 'Guest') END AS customer,
-           f.created_at::date::text AS order_date,
-           ROUND(f.outstanding_amount, 2) AS outstanding_amount,
-           f.financial_status,
-           COALESCE(t.gateway, f.payment_gateway_names->>0, 'unknown') AS payment_gateway,
-           (COALESCE(:currentEndDate::date, CURRENT_DATE) - f.created_at::date) AS days_unpaid,
-           COUNT(*) OVER() AS total_records
+    SELECT
+        f.order_id,
+        CASE
+            WHEN LENGTH(
+                CONCAT_WS(
+                    CHR(32),
+                    c.first_name,
+                    c.last_name
+                )
+            ) > 0
+                THEN CONCAT_WS(
+                    CHR(32),
+                    c.first_name,
+                    c.last_name
+                )
+            ELSE COALESCE(c.email, ''Guest'')
+        END AS customer,
+        f.created_at::date::text AS order_date,
+ROUND(f.outstanding_amount, 2) AS outstanding_amount,
+f.financial_status,
+COALESCE(
+    t.gateway,
+    f.payment_gateway_names ->> 0,
+    '' unknown ''
+) AS payment_gateway,
+(
+    COALESCE(
+:currentEndDate::date,
+        CURRENT_DATE
+    ) - f.created_at::date
+) AS days_unpaid,
+COUNT(*) OVER () AS total_records
     FROM filtered_orders f
-    LEFT JOIN public.dim_customers c ON c.id = f.customer_id
-    LEFT JOIN public.fact_order_transactions t ON t.order_id = f.id AND UPPER(t.kind) = 'SALE' AND UPPER(t.status) = 'SUCCESS'
+LEFT JOIN public.dim_customers c ON c.id = f.customer_id
+LEFT JOIN public.fact_order_transactions t ON t.order_id = f.id
+AND UPPER(t.kind) = '' SALE ''
+AND UPPER(t.status) = '' SUCCESS ''
     ORDER BY days_unpaid DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    $$,
-    NULL,
+',
+    '{
+      "filters": [
+        {
+          "id": "financialStatus",
+          "label": "Financial Status",
+          "options": [
+            "ALL",
+            "AUTHORIZED",
+            "EXPIRED",
+            "PAID",
+            "PARTIALLY_PAID",
+            "PARTIALLY_REFUNDED",
+            "PENDING",
+            "REFUNDED",
+            "VOIDED"
+          ],
+          "controlType": "MULTI_SELECT",
+          "defaultValue": "ALL"
+        }
+      ]
+    }',
     'TABLE',
     60,
     'Actionable queue table listing unpaid orders sorted by aging days unpaid.',
     '{
       "filterMappings": {
-        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"   },
-        "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
-        "offset":           { "source": "REQUEST_FILTER", "filterKey": "offset"    },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"   }
+"shopId": {
+          "source": "AUTH_CONTEXT",
+          "contextKey": "shopGid"
+        },
+        "userId": {
+          "source": "AUTH_CONTEXT",
+          "contextKey": "user_id"
+        },
+        "limit": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "limit"
+        },
+        "offset": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "offset"
+        },
+        "currentStartDate": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "startDate"
+        },
+        "currentEndDate": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "endDate"
+        },
+        "financialStatus": {
+          "source": "REQUEST_FILTER",
+          "filterKey": "financialStatus",
+          "type": "ARRAY"
+        }
       },
-      "excludeExtraParams": true
+"excludeExtraParams": true,
+      "conditionalSegments": [
+        {
+          "provider": "ORDER_STATUS_FILTER",
+          "condition": "hasFilter:financialStatus",
+          "placeholder": "/*financial_status_filter*/",
+          "args": {
+            "statusColumn": "o.financialStatus",
+            "statusParam": "financialStatus"
+          }
+        }
+      ]
     }'
 );
 
