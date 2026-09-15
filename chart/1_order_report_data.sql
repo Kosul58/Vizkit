@@ -349,7 +349,7 @@ VALUES (
     CROSS JOIN date_params dp
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
-    $$,
+    ,
     NULL,
     'PLOT',
     60,
@@ -379,7 +379,7 @@ VALUES (
     '019fff82-e31d-769a-bc42-f99a7173de6a',
     'Orders Detail Report',
     'Order Reports/Sales & Revenue/TABLE/Orders Detail Report',
-    $$
+    '
     WITH filtered_orders AS (
         SELECT
             o.id,
@@ -391,9 +391,9 @@ VALUES (
             o.financialStatus AS financial_status,
             o.fulfillmentStatus AS fulfillment_status,
             CASE
-                WHEN o.financialStatus = 'VOIDED' THEN 0
+                WHEN o.financialStatus = ''VOIDED'' THEN 0
                 ELSE COALESCE(o.subtotal_price, 0)
-                 + COALESCE(o.total_discounts_amount, 0)
+                    + COALESCE(o.total_discounts_amount, 0)
             END AS gross_sales,
             COALESCE(o.total_discounts_amount, 0) AS discounts,
             COALESCE(o.current_total_price, 0)
@@ -426,12 +426,12 @@ VALUES (
                 CONCAT_WS(CHR(32), c.first_name, c.last_name)
             ) > 0
             THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
-            ELSE COALESCE(c.email, 'Guest')
+            ELSE COALESCE(c.email, ''Guest'')
         END AS customer,
         COALESCE(
             f.attribution_displayname,
             f.source_name,
-            'unknown'
+            ''unknown''
         ) AS channel,
         f.source_name AS source,
         f.financial_status,
@@ -449,8 +449,47 @@ VALUES (
     ORDER BY f.created_at DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    $$,
-    NULL,
+    ',
+    '{
+        "filters": [
+            {
+                "id": "financialStatus",
+                "label": "Financial Status",
+                "options": [
+                    "ALL",
+                    "AUTHORIZED",
+                    "EXPIRED",
+                    "PAID",
+                    "PARTIALLY_PAID",
+                    "PARTIALLY_REFUNDED",
+                    "PENDING",
+                    "REFUNDED",
+                    "VOIDED"
+                ],
+                "controlType": "MULTI_SELECT",
+                "defaultValue": "ALL"
+            },
+            {
+                "id": "fulfillmentStatus",
+                "label": "Fulfillment Status",
+                "options": [
+                    "ALL",
+                    "FULFILLED",
+                    "IN_PROGRESS",
+                    "ON_HOLD",
+                    "OPEN",
+                    "PARTIALLY_FULFILLED",
+                    "PENDING_FULFILLMENT",
+                    "REQUEST_DECLINED",
+                    "RESTOCKED",
+                    "SCHEDULED",
+                    "UNFULFILLED"
+                ],
+                "controlType": "MULTI_SELECT",
+                "defaultValue": "ALL"
+            }
+        ]
+    }',
     'TABLE',
     60,
     'Comprehensive tabular report of all order transactions including financial status, sales totals, taxes, and shipping.',

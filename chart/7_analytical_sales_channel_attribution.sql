@@ -1576,7 +1576,6 @@ FROM public.fact_order_headers o
 AND o.test = FALSE
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
-            /*fulfillment_status_filter*/
     ),
     order_unfulfilled AS (
         SELECT li.order_id,
