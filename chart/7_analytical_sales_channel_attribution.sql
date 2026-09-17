@@ -24,9 +24,13 @@ VALUES (
 SELECT COALESCE(
         o.attribution_displayname, o.order_app_name, o.source_name, 'Unattributed'
     ) AS channel,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
@@ -34,10 +38,10 @@ AND o.test = FALSE
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
     SELECT f.channel AS channel,
-           ROUND(SUM(f.net_sales), 2) AS net_sales
+           ROUND(SUM(f.gross_sales), 2) AS gross_sales
     FROM filtered_orders f
     GROUP BY f.channel
-    ORDER BY SUM(f.net_sales) DESC, f.channel ASC
+    ORDER BY SUM(f.gross_sales) DESC, f.channel ASC
     LIMIT 20
     $$,
 NULL,
@@ -97,9 +101,9 @@ NULL,
 SELECT COALESCE(
         o.attribution_displayname, o.order_app_name, o.source_name, 'Unattributed'
     ) AS channel,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
@@ -135,7 +139,7 @@ NULL,
     /*date_granularity_cte*/
     filtered_orders AS (
         SELECT t.bucket,
-               t.net_sales,
+               t.gross_sales,
                CASE WHEN t.channel_name IS NULL                                       THEN 5
                     WHEN LOWER(t.channel_name) IN ('online store', 'web')  THEN 1
                     WHEN LOWER(t.channel_name) IN ('point of sale', 'pos') THEN 2
@@ -146,9 +150,13 @@ NULL,
                    COALESCE(NULLIF(TRIM(o.attribution_displayname), ''),
                             NULLIF(TRIM(o.order_app_name), ''),
                             NULLIF(TRIM(o.source_name), '')) AS channel_name,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
+                   CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(o.subtotal_price, 0)
+                           + COALESCE(o.total_discounts_amount, 0)
+                           + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                           + COALESCE(o.total_shipping_price, 0)
+                   END AS gross_sales
             FROM public.fact_order_headers o
             CROSS JOIN date_params dp
             WHERE o.seller_id = :shopId
@@ -159,11 +167,11 @@ NULL,
     ),
     daily AS (
         SELECT f.bucket,
-               SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 1) AS online_store,
-               SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 2) AS point_of_sale,
-               SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 3) AS shop,
-               SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 4) AS other,
-               SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 5) AS unattributed
+               SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 1) AS online_store,
+               SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 2) AS point_of_sale,
+               SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 3) AS shop,
+               SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 4) AS other,
+               SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 5) AS unattributed
         FROM filtered_orders f
         GROUP BY f.bucket
     )
@@ -225,11 +233,17 @@ COALESCE(
 ) AS channel,
                o.source_name AS source_name,
 o.order_app_name AS app_name,
-               COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales,
+               CASE
+                    WHEN o.financialstatus = ''VOIDED'' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales,
                COALESCE(o.total_discounts_amount, 0) AS discounts,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
@@ -313,12 +327,9 @@ NULL,
                 o.total_discounts_amount,
                 0
             ) AS discounts,
-            COALESCE(
-                o.current_total_price,
-                0
-            )
-            - COALESCE(o.current_total_tax, 0)
-            - COALESCE(o.current_shipping_price, 0) AS net_sales
+            COALESCE(o.current_subtotal_price, 0)
+                - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -487,9 +498,17 @@ VALUES (
     WITH
     channel_orders AS (
         SELECT o.id,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales,
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales,
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales,
+               COALESCE(o.total_discounts_amount, 0) AS discounts,
                COALESCE(o.attribution_displayname, o.source_name, 'unknown') AS channel
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
@@ -501,17 +520,10 @@ VALUES (
     channel_totals AS (
         SELECT co.channel,
                SUM(co.net_sales) AS net_sales,
+               SUM(co.gross_sales) AS gross_sales,
+               SUM(co.discounts) AS discounts,
                COUNT(*) AS orders
         FROM channel_orders co
-        GROUP BY co.channel
-    ),
-    channel_lines AS (
-        SELECT co.channel,
-               SUM(li.original_unit_price * li.quantity) AS gross_sales,
-               SUM(li.total_discount_amount) AS discounted,
-               SUM(li.original_total_amount) AS original_amount
-        FROM public.fact_order_line_items li
-        JOIN channel_orders co ON co.id = li.order_id
         GROUP BY co.channel
     ),
     channel_refunds AS (
@@ -525,11 +537,10 @@ VALUES (
            ROUND(ct.net_sales, 2) AS net_sales,
            ct.orders AS orders,
            ROUND(ct.net_sales / NULLIF(ct.orders, 0), 2) AS aov,
-           ROUND(100 * COALESCE(cr.refunded, 0) / NULLIF(cl.gross_sales, 0), 2) AS refund_rate,
-           ROUND(100 * COALESCE(cl.discounted, 0)/ NULLIF(cl.original_amount, 0), 2) AS discount_rate,
+           ROUND(100 * COALESCE(cr.refunded, 0) / NULLIF(ct.gross_sales, 0), 2) AS refund_rate,
+           ROUND(100 * COALESCE(ct.discounts, 0) / NULLIF(ct.gross_sales, 0), 2) AS discount_rate,
            COUNT(*) OVER() AS total_records
     FROM channel_totals ct
-    LEFT JOIN channel_lines cl ON cl.channel IS NOT DISTINCT FROM ct.channel
     LEFT JOIN channel_refunds cr ON cr.channel IS NOT DISTINCT FROM ct.channel
     ORDER BY ct.net_sales DESC
     LIMIT COALESCE(:limit, 10)
@@ -560,9 +571,9 @@ NULL,
 SELECT COALESCE(
         o.attribution_displayname, o.order_app_name, o.source_name, 'Unattributed'
     ) AS channel,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
@@ -602,7 +613,13 @@ COALESCE(
     o.source_name,
     'Unattributed'
 ) AS channel,
-               COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
@@ -652,7 +669,13 @@ NULL,
 SELECT COALESCE(
         o.attribution_displayname, o.order_app_name, o.source_name, 'Unattributed'
     ) AS channel,
-               COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales,
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales,
                COALESCE(o.total_discounts_amount, 0) AS discounts
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
@@ -695,12 +718,18 @@ COALESCE(
     ''Unattributed''
 ) AS channel,
 o.fulfillmentStatus AS fulfillment_status,
-               COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales,
+               CASE
+                    WHEN o.financialstatus = ''VOIDED'' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales,
                COALESCE(o.total_discounts_amount, 0) AS discounts,
                COALESCE(o.total_outstanding_amount, 0) AS outstanding,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
@@ -770,7 +799,13 @@ COALESCE(
     o.source_name,
     ''Unattributed''
 ) AS channel,
-               COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales
+               CASE
+                    WHEN o.financialstatus = ''VOIDED'' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
@@ -869,9 +904,13 @@ VALUES (
         $$
     WITH filtered_orders AS (
 SELECT NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,campaign}'), '') AS utm_campaign,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
@@ -879,11 +918,11 @@ AND o.test = FALSE
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
     SELECT f.utm_campaign AS campaign,
-           ROUND(SUM(f.net_sales), 2) AS net_sales
+           ROUND(SUM(f.gross_sales), 2) AS gross_sales
     FROM filtered_orders f
     WHERE f.utm_campaign IS NOT NULL
     GROUP BY f.utm_campaign
-    ORDER BY SUM(f.net_sales) DESC, f.utm_campaign ASC
+    ORDER BY SUM(f.gross_sales) DESC, f.utm_campaign ASC
     LIMIT 20
     $$,
 NULL,
@@ -907,9 +946,9 @@ NULL,
     WITH filtered_orders AS (
 SELECT LOWER(NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,source}'), '')) AS utm_source,
                LOWER(NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,medium}'), '')) AS utm_medium,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
@@ -952,9 +991,13 @@ NULL,
         $$
     WITH filtered_orders AS (
 SELECT o.customer_journey_summary #>> '{lastVisit,referrerUrl}' AS referring_site,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
@@ -962,11 +1005,11 @@ AND o.test = FALSE
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
     SELECT f.referring_site AS referring_site,
-           ROUND(SUM(f.net_sales), 2) AS net_sales
+           ROUND(SUM(f.gross_sales), 2) AS gross_sales
     FROM filtered_orders f
     WHERE f.referring_site IS NOT NULL
     GROUP BY f.referring_site
-    ORDER BY SUM(f.net_sales) DESC, f.referring_site ASC
+    ORDER BY SUM(f.gross_sales) DESC, f.referring_site ASC
     LIMIT 20
     $$,
 NULL,
@@ -989,9 +1032,13 @@ NULL,
         $$
     WITH filtered_orders AS (
 SELECT LOWER(NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,medium}'), '')) AS utm_medium,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
@@ -1010,26 +1057,26 @@ AND o.test = FALSE
                                           'socialmedia', 'sm', 'facebook', 'instagram',
                                           'twitter', 'tiktok', 'pinterest', 'linkedin') THEN 5
                     ELSE 6 END AS medium_group,
-               f.net_sales
+               f.gross_sales
         FROM filtered_orders f
     ),
     totals AS (
-        SELECT COALESCE(SUM(net_sales), 0) AS total_net,
-               COALESCE(SUM(net_sales) FILTER (WHERE medium_group = 1), 0) AS paid,
-               COALESCE(SUM(net_sales) FILTER (WHERE medium_group = 2), 0) AS organic,
-               COALESCE(SUM(net_sales) FILTER (WHERE medium_group = 3), 0) AS referral,
-               COALESCE(SUM(net_sales) FILTER (WHERE medium_group = 4), 0) AS email,
-               COALESCE(SUM(net_sales) FILTER (WHERE medium_group = 5), 0) AS social,
-               COALESCE(SUM(net_sales) FILTER (WHERE medium_group = 6), 0) AS direct
+        SELECT COALESCE(SUM(gross_sales), 0) AS total_gross,
+               COALESCE(SUM(gross_sales) FILTER (WHERE medium_group = 1), 0) AS paid,
+               COALESCE(SUM(gross_sales) FILTER (WHERE medium_group = 2), 0) AS organic,
+               COALESCE(SUM(gross_sales) FILTER (WHERE medium_group = 3), 0) AS referral,
+               COALESCE(SUM(gross_sales) FILTER (WHERE medium_group = 4), 0) AS email,
+               COALESCE(SUM(gross_sales) FILTER (WHERE medium_group = 5), 0) AS social,
+               COALESCE(SUM(gross_sales) FILTER (WHERE medium_group = 6), 0) AS direct
         FROM classified
     )
     SELECT 'Revenue Mix' AS mix,
-           COALESCE(ROUND(100 * t.paid     / NULLIF(t.total_net, 0), 2), 0) AS "Paid",
-           COALESCE(ROUND(100 * t.organic  / NULLIF(t.total_net, 0), 2), 0) AS "Organic",
-           COALESCE(ROUND(100 * t.referral / NULLIF(t.total_net, 0), 2), 0) AS "Referral",
-           COALESCE(ROUND(100 * t.email    / NULLIF(t.total_net, 0), 2), 0) AS "Email",
-           COALESCE(ROUND(100 * t.social   / NULLIF(t.total_net, 0), 2), 0) AS "Social",
-           COALESCE(ROUND(100 * t.direct   / NULLIF(t.total_net, 0), 2), 0) AS "Direct / Unknown"
+           COALESCE(ROUND(100 * t.paid     / NULLIF(t.total_gross, 0), 2), 0) AS "Paid",
+           COALESCE(ROUND(100 * t.organic  / NULLIF(t.total_gross, 0), 2), 0) AS "Organic",
+           COALESCE(ROUND(100 * t.referral / NULLIF(t.total_gross, 0), 2), 0) AS "Referral",
+           COALESCE(ROUND(100 * t.email    / NULLIF(t.total_gross, 0), 2), 0) AS "Email",
+           COALESCE(ROUND(100 * t.social   / NULLIF(t.total_gross, 0), 2), 0) AS "Social",
+           COALESCE(ROUND(100 * t.direct   / NULLIF(t.total_gross, 0), 2), 0) AS "Direct / Unknown"
     FROM totals t
     $$,
 NULL,
@@ -1055,11 +1102,17 @@ NULL,
 LOWER(NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,source}''), '''')) AS utm_source,
                LOWER(NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,medium}''), '''')) AS utm_medium,
                NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,campaign}''), '''') AS utm_campaign,
-               COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales,
+               CASE
+                    WHEN o.financialstatus = ''VOIDED'' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales,
                COALESCE(o.total_discounts_amount, 0) AS discounts,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
@@ -1133,9 +1186,9 @@ NULL,
         SELECT o.created_at,
                o.customer_id,
 o.customer_journey_summary #>> ''{lastVisit,referrerUrl}'' AS referring_site,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
@@ -1278,9 +1331,9 @@ COALESCE(
                (o.attribution_displayname IS NULL
             AND o.order_app_id IS NULL
             AND NULLIF(TRIM(o.source_name), '''') IS NULL) AS missing_channel,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
@@ -1346,9 +1399,9 @@ COALESCE(
     o.source_name,
     ''Unattributed''
 ) AS channel,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
@@ -1506,7 +1559,7 @@ NULL,
         $$
     WITH filtered_orders AS (
         SELECT t.country,
-               t.net_sales,
+               t.gross_sales,
                CASE WHEN t.channel_name IS NULL                                       THEN 5
                     WHEN LOWER(t.channel_name) IN ('online store', 'web')  THEN 1
                     WHEN LOWER(t.channel_name) IN ('point of sale', 'pos') THEN 2
@@ -1522,9 +1575,13 @@ NULL,
                    COALESCE(NULLIF(TRIM(o.attribution_displayname), ''),
                             NULLIF(TRIM(o.order_app_name), ''),
                             NULLIF(TRIM(o.source_name), '')) AS channel_name,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
+                   CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(o.subtotal_price, 0)
+                           + COALESCE(o.total_discounts_amount, 0)
+                           + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                           + COALESCE(o.total_shipping_price, 0)
+                   END AS gross_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
@@ -1533,14 +1590,14 @@ NULL,
         ) t
     )
     SELECT f.country AS country,
-           ROUND(COALESCE(SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 1), 0), 2) AS "Online Store",
-           ROUND(COALESCE(SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 2), 0), 2) AS "Point of Sale",
-           ROUND(COALESCE(SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 3), 0), 2) AS "Shop",
-           ROUND(COALESCE(SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 4), 0), 2) AS "Other",
-           ROUND(COALESCE(SUM(f.net_sales) FILTER (WHERE f.channel_bucket = 5), 0), 2) AS "Unattributed"
+           ROUND(COALESCE(SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 1), 0), 2) AS "Online Store",
+           ROUND(COALESCE(SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 2), 0), 2) AS "Point of Sale",
+           ROUND(COALESCE(SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 3), 0), 2) AS "Shop",
+           ROUND(COALESCE(SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 4), 0), 2) AS "Other",
+           ROUND(COALESCE(SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 5), 0), 2) AS "Unattributed"
     FROM filtered_orders f
     GROUP BY f.country
-    ORDER BY SUM(f.net_sales) DESC, f.country ASC
+    ORDER BY SUM(f.gross_sales) DESC, f.country ASC
     LIMIT 20
     $$,
 NULL,

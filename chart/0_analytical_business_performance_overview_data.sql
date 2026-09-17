@@ -20,9 +20,9 @@ VALUES (
     filtered_orders AS (
         SELECT o.id,
                date_trunc(LOWER(dp.g), o.created_at) AS bucket,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId

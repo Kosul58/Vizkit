@@ -12,11 +12,17 @@ VALUES (
     WITH
     /*date_granularity_cte*/
     filtered_orders AS (
-        SELECT o.id,
-               date_trunc(LOWER(dp.g), o.created_at) AS bucket,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+        SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket,
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales,
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
@@ -37,14 +43,10 @@ VALUES (
           AND r.created_at >= dp.start_bucket
           AND r.created_at < dp.end_bucket + dp.step
     ),
-    daily_gross AS (
-        SELECT f.bucket, SUM(li.original_unit_price * li.quantity) AS gross_sales
-        FROM public.fact_order_line_items li
-        JOIN filtered_orders f ON f.id = li.order_id
-        GROUP BY f.bucket
-    ),
-    daily_net AS (
-        SELECT f.bucket, SUM(f.net_sales) AS net_sales
+    daily AS (
+        SELECT f.bucket,
+               SUM(f.gross_sales) AS gross_sales,
+               SUM(f.net_sales) AS net_sales
         FROM filtered_orders f
         GROUP BY f.bucket
     ),
@@ -61,13 +63,12 @@ VALUES (
                WHEN dp.g = 'YEAR'    THEN to_char(df.bucket, 'YYYY')
            END AS period,
            df.bucket,
-           ROUND(COALESCE(g.gross_sales, 0), 2) AS gross_sales,
-           ROUND(COALESCE(n.net_sales, 0), 2) AS net_sales,
+           ROUND(COALESCE(d.gross_sales, 0), 2) AS gross_sales,
+           ROUND(COALESCE(d.net_sales, 0), 2) AS net_sales,
            ROUND(COALESCE(r.refunds, 0), 2) AS refunds
     FROM date_filler df
     CROSS JOIN date_params dp
-    LEFT JOIN daily_gross g ON g.bucket = df.bucket
-    LEFT JOIN daily_net n ON n.bucket = df.bucket
+    LEFT JOIN daily d ON d.bucket = df.bucket
     LEFT JOIN daily_refunds r ON r.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
@@ -99,9 +100,17 @@ VALUES (
     filtered_orders AS (
         SELECT o.id,
                date_trunc(LOWER(dp.g), o.created_at) AS bucket,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales,
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales,
+               COALESCE(o.total_discounts_amount, 0) AS discounts
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
@@ -112,16 +121,10 @@ VALUES (
     ),
     order_totals AS (
         SELECT f.bucket,
-               COALESCE(SUM(f.net_sales), 0) AS net_sales
+               COALESCE(SUM(f.net_sales), 0) AS net_sales,
+               COALESCE(SUM(f.gross_sales), 0) AS gross_sales,
+               COALESCE(SUM(f.discounts), 0) AS discounts
         FROM filtered_orders f
-        GROUP BY f.bucket
-    ),
-    line_item_totals AS (
-        SELECT f.bucket,
-               COALESCE(SUM(li.original_unit_price * li.quantity), 0) AS gross_sales,
-               COALESCE(SUM(li.total_discount_amount), 0) AS discounts
-        FROM public.fact_order_line_items li
-        JOIN filtered_orders f ON f.id = li.order_id
         GROUP BY f.bucket
     ),
     scoped_refunds AS (
@@ -151,13 +154,12 @@ VALUES (
                    WHEN dp.g = 'QUARTER' THEN 'Q' || EXTRACT(QUARTER FROM df.bucket)::int || ' ' || EXTRACT(YEAR FROM df.bucket)::int
                    WHEN dp.g = 'YEAR'    THEN to_char(df.bucket, 'YYYY')
                END AS period_label,
-               ROUND(COALESCE(l.gross_sales, 0), 2) AS gross_sales,
-               ROUND(-COALESCE(l.discounts, 0), 2)  AS discounts,
+               ROUND(COALESCE(t.gross_sales, 0), 2) AS gross_sales,
+               ROUND(-COALESCE(t.discounts, 0), 2)  AS discounts,
                ROUND(-COALESCE(r.refunds, 0), 2)    AS refunds,
                ROUND(COALESCE(t.net_sales, 0), 2)   AS net_sales
         FROM date_filler df
         CROSS JOIN date_params dp
-        LEFT JOIN line_item_totals l ON l.bucket = df.bucket
         LEFT JOIN refund_totals r ON r.bucket = df.bucket
         LEFT JOIN order_totals t ON t.bucket = df.bucket
     )
@@ -196,9 +198,9 @@ VALUES (
     /*date_granularity_cte*/
     filtered_orders AS (
         SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
@@ -261,8 +263,13 @@ VALUES (
     /*date_granularity_cte*/
     filtered_orders AS (
         SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket,
-               COALESCE(o.subtotal_price, 0)
-                 + COALESCE(o.total_discounts_amount, 0) AS gross_sales,
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales,
                COALESCE(o.total_discounts_amount, 0) AS discount_amount
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
@@ -677,9 +684,9 @@ OFFSET COALESCE(:offset, 0)
                o.customer_id,
                o.created_at,
                date_trunc(LOWER(dp.g), o.created_at) AS bucket,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
@@ -743,8 +750,8 @@ OFFSET COALESCE(:offset, 0)
 ),
     (
     '019fff82-e31a-7553-af0b-2fc2d407e2cb',
-    'Top Customer Segments',
-    'Executive Store Health/Customer & Channel/PLOT/Top Customer Segments',
+    'Top Country Segments',
+    'Executive Store Health/Customer & Channel/PLOT/Top Country Segments',
     $$
     WITH
     filtered_orders AS (
@@ -754,9 +761,9 @@ OFFSET COALESCE(:offset, 0)
                    o.shipping_address #>> '{province}',
                    o.shipping_address #>> '{city}'
                ) AS segment,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -804,9 +811,9 @@ OFFSET COALESCE(:offset, 0)
     $$
   WITH filtered_orders AS (
     SELECT o.id,
-           COALESCE(o.current_total_price, 0)
-             - COALESCE(o.current_total_tax, 0)
-             - COALESCE(o.current_shipping_price, 0) AS net_sales,
+           COALESCE(o.current_subtotal_price, 0)
+             - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+             - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales,
            COALESCE(o.attribution_displayname, o.source_name) AS channel
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
@@ -848,9 +855,17 @@ OFFSET COALESCE(:offset, 0)
     WITH
     channel_orders AS (
         SELECT o.id,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales,
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales,
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales,
+               COALESCE(o.total_discounts_amount, 0) AS discounts,
                COALESCE(o.attribution_displayname, o.source_name, 'unknown') AS channel
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
@@ -862,17 +877,10 @@ OFFSET COALESCE(:offset, 0)
     channel_totals AS (
         SELECT co.channel,
                SUM(co.net_sales) AS net_sales,
+               SUM(co.gross_sales) AS gross_sales,
+               SUM(co.discounts) AS discounts,
                COUNT(*) AS orders
         FROM channel_orders co
-        GROUP BY co.channel
-    ),
-    channel_lines AS (
-        SELECT co.channel,
-               SUM(li.original_unit_price * li.quantity) AS gross_sales,
-               SUM(li.total_discount_amount) AS discounted,
-               SUM(li.original_total_amount) AS original_amount
-        FROM public.fact_order_line_items li
-        JOIN channel_orders co ON co.id = li.order_id
         GROUP BY co.channel
     ),
     channel_refunds AS (
@@ -886,11 +894,10 @@ OFFSET COALESCE(:offset, 0)
            ROUND(ct.net_sales, 2) AS net_sales,
            ct.orders AS orders,
            ROUND(ct.net_sales / NULLIF(ct.orders, 0), 2) AS aov,
-           ROUND(100 * COALESCE(cr.refunded, 0) / NULLIF(cl.gross_sales, 0), 2) AS refund_rate,
-           ROUND(100 * COALESCE(cl.discounted, 0)/ NULLIF(cl.original_amount, 0), 2) AS discount_rate,
+           ROUND(100 * COALESCE(cr.refunded, 0) / NULLIF(ct.gross_sales, 0), 2) AS refund_rate,
+           ROUND(100 * COALESCE(ct.discounts, 0) / NULLIF(ct.gross_sales, 0), 2) AS discount_rate,
            COUNT(*) OVER() AS total_records
     FROM channel_totals ct
-    LEFT JOIN channel_lines cl ON cl.channel IS NOT DISTINCT FROM ct.channel
     LEFT JOIN channel_refunds cr ON cr.channel IS NOT DISTINCT FROM ct.channel
     ORDER BY ct.net_sales DESC
     LIMIT COALESCE(:limit, 10)

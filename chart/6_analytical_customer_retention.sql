@@ -171,9 +171,9 @@ ORDER BY df.bucket ASC;
     WITH filtered_orders AS (
         SELECT o.id,
                o.customer_id,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -270,10 +270,16 @@ ORDER BY df.bucket ASC;
     order_measures AS (
         SELECT cl.customer_type,
                o.id,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales,
-               COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales,
+               CASE
+                    WHEN o.financialstatus = ''VOIDED'' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales
         FROM classified cl
         JOIN public.fact_order_headers o ON o.id = cl.id
     ),
@@ -340,9 +346,9 @@ VALUES (
         SELECT o.id,
                o.customer_id,
                date_trunc(LOWER(dp.g), o.created_at) AS bucket,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales,
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales,
                ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
@@ -355,9 +361,9 @@ VALUES (
     ),
     guest_orders AS (
         SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
@@ -420,9 +426,9 @@ ORDER BY df.bucket ASC
     $$
     WITH per_customer AS (
         SELECT o.customer_id,
-               SUM(COALESCE(o.current_total_price, 0)
-                   - COALESCE(o.current_total_tax, 0)
-                   - COALESCE(o.current_shipping_price, 0)) AS revenue
+               SUM(COALESCE(o.current_subtotal_price, 0)
+                   - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                   - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END) AS revenue
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -499,9 +505,9 @@ ORDER BY df.bucket ASC
     $$
     WITH per_customer AS (
         SELECT o.customer_id,
-               SUM(COALESCE(o.current_total_price, 0)
-                   - COALESCE(o.current_total_tax, 0)
-                   - COALESCE(o.current_shipping_price, 0)) AS revenue
+               SUM(COALESCE(o.current_subtotal_price, 0)
+                   - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                   - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END) AS revenue
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -540,9 +546,9 @@ ORDER BY df.bucket ASC
     '
     WITH per_customer AS (
         SELECT o.customer_id,
-               SUM(COALESCE(o.current_total_price, 0)
-                   - COALESCE(o.current_total_tax, 0)
-                   - COALESCE(o.current_shipping_price, 0)) AS revenue
+               SUM(COALESCE(o.current_subtotal_price, 0)
+                   - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                   - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END) AS revenue
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -585,9 +591,9 @@ ORDER BY df.bucket ASC
     '
     WITH per_customer AS (
         SELECT o.customer_id,
-               SUM(COALESCE(o.current_total_price, 0)
-                   - COALESCE(o.current_total_tax, 0)
-                   - COALESCE(o.current_shipping_price, 0)) AS revenue,
+               SUM(COALESCE(o.current_subtotal_price, 0)
+                   - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                   - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END) AS revenue,
                COUNT(*) AS orders,
                MAX(o.created_at)::date AS last_order_date
         FROM public.fact_order_headers o
@@ -699,9 +705,9 @@ VALUES (
     WITH ranked AS (
         SELECT o.customer_id,
                o.created_at::date AS day,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales,
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales,
                ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
@@ -790,9 +796,9 @@ VALUES (
     WITH ranked AS (
         SELECT o.customer_id,
                o.created_at::date AS day,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales,
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales,
                ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
@@ -927,7 +933,13 @@ VALUES (
         SELECT o.id,
                o.customer_id,
                o.financialstatus,
-               COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -1001,9 +1013,9 @@ VALUES (
     WITH located_orders AS (
         SELECT COALESCE(o.shipping_address #>> '{country}', 'Unknown') AS country,
                o.customer_id,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -1042,9 +1054,9 @@ VALUES (
         SELECT COALESCE(o.shipping_address #>> '{city}', 'Unknown') AS city,
                COALESCE(o.shipping_address #>> '{province}', 'Unknown') AS province,
                COALESCE(o.shipping_address #>> '{country}', 'Unknown') AS country,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -1083,9 +1095,9 @@ VALUES (
                COALESCE(o.shipping_address #>> '{province}', 'Unknown') AS province,
                COALESCE(o.shipping_address #>> '{city}', 'Unknown') AS city,
                o.customer_id,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -1135,9 +1147,9 @@ VALUES (
     WITH order_status AS (
         SELECT CASE WHEN COALESCE(c.taxExempt, FALSE)
                     THEN 'Tax-Exempt' ELSE 'Not Tax-Exempt' END AS status,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         JOIN public.dim_customers c ON c.id = o.customer_id
         WHERE o.seller_id = :shopId
@@ -1235,9 +1247,9 @@ VALUES (
     WITH valid_orders AS (
         SELECT o.customer_id,
                o.created_at::date AS day,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -1297,9 +1309,9 @@ VALUES (
     WITH per_customer AS (
         SELECT o.customer_id,
                COUNT(*) AS orders,
-               SUM(COALESCE(o.current_total_price, 0)
-                   - COALESCE(o.current_total_tax, 0)
-                   - COALESCE(o.current_shipping_price, 0)) AS revenue
+               SUM(COALESCE(o.current_subtotal_price, 0)
+                   - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                   - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END) AS revenue
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE

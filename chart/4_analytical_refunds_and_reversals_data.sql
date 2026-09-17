@@ -71,8 +71,14 @@ VALUES (
     WITH
     /*date_granularity_cte*/
     filtered_orders AS (
-        SELECT o.id,
-               date_trunc(LOWER(dp.g), o.created_at) AS bucket
+        SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket,
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
@@ -95,9 +101,8 @@ VALUES (
     ),
     daily_gross AS (
         SELECT f.bucket,
-               SUM(COALESCE(li.original_total_amount, li.original_unit_price * li.quantity, 0)) AS gross_sales
-        FROM public.fact_order_line_items li
-        JOIN filtered_orders f ON f.id = li.order_id
+               SUM(f.gross_sales) AS gross_sales
+        FROM filtered_orders f
         GROUP BY f.bucket
     ),
     daily_refunds AS (
@@ -147,9 +152,9 @@ VALUES (
     /*date_granularity_cte*/
     filtered_orders AS (
         SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
@@ -249,18 +254,17 @@ VALUES (
 
     order_gross AS (
         SELECT
-            li.order_id,
-            SUM(
-                COALESCE(
-                    li.original_total_amount,
-                    li.original_unit_price * li.quantity,
-                    0
-                )
-            ) AS gross_sales
-        FROM public.fact_order_line_items li
+            o.id AS order_id,
+            CASE
+                 WHEN o.financialstatus = ''VOIDED'' THEN 0
+                 ELSE COALESCE(o.subtotal_price, 0)
+                    + COALESCE(o.total_discounts_amount, 0)
+                    + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                    + COALESCE(o.total_shipping_price, 0)
+            END AS gross_sales
+        FROM public.fact_order_headers o
         JOIN refunded_orders ro
-            ON ro.order_id = li.order_id
-        GROUP BY li.order_id
+            ON ro.order_id = o.id
     )
 
     SELECT
@@ -272,9 +276,9 @@ VALUES (
             2
         ) AS gross_sales,
         ROUND(
-            COALESCE(o.current_total_price, 0)
-            - COALESCE(o.current_total_tax, 0)
-            - COALESCE(o.current_shipping_price, 0),
+            COALESCE(o.current_subtotal_price, 0)
+            - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+            - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END,
             2
         ) AS net_sales,
         ROUND(
@@ -492,11 +496,7 @@ VALUES (
     WITH refund_records AS (
         SELECT
             r.order_id,
-            string_agg(
-                r.id::text,
-                CHR(44) || CHR(32)
-                ORDER BY r.id
-            ) AS refund_id,
+            r.id AS refund_id,
             SUM(COALESCE(r.total_refunded_amount, 0)) AS refund_amount
         FROM public.fact_order_refunds r
         JOIN public.fact_order_headers o
@@ -512,16 +512,13 @@ VALUES (
               :currentEndDate IS NULL
               OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date
           )
-        GROUP BY r.order_id
+        GROUP BY r.order_id, r.id
     ),
 
     refund_txns AS (
         SELECT
             t.order_id,
-            string_agg(
-                DISTINCT t.gateway,
-                CHR(44) || CHR(32)
-            ) AS gateway,
+            t.gateway AS gateway,
             SUM(COALESCE(t.amount, 0)) AS transaction_amount
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o
@@ -540,7 +537,7 @@ VALUES (
               :currentEndDate IS NULL
               OR t.processed_at::date <= :currentEndDate::date
           )
-        GROUP BY t.order_id
+        GROUP BY t.order_id, t.gateway
     )
 
     SELECT
@@ -1002,7 +999,14 @@ VALUES (
     'Refunds & Reversals/Channel Customer & Geography/PLOT/Refunds by Channel',
     $$
     WITH filtered_orders AS (
-        SELECT o.id, COALESCE(o.attribution_displayname,o.source_name, 'unknown') AS channel
+        SELECT o.id, COALESCE(o.attribution_displayname,o.source_name, 'unknown') AS channel,
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -1015,20 +1019,12 @@ VALUES (
         FROM public.fact_order_refunds r
         JOIN filtered_orders f ON f.id = r.order_id
         GROUP BY r.order_id
-    ),
-    order_gross AS (
-        SELECT li.order_id,
-               SUM(COALESCE(li.original_total_amount, li.original_unit_price * li.quantity, 0)) AS gross
-        FROM public.fact_order_line_items li
-        JOIN filtered_orders f ON f.id = li.order_id
-        GROUP BY li.order_id
     )
     SELECT f.channel AS channel,
            ROUND(COALESCE(SUM(orf.refunded), 0), 2) AS refunded_amount,
-           COALESCE(ROUND(100 * COALESCE(SUM(orf.refunded), 0) / NULLIF(SUM(og.gross), 0), 2), 0) AS refund_rate
+           COALESCE(ROUND(100 * COALESCE(SUM(orf.refunded), 0) / NULLIF(SUM(f.gross_sales), 0), 2), 0) AS refund_rate
     FROM filtered_orders f
     LEFT JOIN order_refunds orf ON orf.order_id = f.id
-    LEFT JOIN order_gross og ON og.order_id = f.id
     GROUP BY f.channel
     ORDER BY refunded_amount DESC
     $$,
@@ -1115,7 +1111,14 @@ VALUES (
                 o.shipping_address #>> ''{country}'',
                 o.shipping_address #>> ''{province}'',
                 o.shipping_address #>> ''{city}''
-            ) AS country
+            ) AS country,
+            CASE
+                 WHEN o.financialstatus = ''VOIDED'' THEN 0
+                 ELSE COALESCE(o.subtotal_price, 0)
+                    + COALESCE(o.total_discounts_amount, 0)
+                    + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                    + COALESCE(o.total_shipping_price, 0)
+            END AS gross_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -1136,21 +1139,6 @@ VALUES (
         JOIN filtered_orders f
             ON f.id = r.order_id
         GROUP BY r.order_id
-    ),
-    order_gross AS (
-        SELECT
-            li.order_id,
-            SUM(
-                COALESCE(
-                    li.original_total_amount,
-                    li.original_unit_price * li.quantity,
-                    0
-                )
-            ) AS gross
-        FROM public.fact_order_line_items li
-        JOIN filtered_orders f
-            ON f.id = li.order_id
-        GROUP BY li.order_id
     )
     SELECT
         f.country AS country,
@@ -1161,7 +1149,7 @@ VALUES (
         COALESCE(
             ROUND(
                 100 * COALESCE(SUM(orf.refunded), 0)
-                / NULLIF(SUM(og.gross), 0),
+                / NULLIF(SUM(f.gross_sales), 0),
                 2
             ),
             0
@@ -1169,8 +1157,6 @@ VALUES (
     FROM filtered_orders f
     LEFT JOIN order_refunds orf
         ON orf.order_id = f.id
-    LEFT JOIN order_gross og
-        ON og.order_id = f.id
     WHERE f.country IS NOT NULL
     GROUP BY f.country
     ORDER BY refunded_amount DESC
@@ -1265,9 +1251,16 @@ OFFSET COALESCE(:offset, 0);
     WITH filtered_orders AS (
         SELECT o.id,
                COALESCE(o.attribution_displayname,o.source_name, 'unknown') AS channel,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales,
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -1280,24 +1273,16 @@ OFFSET COALESCE(:offset, 0);
         JOIN filtered_orders f ON f.id = r.order_id
         WHERE r.total_refunded_amount > 0
         GROUP BY r.order_id
-    ),
-    order_gross AS (
-        SELECT li.order_id,
-               SUM(COALESCE(li.original_total_amount, li.original_unit_price * li.quantity, 0)) AS gross
-        FROM public.fact_order_line_items li
-        JOIN filtered_orders f ON f.id = li.order_id
-        GROUP BY li.order_id
     )
     SELECT f.channel AS channel,
            COUNT(f.id) AS orders,
            ROUND(SUM(f.net_sales), 2) AS net_sales,
            COUNT(orf.order_id) AS refunded_orders,
            ROUND(COALESCE(SUM(orf.refunded), 0), 2) AS refunded_amount,
-           COALESCE(ROUND(100 * COALESCE(SUM(orf.refunded), 0) / NULLIF(SUM(og.gross), 0), 2), 0) AS refund_rate,
+           COALESCE(ROUND(100 * COALESCE(SUM(orf.refunded), 0) / NULLIF(SUM(f.gross_sales), 0), 2), 0) AS refund_rate,
            COUNT(*) OVER() AS total_records
     FROM filtered_orders f
     LEFT JOIN order_refunds orf ON orf.order_id = f.id
-    LEFT JOIN order_gross og ON og.order_id = f.id
     GROUP BY f.channel
     ORDER BY refunded_amount DESC
     LIMIT COALESCE(:limit, 10)
@@ -1324,7 +1309,14 @@ OFFSET COALESCE(:offset, 0)
     'Refunds & Reversals/Channel Customer & Geography/TABLE/Customer Refund Risk Report',
     $$
     WITH filtered_orders AS (
-        SELECT o.id, o.customer_id
+        SELECT o.id, o.customer_id,
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -1340,22 +1332,14 @@ OFFSET COALESCE(:offset, 0)
         WHERE r.total_refunded_amount > 0
         GROUP BY r.order_id
     ),
-    order_gross AS (
-        SELECT li.order_id,
-               SUM(COALESCE(li.original_total_amount, li.original_unit_price * li.quantity, 0)) AS gross
-        FROM public.fact_order_line_items li
-        JOIN filtered_orders f ON f.id = li.order_id
-        GROUP BY li.order_id
-    ),
     per_customer AS (
         SELECT f.customer_id,
                COUNT(f.id) AS orders,
                COALESCE(SUM(orf.refunds), 0) AS refund_count,
                COALESCE(SUM(orf.refunded), 0) AS refunded_amount,
-               SUM(og.gross) AS gross
+               SUM(f.gross_sales) AS gross
         FROM filtered_orders f
         LEFT JOIN order_refunds orf ON orf.order_id = f.id
-        LEFT JOIN order_gross og ON og.order_id = f.id
         GROUP BY f.customer_id
     )
     SELECT COALESCE(NULLIF(TRIM(CONCAT_WS(' ', cu.first_name, cu.last_name)), ''),

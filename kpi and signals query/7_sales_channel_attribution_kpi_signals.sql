@@ -7,9 +7,13 @@ VALUES (
     'Total Channel Revenue',
     'Sales Channel Attribution/Channel Performance/KPI/Total Channel Revenue',
     $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_total_price, 0)
-                            - COALESCE(o.current_total_tax, 0)
-                            - COALESCE(o.current_shipping_price, 0)), 0), 2) AS total_channel_revenue
+    SELECT ROUND(COALESCE(SUM(CASE
+                                   WHEN o.financialstatus = 'VOIDED' THEN 0
+                                   ELSE COALESCE(o.subtotal_price, 0)
+                                      + COALESCE(o.total_discounts_amount, 0)
+                                      + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                                      + COALESCE(o.total_shipping_price, 0)
+                              END), 0), 2) AS total_channel_revenue
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
@@ -19,7 +23,7 @@ VALUES (
     NULL,
     'KPI',
     60,
-    'Net sales across all sales channels for the selected period vs the prior period.',
+    'Gross sales across all sales channels, including tax and shipping and excluding voided orders, for the selected period vs the prior period.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -65,9 +69,9 @@ VALUES (
     'Channel AOV',
     'Sales Channel Attribution/Channel Performance/KPI/Channel AOV',
     $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_total_price, 0)
-                            - COALESCE(o.current_total_tax, 0)
-                            - COALESCE(o.current_shipping_price, 0)), 0)
+    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_subtotal_price, 0)
+                            - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                            - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END), 0)
                  / NULLIF(COUNT(*), 0), 2) AS channel_aov
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
@@ -101,9 +105,13 @@ VALUES (
                         o.order_app_name,
                         o.source_name,
                         'Unattributed') AS channel,
-               SUM(COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0)) AS net_sales
+               SUM(CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(o.subtotal_price, 0)
+                           + COALESCE(o.total_discounts_amount, 0)
+                           + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                           + COALESCE(o.total_shipping_price, 0)
+                   END) AS gross_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -111,14 +119,14 @@ VALUES (
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY 1
     )
-    SELECT ROUND(COALESCE((SELECT net_sales FROM channel_current
-                     ORDER BY net_sales DESC NULLS LAST, channel ASC
+    SELECT ROUND(COALESCE((SELECT gross_sales FROM channel_current
+                     ORDER BY gross_sales DESC NULLS LAST, channel ASC
                      LIMIT 1), 0), 2) AS top_revenue_channel
     $$,
     NULL,
     'KPI',
     60,
-    'Sales channel with the highest net sales in the selected period.',
+    'Sales channel with the highest gross sales in the selected period.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -141,9 +149,9 @@ VALUES (
                         o.order_app_name,
                         o.source_name,
                         'Unattributed') AS channel,
-               SUM(COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0))
+               SUM(COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END)
                  / NULLIF(COUNT(*), 0) AS aov
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
@@ -177,9 +185,9 @@ VALUES (
     'Net Revenue After Refunds',
     'Sales Channel Attribution/Channel Quality & Profitability/KPI/Net Revenue After Refunds',
     $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_total_price, 0)
-                            - COALESCE(o.current_total_tax, 0)
-                            - COALESCE(o.current_shipping_price, 0)), 0), 2)
+    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_subtotal_price, 0)
+                            - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                            - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END), 0), 2)
            AS net_revenue_after_refunds
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
@@ -210,7 +218,13 @@ VALUES (
     $$
     WITH scoped_orders AS (
         SELECT o.id,
-               COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -251,8 +265,13 @@ VALUES (
     'Sales Channel Attribution/Channel Quality & Profitability/KPI/Channel Discount Rate',
     $$
     SELECT ROUND(100 * COALESCE(SUM(COALESCE(o.total_discounts_amount, 0)), 0)
-                 / NULLIF(COALESCE(SUM(COALESCE(o.subtotal_price, 0)
-                                     + COALESCE(o.total_discounts_amount, 0)), 0), 0), 2)
+                 / NULLIF(COALESCE(SUM(CASE
+                                            WHEN o.financialstatus = 'VOIDED' THEN 0
+                                            ELSE COALESCE(o.subtotal_price, 0)
+                                               + COALESCE(o.total_discounts_amount, 0)
+                                               + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                                               + COALESCE(o.total_shipping_price, 0)
+                                       END), 0), 0), 2)
            AS channel_discount_rate
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
@@ -281,9 +300,13 @@ VALUES (
     'UTM Revenue',
     'Sales Channel Attribution/Marketing Attribution/KPI/UTM Revenue',
     $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_total_price, 0)
-                            - COALESCE(o.current_total_tax, 0)
-                            - COALESCE(o.current_shipping_price, 0)), 0), 2) AS utm_revenue
+    SELECT ROUND(COALESCE(SUM(CASE
+                                   WHEN o.financialstatus = 'VOIDED' THEN 0
+                                   ELSE COALESCE(o.subtotal_price, 0)
+                                      + COALESCE(o.total_discounts_amount, 0)
+                                      + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                                      + COALESCE(o.total_shipping_price, 0)
+                              END), 0), 2) AS utm_revenue
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
@@ -296,7 +319,7 @@ VALUES (
     NULL,
     'KPI',
     60,
-    'Net sales from UTM-tagged orders for the selected period vs the prior period.',
+    'Gross sales from UTM-tagged orders for the selected period vs the prior period.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -314,9 +337,9 @@ VALUES (
     'UTM AOV',
     'Sales Channel Attribution/Marketing Attribution/KPI/UTM AOV',
     $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_total_price, 0)
-                            - COALESCE(o.current_total_tax, 0)
-                            - COALESCE(o.current_shipping_price, 0)), 0)
+    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_subtotal_price, 0)
+                            - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                            - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END), 0)
                  / NULLIF(COUNT(*), 0), 2) AS utm_aov
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
@@ -348,9 +371,13 @@ VALUES (
     'Referral Revenue',
     'Sales Channel Attribution/Marketing Attribution/KPI/Referral Revenue',
     $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_total_price, 0)
-                            - COALESCE(o.current_total_tax, 0)
-                            - COALESCE(o.current_shipping_price, 0)), 0), 2) AS referral_revenue
+    SELECT ROUND(COALESCE(SUM(CASE
+                                   WHEN o.financialstatus = 'VOIDED' THEN 0
+                                   ELSE COALESCE(o.subtotal_price, 0)
+                                      + COALESCE(o.total_discounts_amount, 0)
+                                      + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                                      + COALESCE(o.total_shipping_price, 0)
+                              END), 0), 2) AS referral_revenue
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
@@ -361,7 +388,7 @@ VALUES (
     NULL,
     'KPI',
     60,
-    'Net sales from orders with a referring site for the selected period vs the prior period.',
+    'Gross sales from orders with a referring site for the selected period vs the prior period.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -380,9 +407,13 @@ VALUES (
     'Sales Channel Attribution/Marketing Attribution/KPI/Paid Revenue Share',
     $$
     WITH classified AS (
-        SELECT COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales,
+        SELECT CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales,
                LOWER(NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,medium}'), ''))
                  IN ('cpc', 'ppc', 'paid', 'paidsearch', 'paid_search',
                      'paid-search', 'cpm', 'cpv', 'display', 'banner',
@@ -393,14 +424,14 @@ VALUES (
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
-    SELECT COALESCE(ROUND(100 * COALESCE(SUM(net_sales) FILTER (WHERE is_paid), 0)
-                          / NULLIF(COALESCE(SUM(net_sales), 0), 0), 2), 0) AS paid_revenue_share
+    SELECT COALESCE(ROUND(100 * COALESCE(SUM(gross_sales) FILTER (WHERE is_paid), 0)
+                          / NULLIF(COALESCE(SUM(gross_sales), 0), 0), 2), 0) AS paid_revenue_share
     FROM classified
     $$,
     NULL,
     'KPI',
     60,
-    'Paid media net sales as a percentage of total net sales, for the selected period vs the prior period.',
+    'Paid media gross sales as a percentage of total gross sales, for the selected period vs the prior period.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -516,16 +547,20 @@ VALUES (
     'total_channel_revenue',
     $$
     WITH order_totals AS (
-        SELECT COALESCE(SUM(net_sales) FILTER (WHERE is_current), 0) AS cur_value,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_prior),   0) AS prv_value
+        SELECT COALESCE(SUM(gross_sales) FILTER (WHERE is_current), 0) AS cur_value,
+               COALESCE(SUM(gross_sales) FILTER (WHERE is_prior),   0) AS prv_value
         FROM (
             SELECT ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
+                   CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(o.subtotal_price, 0)
+                           + COALESCE(o.total_discounts_amount, 0)
+                           + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                           + COALESCE(o.total_shipping_price, 0)
+                   END AS gross_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
@@ -578,9 +613,9 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
+                   COALESCE(o.current_subtotal_price, 0)
+                     - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                     - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
@@ -611,9 +646,9 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
+                   COALESCE(o.current_subtotal_price, 0)
+                     - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                     - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
@@ -638,7 +673,13 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales
+                   CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(o.subtotal_price, 0)
+                           + COALESCE(o.total_discounts_amount, 0)
+                           + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                           + COALESCE(o.total_shipping_price, 0)
+                   END AS gross_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
@@ -685,7 +726,13 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(o.subtotal_price, 0) + COALESCE(o.total_discounts_amount, 0) AS gross_sales,
+                   CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(o.subtotal_price, 0)
+                           + COALESCE(o.total_discounts_amount, 0)
+                           + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                           + COALESCE(o.total_shipping_price, 0)
+                   END AS gross_sales,
                    COALESCE(o.total_discounts_amount, 0) AS discounts
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
@@ -710,8 +757,8 @@ VALUES (
     'utm_revenue',
     $$
     WITH totals AS (
-        SELECT COALESCE(SUM(net_sales) FILTER (WHERE is_current AND has_utm), 0) AS cur_value,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_prior   AND has_utm), 0) AS prv_value
+        SELECT COALESCE(SUM(gross_sales) FILTER (WHERE is_current AND has_utm), 0) AS cur_value,
+               COALESCE(SUM(gross_sales) FILTER (WHERE is_prior   AND has_utm), 0) AS prv_value
         FROM (
             SELECT ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
@@ -720,9 +767,13 @@ VALUES (
                    (NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,source}'), '') IS NOT NULL
                  OR NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,medium}'), '') IS NOT NULL
                  OR NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,campaign}'), '') IS NOT NULL) AS has_utm,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
+                   CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(o.subtotal_price, 0)
+                           + COALESCE(o.total_discounts_amount, 0)
+                           + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                           + COALESCE(o.total_shipping_price, 0)
+                   END AS gross_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
@@ -753,9 +804,9 @@ VALUES (
                    (NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,source}'), '') IS NOT NULL
                  OR NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,medium}'), '') IS NOT NULL
                  OR NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,campaign}'), '') IS NOT NULL) AS has_utm,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
+                   COALESCE(o.current_subtotal_price, 0)
+                     - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                     - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
@@ -779,17 +830,21 @@ VALUES (
     'referral_revenue',
     $$
     WITH totals AS (
-        SELECT COALESCE(SUM(net_sales) FILTER (WHERE is_current AND has_referral), 0) AS cur_value,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_prior   AND has_referral), 0) AS prv_value
+        SELECT COALESCE(SUM(gross_sales) FILTER (WHERE is_current AND has_referral), 0) AS cur_value,
+               COALESCE(SUM(gross_sales) FILTER (WHERE is_prior   AND has_referral), 0) AS prv_value
         FROM (
             SELECT ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
                    (o.customer_journey_summary #>> '{lastVisit,referrerUrl}' IS NOT NULL) AS has_referral,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
+                   CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(o.subtotal_price, 0)
+                           + COALESCE(o.total_discounts_amount, 0)
+                           + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                           + COALESCE(o.total_shipping_price, 0)
+                   END AS gross_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
@@ -808,10 +863,10 @@ VALUES (
     'paid_revenue_share',
     $$
     WITH totals AS (
-        SELECT COALESCE(SUM(net_sales) FILTER (WHERE is_current AND is_paid), 0) AS cur_paid,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_prior   AND is_paid), 0) AS prv_paid,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_current), 0) AS cur_total,
-               COALESCE(SUM(net_sales) FILTER (WHERE is_prior),   0) AS prv_total
+        SELECT COALESCE(SUM(gross_sales) FILTER (WHERE is_current AND is_paid), 0) AS cur_paid,
+               COALESCE(SUM(gross_sales) FILTER (WHERE is_prior   AND is_paid), 0) AS prv_paid,
+               COALESCE(SUM(gross_sales) FILTER (WHERE is_current), 0) AS cur_total,
+               COALESCE(SUM(gross_sales) FILTER (WHERE is_prior),   0) AS prv_total
         FROM (
             SELECT ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
@@ -821,9 +876,13 @@ VALUES (
                      IN ('cpc', 'ppc', 'paid', 'paidsearch', 'paid_search',
                          'paid-search', 'cpm', 'cpv', 'display', 'banner',
                          'retargeting') AS is_paid,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
+                   CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(o.subtotal_price, 0)
+                           + COALESCE(o.total_discounts_amount, 0)
+                           + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                           + COALESCE(o.total_shipping_price, 0)
+                   END AS gross_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE

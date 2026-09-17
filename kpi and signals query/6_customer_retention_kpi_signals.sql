@@ -141,9 +141,9 @@ VALUES (
     'Customer Revenue',
     'Customer Retention/Customer Revenue & Value/KPI/Customer Revenue',
     $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_total_price, 0)
-                            - COALESCE(o.current_total_tax, 0)
-                            - COALESCE(o.current_shipping_price, 0)), 0), 2) AS customer_revenue
+    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_subtotal_price, 0)
+                            - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                            - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END), 0), 2) AS customer_revenue
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
@@ -174,9 +174,9 @@ VALUES (
     $$
     WITH per_customer AS (
         SELECT o.customer_id,
-               SUM(COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0)) AS rev
+               SUM(COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END) AS rev
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -247,9 +247,9 @@ VALUES (
     $$
     WITH per_customer AS (
         SELECT o.customer_id,
-               SUM(COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0)) AS rev
+               SUM(COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END) AS rev
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -341,9 +341,9 @@ VALUES (
     $$
     WITH customer_order_ranks AS (
         SELECT o.created_at::date AS day,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales,
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales,
                ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
@@ -358,9 +358,9 @@ VALUES (
           AND (:currentEndDate::date   IS NULL OR r.day <= :currentEndDate::date)
     ),
     guests AS (
-        SELECT COALESCE(SUM(COALESCE(o.current_total_price, 0)
-                          - COALESCE(o.current_total_tax, 0)
-                          - COALESCE(o.current_shipping_price, 0)), 0) AS rev
+        SELECT COALESCE(SUM(COALESCE(o.current_subtotal_price, 0)
+                          - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                          - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END), 0) AS rev
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
@@ -395,9 +395,9 @@ VALUES (
     $$
     WITH customer_order_ranks AS (
         SELECT o.created_at::date AS day,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales,
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales,
                ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
@@ -698,9 +698,9 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
+                   COALESCE(o.current_subtotal_price, 0)
+                     - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                     - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
@@ -726,9 +726,9 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
+                   COALESCE(o.current_subtotal_price, 0)
+                     - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                     - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
@@ -811,9 +811,9 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
+                   COALESCE(o.current_subtotal_price, 0)
+                     - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                     - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
@@ -923,9 +923,9 @@ VALUES (
     $$
     WITH customer_order_ranks AS (
         SELECT o.created_at::date AS day,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales,
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales,
                ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
@@ -950,9 +950,9 @@ VALUES (
         SELECT COALESCE(SUM(net_sales) FILTER (WHERE is_current), 0) AS cur_guest,
                COALESCE(SUM(net_sales) FILTER (WHERE is_prior),   0) AS prv_guest
         FROM (
-            SELECT COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales,
+            SELECT COALESCE(o.current_subtotal_price, 0)
+                     - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                     - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales,
                    ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
@@ -983,9 +983,9 @@ VALUES (
     $$
     WITH customer_order_ranks AS (
         SELECT o.created_at::date AS day,
-               COALESCE(o.current_total_price, 0)
-                 - COALESCE(o.current_total_tax, 0)
-                 - COALESCE(o.current_shipping_price, 0) AS net_sales,
+               COALESCE(o.current_subtotal_price, 0)
+                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales,
                ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId

@@ -6,9 +6,9 @@ VALUES (
     'Net Sales',
     'Order Reports/Sales & Revenue/KPI/Net Sales',
     $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_total_price, 0)
-                            - COALESCE(o.current_total_tax, 0)
-                            - COALESCE(o.current_shipping_price, 0)), 0), 2) AS net_sales
+    SELECT ROUND(COALESCE(SUM(COALESCE(o.current_subtotal_price, 0)
+                            - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                            - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END), 0), 2) AS net_sales
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
@@ -35,8 +35,13 @@ VALUES (
     'Gross Sales',
     'Order Reports/Sales & Revenue/KPI/Gross Sales',
     $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(o.subtotal_price, 0)
-                            + COALESCE(o.total_discounts_amount, 0)), 0), 2) AS gross_sales
+    SELECT ROUND(COALESCE(SUM(CASE
+                                   WHEN o.financialstatus = 'VOIDED' THEN 0
+                                   ELSE COALESCE(o.subtotal_price, 0)
+                                      + COALESCE(o.total_discounts_amount, 0)
+                                      + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                                      + COALESCE(o.total_shipping_price, 0)
+                              END), 0), 2) AS gross_sales
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
@@ -63,9 +68,9 @@ VALUES (
     'Average Order Value',
     'Order Reports/Sales & Revenue/KPI/Average Order Value',
     $$
-    SELECT ROUND(COALESCE(COALESCE(SUM(COALESCE(o.current_total_price, 0)
-                                     - COALESCE(o.current_total_tax, 0)
-                                     - COALESCE(o.current_shipping_price, 0)), 0)
+    SELECT ROUND(COALESCE(COALESCE(SUM(COALESCE(o.current_subtotal_price, 0)
+                                     - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                                     - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END), 0)
                           / NULLIF(COUNT(*), 0), 0), 2) AS average_order_value
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
@@ -447,9 +452,9 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
+                   COALESCE(o.current_subtotal_price, 0)
+                     - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                     - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
@@ -475,8 +480,13 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(o.subtotal_price, 0)
-                     + COALESCE(o.total_discounts_amount, 0) AS gross_sales
+                   CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(o.subtotal_price, 0)
+                           + COALESCE(o.total_discounts_amount, 0)
+                           + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                           + COALESCE(o.total_shipping_price, 0)
+                   END AS gross_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
@@ -504,9 +514,9 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(o.current_total_price, 0)
-                     - COALESCE(o.current_total_tax, 0)
-                     - COALESCE(o.current_shipping_price, 0) AS net_sales
+                   COALESCE(o.current_subtotal_price, 0)
+                     - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+                     - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
