@@ -194,10 +194,10 @@ VALUES (
     'Discount Leakage',
     'Executive Store Health/Discount & Refund/KPI/Discount Leakage',
     $$
-    SELECT ROUND(100 * COALESCE(SUM(li.total_discount_amount), 0)
-                 / NULLIF(COALESCE(SUM(li.original_unit_price * li.quantity), 0), 0), 2) AS discount_leakage
-    FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
+    SELECT ROUND(100 * COALESCE(SUM(o.total_discounts_amount), 0)
+                 / NULLIF(COALESCE(SUM(COALESCE(o.subtotal_price, 0)
+                 + COALESCE(o.total_discounts_amount, 0)), 0), 0), 2) AS discount_leakage
+    FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
@@ -210,7 +210,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -576,32 +575,29 @@ VALUES (
     '01a066f6-d340-7390-80ca-c5e231f32816',
     'discount_leakage',
     $$
-    WITH line_item_totals AS (
-        SELECT COALESCE(SUM(li.total_discount_amount)
-                        FILTER (WHERE t.is_current), 0) AS cur_discounts,
-               COALESCE(SUM(li.total_discount_amount)
-                        FILTER (WHERE t.is_prior),   0) AS prv_discounts,
-               COALESCE(SUM(li.original_unit_price * li.quantity)
-                        FILTER (WHERE t.is_current), 0) AS cur_gross_sales,
-               COALESCE(SUM(li.original_unit_price * li.quantity)
-                        FILTER (WHERE t.is_prior),   0) AS prv_gross_sales
+    WITH order_totals AS (
+        SELECT COALESCE(SUM(discounts) FILTER (WHERE is_current), 0) AS cur_discounts,
+               COALESCE(SUM(discounts) FILTER (WHERE is_prior),   0) AS prv_discounts,
+               COALESCE(SUM(gross_sales) FILTER (WHERE is_current), 0) AS cur_gross_sales,
+               COALESCE(SUM(gross_sales) FILTER (WHERE is_prior),   0) AS prv_gross_sales
         FROM (
-            SELECT o.id,
-                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+            SELECT ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
+                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
+                   COALESCE(o.total_discounts_amount, 0) AS discounts,
+                   COALESCE(o.subtotal_price, 0)
+                     + COALESCE(o.total_discounts_amount, 0) AS gross_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
         ) t
-        JOIN public.fact_order_line_items li ON li.order_id = t.id
         WHERE t.is_current OR t.is_prior
     ),
     computed AS (
-        SELECT ROUND(100 * lt.cur_discounts / NULLIF(lt.cur_gross_sales, 0), 2) AS cur_leakage,
-               ROUND(100 * lt.prv_discounts / NULLIF(lt.prv_gross_sales, 0), 2) AS prv_leakage
-        FROM line_item_totals lt
+        SELECT ROUND(100 * ot.cur_discounts / NULLIF(ot.cur_gross_sales, 0), 2) AS cur_leakage,
+               ROUND(100 * ot.prv_discounts / NULLIF(ot.prv_gross_sales, 0), 2) AS prv_leakage
+        FROM order_totals ot
     )
     SELECT c.prv_leakage AS previous_value,
            ROUND(100 * (c.cur_leakage - c.prv_leakage)

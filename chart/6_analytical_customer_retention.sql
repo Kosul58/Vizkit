@@ -513,9 +513,6 @@ ORDER BY df.bucket ASC
     )
     SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
                 THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
-                     || CHR(32) || CHR(40)
-                     || COALESCE(c.email, c.id::text)
-                     || CHR(41)
                 ELSE COALESCE(c.email, 'Guest') END AS customer,
            ROUND(p.revenue, 2) AS revenue
     FROM per_customer p
@@ -726,16 +723,23 @@ VALUES (
     ),
     cohort_list AS (
         SELECT DISTINCT cohort_month FROM cohort_members
+        ORDER BY cohort_month DESC
+        LIMIT 12
+    ),
+    repeat_orders AS (
+      SELECT m.cohort_month,
+           LEAST((EXTRACT(YEAR FROM r.day)::int - EXTRACT(YEAR FROM m.first_day)::int) * 12
+               + (EXTRACT(MONTH FROM r.day)::int - EXTRACT(MONTH FROM m.first_day)::int), 5) AS month_offset,
+           r.net_sales
+      FROM ranked r
+      JOIN cohort_members m ON m.customer_id = r.customer_id
+      WHERE r.order_rank > 1
+      AND m.cohort_month IN (SELECT cohort_month FROM cohort_list)
     ),
     cohort_totals AS (
-        SELECT m.cohort_month,
-               LEAST((EXTRACT(YEAR FROM r.day)::int - EXTRACT(YEAR FROM m.first_day)::int) * 12
-                   + (EXTRACT(MONTH FROM r.day)::int - EXTRACT(MONTH FROM m.first_day)::int), 5) AS month_offset,
-               SUM(r.net_sales) AS net_sales
-        FROM ranked r
-        JOIN cohort_members m ON m.customer_id = r.customer_id
-        WHERE r.order_rank > 1
-        GROUP BY m.cohort_month, 2
+        SELECT cohort_month, month_offset, SUM(net_sales) AS net_sales
+        FROM repeat_orders
+        GROUP BY cohort_month, month_offset
     )
     SELECT EXTRACT(YEAR FROM cl.cohort_month)::text || CHR(45)
              || LPAD(EXTRACT(MONTH FROM cl.cohort_month)::text, 2, CHR(48)) AS cohort,

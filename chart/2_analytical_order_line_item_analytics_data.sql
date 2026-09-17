@@ -252,7 +252,7 @@ OFFSET COALESCE(:offset, 0)
                p.title AS product,
                p.vendor AS vendor,
                p.product_type AS product_type,
-               tc.name AS category,
+               COALESCE(tc.name, 'Uncategorized') AS category,
                f.order_id,
                f.units,
                f.gross_sales,
@@ -721,7 +721,7 @@ VALUES (
     '019fff82-e31b-7a43-a257-44955fedfa5b',
     'Sales by Category',
     'Order Line Item Analytics/Product Portfolio/PLOT/Sales by Category',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
@@ -732,18 +732,18 @@ VALUES (
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
-    SELECT COALESCE(tc.name, p.product_type, pv.sku) AS category,
+    SELECT COALESCE(tc.name, 'Uncategorized') AS category,
            ROUND(SUM(f.net_sales), 2) AS net_sales
     FROM filtered_lines f
     JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
     LEFT JOIN public.dim_products p ON p.id = pv.product_id
     LEFT JOIN public.dim_taxonomy_categories tc ON tc.id = p.category_id AND tc.seller_id = p.seller_id
-    GROUP BY COALESCE(tc.name, p.product_type, pv.sku)
+    GROUP BY COALESCE(tc.name, 'Uncategorized')
     HAVING SUM(f.net_sales) > 0
     ORDER BY net_sales DESC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
     NULL,
     'PLOT',
     60,
@@ -751,7 +751,6 @@ OFFSET COALESCE(:offset, 0)
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "userId": { "source": "AUTH_CONTEXT", "contextKey": "user_id" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
         "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },

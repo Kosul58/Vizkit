@@ -152,7 +152,7 @@ VALUES (
                    WHEN dp.g = 'YEAR'    THEN to_char(df.bucket, 'YYYY')
                END AS period_label,
                ROUND(COALESCE(l.gross_sales, 0), 2) AS gross_sales,
-               ROUND(-COALESCE(l.discounts, 0), 2)  AS discount,
+               ROUND(-COALESCE(l.discounts, 0), 2)  AS discounts,
                ROUND(-COALESCE(r.refunds, 0), 2)    AS refunds,
                ROUND(COALESCE(t.net_sales, 0), 2)   AS net_sales
         FROM date_filler df
@@ -163,7 +163,7 @@ VALUES (
     )
     SELECT s.period_label AS category,
            s.gross_sales  AS gross_sales,
-           s.discount     AS discount,
+           s.discounts     AS discounts,
            s.refunds      AS refunds,
            s.net_sales    AS net_sales
     FROM stages s
@@ -260,22 +260,22 @@ VALUES (
     WITH
     /*date_granularity_cte*/
     filtered_orders AS (
-        SELECT o.id,
-               date_trunc(LOWER(dp.g), o.created_at) AS bucket
+        SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket,
+               COALESCE(o.subtotal_price, 0)
+                 + COALESCE(o.total_discounts_amount, 0) AS gross_sales,
+               COALESCE(o.total_discounts_amount, 0) AS discount_amount
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
-          
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
     ),
     daily AS (
         SELECT f.bucket,
-               COALESCE(SUM(li.total_discount_amount), 0) AS discount_amount,
-               COALESCE(SUM(li.original_total_amount), 0) AS original_amount
-        FROM public.fact_order_line_items li
-        JOIN filtered_orders f ON f.id = li.order_id
+               SUM(f.gross_sales) AS gross_sales,
+               SUM(f.discount_amount) AS discount_amount
+        FROM filtered_orders f
         GROUP BY f.bucket
     )
     SELECT CASE
@@ -287,7 +287,7 @@ VALUES (
            END AS period,
            df.bucket,
            ROUND(COALESCE(d.discount_amount, 0), 2) AS discount_amount,
-           ROUND(100 * d.discount_amount / NULLIF(d.original_amount, 0), 2) AS discount_rate
+           ROUND(COALESCE(100 * d.discount_amount / NULLIF(d.gross_sales, 0), 0), 2) AS discount_rate
     FROM date_filler df
     CROSS JOIN date_params dp
     LEFT JOIN daily d ON d.bucket = df.bucket
