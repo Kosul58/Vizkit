@@ -240,7 +240,7 @@ o.order_app_name AS app_name,
                        + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
                        + COALESCE(o.total_shipping_price, 0)
                END AS gross_sales,
-               COALESCE(o.total_discounts_amount, 0) AS discounts,
+               CASE WHEN o.financialstatus = ''VOIDED'' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
@@ -322,10 +322,7 @@ NULL,
                 o.current_total_price,
                 0
             ) AS order_total,
-            COALESCE(
-                o.total_discounts_amount,
-                0
-            ) AS discounts,
+            CASE WHEN o.financialstatus = ''VOIDED'' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
             COALESCE(o.current_subtotal_price, 0)
                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
@@ -503,7 +500,7 @@ VALUES (
                        + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
                        + COALESCE(o.total_shipping_price, 0)
                END AS gross_sales,
-               COALESCE(o.total_discounts_amount, 0) AS discounts,
+               CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
                COALESCE(o.attribution_displayname, o.source_name, 'unknown') AS channel
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
@@ -663,17 +660,15 @@ NULL,
 SELECT COALESCE(
         o.attribution_displayname, o.order_app_name, o.source_name, 'Unattributed'
     ) AS channel,
-               CASE
-                    WHEN o.financialstatus = 'VOIDED' THEN 0
-                    ELSE COALESCE(o.subtotal_price, 0)
-                       + COALESCE(o.total_discounts_amount, 0)
-                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
-                       + COALESCE(o.total_shipping_price, 0)
-               END AS gross_sales,
+               COALESCE(o.subtotal_price, 0)
+                  + COALESCE(o.total_discounts_amount, 0)
+                  + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                  + COALESCE(o.total_shipping_price, 0) AS gross_sales,
                COALESCE(o.total_discounts_amount, 0) AS discounts
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
+AND o.financialstatus != 'VOIDED'
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -719,7 +714,7 @@ o.fulfillmentStatus AS fulfillment_status,
                        + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
                        + COALESCE(o.total_shipping_price, 0)
                END AS gross_sales,
-               COALESCE(o.total_discounts_amount, 0) AS discounts,
+               CASE WHEN o.financialstatus = ''VOIDED'' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
                COALESCE(o.total_outstanding_amount, 0) AS outstanding,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
@@ -1101,7 +1096,7 @@ LOWER(NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,sour
                        + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
                        + COALESCE(o.total_shipping_price, 0)
                END AS gross_sales,
-               COALESCE(o.total_discounts_amount, 0) AS discounts,
+               CASE WHEN o.financialstatus = ''VOIDED'' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales

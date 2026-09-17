@@ -110,7 +110,7 @@ VALUES (
                        + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
                        + COALESCE(o.total_shipping_price, 0)
                END AS gross_sales,
-               COALESCE(o.total_discounts_amount, 0) AS discounts
+               CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
@@ -263,18 +263,16 @@ VALUES (
     /*date_granularity_cte*/
     filtered_orders AS (
         SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket,
-               CASE
-                    WHEN o.financialstatus = 'VOIDED' THEN 0
-                    ELSE COALESCE(o.subtotal_price, 0)
-                       + COALESCE(o.total_discounts_amount, 0)
-                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
-                       + COALESCE(o.total_shipping_price, 0)
-               END AS gross_sales,
+               COALESCE(o.subtotal_price, 0)
+                  + COALESCE(o.total_discounts_amount, 0)
+                  + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                  + COALESCE(o.total_shipping_price, 0) AS gross_sales,
                COALESCE(o.total_discounts_amount, 0) AS discount_amount
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
+          AND o.financialstatus != 'VOIDED'
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
     ),
@@ -859,7 +857,7 @@ OFFSET COALESCE(:offset, 0)
                        + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
                        + COALESCE(o.total_shipping_price, 0)
                END AS gross_sales,
-               COALESCE(o.total_discounts_amount, 0) AS discounts,
+               CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
                COALESCE(o.attribution_displayname, o.source_name, 'unknown') AS channel
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId

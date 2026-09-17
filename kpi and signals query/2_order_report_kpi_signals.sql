@@ -102,6 +102,7 @@ VALUES (
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
+      AND o.financialstatus != 'VOIDED'
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -541,6 +542,7 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
+              AND o.financialstatus != 'VOIDED'
         ) t
         WHERE t.is_current OR t.is_prior
     )

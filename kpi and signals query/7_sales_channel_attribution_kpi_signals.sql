@@ -258,17 +258,15 @@ VALUES (
     'Sales Channel Attribution/Channel Quality & Profitability/KPI/Channel Discount Rate',
     $$
     SELECT ROUND(100 * COALESCE(SUM(COALESCE(o.total_discounts_amount, 0)), 0)
-                 / NULLIF(COALESCE(SUM(CASE
-                                            WHEN o.financialstatus = 'VOIDED' THEN 0
-                                            ELSE COALESCE(o.subtotal_price, 0)
-                                               + COALESCE(o.total_discounts_amount, 0)
-                                               + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
-                                               + COALESCE(o.total_shipping_price, 0)
-                                       END), 0), 0), 2)
+                 / NULLIF(COALESCE(SUM(COALESCE(o.subtotal_price, 0)
+                                          + COALESCE(o.total_discounts_amount, 0)
+                                          + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                                          + COALESCE(o.total_shipping_price, 0)), 0), 0), 2)
            AS channel_discount_rate
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
       AND o.test = FALSE
+      AND o.financialstatus != 'VOIDED'
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -711,17 +709,15 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   CASE
-                        WHEN o.financialstatus = 'VOIDED' THEN 0
-                        ELSE COALESCE(o.subtotal_price, 0)
-                           + COALESCE(o.total_discounts_amount, 0)
-                           + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
-                           + COALESCE(o.total_shipping_price, 0)
-                   END AS gross_sales,
+                   COALESCE(o.subtotal_price, 0)
+                      + COALESCE(o.total_discounts_amount, 0)
+                      + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                      + COALESCE(o.total_shipping_price, 0) AS gross_sales,
                    COALESCE(o.total_discounts_amount, 0) AS discounts
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND o.test = FALSE
+              AND o.financialstatus != 'VOIDED'
         ) t
         WHERE t.is_current OR t.is_prior
     ),
