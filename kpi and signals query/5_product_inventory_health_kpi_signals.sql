@@ -24,7 +24,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -53,7 +52,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -89,7 +87,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -123,7 +120,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -176,7 +172,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -247,7 +242,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -308,7 +302,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -337,7 +330,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -367,7 +359,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -416,7 +407,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -446,7 +436,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -472,7 +461,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -498,7 +486,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -527,7 +514,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
@@ -562,7 +548,6 @@ VALUES (
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
-        "userId":           { "source": "AUTH_CONTEXT",   "contextKey": "user_id"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
         "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
         "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
