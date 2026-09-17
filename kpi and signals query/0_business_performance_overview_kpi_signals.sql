@@ -126,17 +126,14 @@ VALUES (
     'Total Customers',
     'Business Performance Overview/Overview/KPI/Total Customers',
     $$
-    SELECT COUNT(DISTINCT o.customer_id) AS total_customers
-    FROM public.fact_order_headers o
-    WHERE o.seller_id = :shopId
-      AND o.test = FALSE
-      AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-      AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+    SELECT COUNT(*) AS total_customers
+    FROM public.dim_customers c
+    WHERE c.seller_id = :shopId
     $$,
     NULL,
     'KPI',
     30,
-    'Distinct identified customers who ordered in the selected period vs the prior period.',
+    'All customer records for the shop, regardless of period.',
     '{
       "filterMappings": {
         "shopId":          { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
@@ -285,32 +282,6 @@ VALUES (
                COUNT(*) FILTER (WHERE is_prior)   AS prv_value
         FROM (
             SELECT ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
-            FROM public.fact_order_headers o
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-        ) t
-        WHERE t.is_current OR t.is_prior
-    )
-    SELECT ot.prv_value AS previous_value,
-           ROUND(100.0 * (ot.cur_value - ot.prv_value)
-                 / NULLIF(ABS(ot.prv_value), 0), 2) AS divergence
-    FROM order_totals ot
-    $$
-),
-(
-    '019fffa4-0a01-7b05-8c05-0a2b3c4d1005',
-    '01a066ff-3221-7ff4-ae68-efc4302669b9',
-    'total_customers',
-    $$
-    WITH order_totals AS (
-        SELECT COUNT(DISTINCT customer_id) FILTER (WHERE is_current) AS cur_value,
-               COUNT(DISTINCT customer_id) FILTER (WHERE is_prior)   AS prv_value
-        FROM (
-            SELECT o.customer_id,
-                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior

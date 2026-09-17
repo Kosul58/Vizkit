@@ -6,18 +6,14 @@ VALUES (
     'Total Customers',
     'Customer Retention/Customer Overview/KPI/Total Customers',
     $$
-    SELECT COUNT(DISTINCT o.customer_id) AS total_customers
-    FROM public.fact_order_headers o
-    WHERE o.seller_id = :shopId
-      AND o.test = FALSE
-      AND o.customer_id IS NOT NULL
-      AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-      AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+    SELECT COUNT(*) AS total_customers
+    FROM public.dim_customers c
+    WHERE c.seller_id = :shopId
     $$,
     NULL,
     'KPI',
     60,
-    'Customers who placed at least one order in the selected period vs the prior period.',
+    'All customer records for the shop, regardless of period.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -34,17 +30,10 @@ VALUES (
     'New Customers',
     'Customer Retention/Customer Overview/KPI/New Customers',
     $$
-    WITH shop_customers AS (
-        SELECT DISTINCT o.customer_id AS id
-        FROM public.fact_order_headers o
-        WHERE o.seller_id = :shopId
-          AND o.test = FALSE
-          AND o.customer_id IS NOT NULL
-    )
     SELECT COUNT(*) AS new_customers
     FROM public.dim_customers c
-    JOIN shop_customers sc ON sc.id = c.id
-    WHERE c.created_at IS NOT NULL
+    WHERE c.seller_id = :shopId
+      AND c.created_at IS NOT NULL
       AND (:currentStartDate::date IS NULL OR c.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR c.created_at::date <= :currentEndDate::date)
     $$,
@@ -68,24 +57,25 @@ VALUES (
     'Repeat Customers',
     'Customer Retention/Customer Overview/KPI/Repeat Customers',
     $$
-    WITH per_customer AS (
+    WITH customer_order_ranks AS (
         SELECT o.customer_id,
-               COUNT(*) AS orders
+               o.created_at::date AS day,
+               ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
           AND o.customer_id IS NOT NULL
-          AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-          AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
-        GROUP BY o.customer_id
     )
-    SELECT COUNT(*) FILTER (WHERE orders > 1) AS repeat_customers
-    FROM per_customer
+    SELECT COUNT(DISTINCT r.customer_id) AS repeat_customers
+    FROM customer_order_ranks r
+    WHERE r.order_rank > 1
+      AND (:currentStartDate::date IS NULL OR r.day >= :currentStartDate::date)
+      AND (:currentEndDate::date   IS NULL OR r.day <= :currentEndDate::date)
     $$,
     NULL,
     'KPI',
     60,
-    'Customers with more than one order in the selected period vs the prior period.',
+    'Customers who ordered in the selected period and had ordered before, vs the prior period.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -102,25 +92,36 @@ VALUES (
     'Repeat Customer Rate',
     'Customer Retention/Customer Overview/KPI/Repeat Customer Rate',
     $$
-    WITH per_customer AS (
+    WITH customer_order_ranks AS (
         SELECT o.customer_id,
-               COUNT(*) AS orders
+               o.created_at::date AS day,
+               ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND o.test = FALSE
           AND o.customer_id IS NOT NULL
-          AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-          AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
-        GROUP BY o.customer_id
+    ),
+    repeats AS (
+        SELECT COUNT(DISTINCT r.customer_id) AS repeat_customers
+        FROM customer_order_ranks r
+        WHERE r.order_rank > 1
+          AND (:currentStartDate::date IS NULL OR r.day >= :currentStartDate::date)
+          AND (:currentEndDate::date   IS NULL OR r.day <= :currentEndDate::date)
+    ),
+    base AS (
+        SELECT COUNT(*) AS total_customers
+        FROM public.dim_customers c
+        WHERE c.seller_id = :shopId
     )
-    SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE orders > 1)
-                 / NULLIF(COUNT(*) FILTER (WHERE orders > 0), 0), 2) AS repeat_customer_rate
-    FROM per_customer
+    SELECT ROUND(100.0 * rp.repeat_customers
+                 / NULLIF(b.total_customers, 0), 2) AS repeat_customer_rate
+    FROM repeats rp
+    CROSS JOIN base b
     $$,
     NULL,
     'KPI',
     60,
-    'Repeat customers as a percentage of active customers, for the selected period vs the prior period.',
+    'Repeat customers as a percentage of the total customer base, for the selected period vs the prior period.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -536,52 +537,11 @@ VALUES (
 
 INSERT INTO vizkit.chart_signal (id, chart_id, name, query)
 VALUES (
-    '019fff9a-1dfc-7b01-8fb1-6a2b3c4d1001',
-    '01a066fd-5a9f-79ea-8fec-483847f490c4',
-    'total_customers',
-    $$
-    WITH per_customer AS (
-        SELECT customer_id,
-               COUNT(*) FILTER (WHERE is_current) AS cur_orders,
-               COUNT(*) FILTER (WHERE is_prior)   AS prv_orders
-        FROM (
-            SELECT o.customer_id,
-                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
-            FROM public.fact_order_headers o
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              AND o.customer_id IS NOT NULL
-        ) t
-        WHERE t.is_current OR t.is_prior
-        GROUP BY customer_id
-    ),
-    totals AS (
-        SELECT COUNT(*) FILTER (WHERE cur_orders > 0) AS cur_value,
-               COUNT(*) FILTER (WHERE prv_orders > 0) AS prv_value
-        FROM per_customer
-    )
-    SELECT t.prv_value AS previous_value,
-           ROUND(100.0 * (t.cur_value - t.prv_value)
-                 / NULLIF(ABS(t.prv_value), 0), 2) AS divergence
-    FROM totals t
-    $$
-),
-(
     '019fff9a-1dfc-7b02-8fb2-6a2b3c4d1002',
     '01a066fd-5a9f-72e4-84f9-08c3bf3109ab',
     'new_customers',
     $$
-    WITH shop_customers AS (
-        SELECT DISTINCT o.customer_id AS id
-        FROM public.fact_order_headers o
-        WHERE o.seller_id = :shopId
-          AND o.test = FALSE
-          AND o.customer_id IS NOT NULL
-    ),
-    news AS (
+    WITH news AS (
         SELECT COUNT(*) FILTER (WHERE is_current) AS cur_value,
                COUNT(*) FILTER (WHERE is_prior)   AS prv_value
         FROM (
@@ -590,8 +550,8 @@ VALUES (
                    (:priorStartDate::date IS NOT NULL
                 AND c.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.dim_customers c
-            JOIN shop_customers sc ON sc.id = c.id
-            WHERE c.created_at IS NOT NULL
+            WHERE c.seller_id = :shopId
+              AND c.created_at IS NOT NULL
         ) n
         WHERE n.is_current OR n.is_prior
     )
@@ -606,28 +566,28 @@ VALUES (
     '01a066fd-5a9f-7ec6-963a-0d793ace62dc',
     'repeat_customers',
     $$
-    WITH per_customer AS (
-        SELECT customer_id,
-               COUNT(*) FILTER (WHERE is_current) AS cur_orders,
-               COUNT(*) FILTER (WHERE is_prior)   AS prv_orders
-        FROM (
-            SELECT o.customer_id,
-                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
-            FROM public.fact_order_headers o
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              AND o.customer_id IS NOT NULL
-        ) t
-        WHERE t.is_current OR t.is_prior
-        GROUP BY customer_id
+    WITH customer_order_ranks AS (
+        SELECT o.customer_id,
+               o.created_at::date AS day,
+               ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
+        FROM public.fact_order_headers o
+        WHERE o.seller_id = :shopId
+          AND o.test = FALSE
+          AND o.customer_id IS NOT NULL
     ),
     repeats AS (
-        SELECT COUNT(*) FILTER (WHERE cur_orders > 1) AS cur_value,
-               COUNT(*) FILTER (WHERE prv_orders > 1) AS prv_value
-        FROM per_customer
+        SELECT COUNT(DISTINCT customer_id) FILTER (WHERE is_current) AS cur_value,
+               COUNT(DISTINCT customer_id) FILTER (WHERE is_prior)   AS prv_value
+        FROM (
+            SELECT r.customer_id,
+                   ((:currentStartDate::date IS NULL OR r.day >= :currentStartDate::date)
+                AND (:currentEndDate::date   IS NULL OR r.day <= :currentEndDate::date)) AS is_current,
+                   (:priorStartDate::date IS NOT NULL
+                AND r.day BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
+            FROM customer_order_ranks r
+            WHERE r.order_rank > 1
+        ) t
+        WHERE t.is_current OR t.is_prior
     )
     SELECT r.prv_value AS previous_value,
            ROUND(100.0 * (r.cur_value - r.prv_value)
@@ -640,30 +600,39 @@ VALUES (
     '01a066fd-5aa0-739d-ac77-5d8170f3f6f9',
     'repeat_customer_rate',
     $$
-    WITH per_customer AS (
-        SELECT customer_id,
-               COUNT(*) FILTER (WHERE is_current) AS cur_orders,
-               COUNT(*) FILTER (WHERE is_prior)   AS prv_orders
+    WITH customer_order_ranks AS (
+        SELECT o.customer_id,
+               o.created_at::date AS day,
+               ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
+        FROM public.fact_order_headers o
+        WHERE o.seller_id = :shopId
+          AND o.test = FALSE
+          AND o.customer_id IS NOT NULL
+    ),
+    repeats AS (
+        SELECT COUNT(DISTINCT customer_id) FILTER (WHERE is_current) AS cur_repeat,
+               COUNT(DISTINCT customer_id) FILTER (WHERE is_prior)   AS prv_repeat
         FROM (
-            SELECT o.customer_id,
-                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
+            SELECT r.customer_id,
+                   ((:currentStartDate::date IS NULL OR r.day >= :currentStartDate::date)
+                AND (:currentEndDate::date   IS NULL OR r.day <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
-            FROM public.fact_order_headers o
-            WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              AND o.customer_id IS NOT NULL
+                AND r.day BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
+            FROM customer_order_ranks r
+            WHERE r.order_rank > 1
         ) t
         WHERE t.is_current OR t.is_prior
-        GROUP BY customer_id
+    ),
+    base AS (
+        SELECT COUNT(*) AS total_customers
+        FROM public.dim_customers c
+        WHERE c.seller_id = :shopId
     ),
     computed AS (
-        SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE cur_orders > 1)
-                     / NULLIF(COUNT(*) FILTER (WHERE cur_orders > 0), 0), 2) AS cur_rate,
-               ROUND(100.0 * COUNT(*) FILTER (WHERE prv_orders > 1)
-                     / NULLIF(COUNT(*) FILTER (WHERE prv_orders > 0), 0), 2) AS prv_rate
-        FROM per_customer
+        SELECT ROUND(100.0 * rp.cur_repeat / NULLIF(b.total_customers, 0), 2) AS cur_rate,
+               ROUND(100.0 * rp.prv_repeat / NULLIF(b.total_customers, 0), 2) AS prv_rate
+        FROM repeats rp
+        CROSS JOIN base b
     )
     SELECT c.prv_rate AS previous_value,
            ROUND(100 * (c.cur_rate - c.prv_rate)

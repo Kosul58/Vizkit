@@ -38,7 +38,7 @@ AND o.test = FALSE
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
     SELECT f.channel AS channel,
-           ROUND(SUM(f.gross_sales), 2) AS gross_sales
+           ROUND(SUM(f.gross_sales), 2) AS revenue
     FROM filtered_orders f
     GROUP BY f.channel
     ORDER BY SUM(f.gross_sales) DESC, f.channel ASC
@@ -190,11 +190,11 @@ SELECT
         WHEN dp.g = 'YEAR' THEN to_char(df.bucket, 'YYYY')
     END AS period,
            df.bucket,
-           ROUND(COALESCE(d.online_store, 0), 2) AS "Online Store",
-           ROUND(COALESCE(d.point_of_sale, 0), 2) AS "Point of Sale",
-           ROUND(COALESCE(d.shop, 0), 2) AS "Shop",
-           ROUND(COALESCE(d.other, 0), 2) AS "Other",
-           ROUND(COALESCE(d.unattributed, 0), 2) AS "Unattributed"
+           ROUND(COALESCE(d.online_store, 0), 2) AS online_store,
+           ROUND(COALESCE(d.point_of_sale, 0), 2) AS point_of_sale,
+           ROUND(COALESCE(d.shop, 0), 2) AS shop,
+           ROUND(COALESCE(d.other, 0), 2) AS other,
+           ROUND(COALESCE(d.unattributed, 0), 2) AS unattributed
     FROM date_filler df
     CROSS JOIN date_params dp
     LEFT JOIN daily d ON d.bucket = df.bucket
@@ -905,7 +905,7 @@ AND o.test = FALSE
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
     SELECT f.utm_campaign AS campaign,
-           ROUND(SUM(f.gross_sales), 2) AS gross_sales
+           ROUND(SUM(f.gross_sales), 2) AS revenue
     FROM filtered_orders f
     WHERE f.utm_campaign IS NOT NULL
     GROUP BY f.utm_campaign
@@ -961,7 +961,7 @@ AND o.test = FALSE
 NULL,
         'PLOT',
         60,
-        'Performance breakdown across combined UTM source / medium pairs evaluating revenue, AOV, and orders.',
+        'Performance breakdown across combined UTM source / medium pairs evaluating net sales, AOV, and orders.',
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -992,7 +992,7 @@ AND o.test = FALSE
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
     SELECT f.referring_site AS referring_site,
-           ROUND(SUM(f.gross_sales), 2) AS gross_sales
+           ROUND(SUM(f.gross_sales), 2) AS revenue
     FROM filtered_orders f
     WHERE f.referring_site IS NOT NULL
     GROUP BY f.referring_site
@@ -1058,12 +1058,12 @@ AND o.test = FALSE
         FROM classified
     )
     SELECT 'Revenue Mix' AS mix,
-           COALESCE(ROUND(100 * t.paid     / NULLIF(t.total_gross, 0), 2), 0) AS "Paid",
-           COALESCE(ROUND(100 * t.organic  / NULLIF(t.total_gross, 0), 2), 0) AS "Organic",
-           COALESCE(ROUND(100 * t.referral / NULLIF(t.total_gross, 0), 2), 0) AS "Referral",
-           COALESCE(ROUND(100 * t.email    / NULLIF(t.total_gross, 0), 2), 0) AS "Email",
-           COALESCE(ROUND(100 * t.social   / NULLIF(t.total_gross, 0), 2), 0) AS "Social",
-           COALESCE(ROUND(100 * t.direct   / NULLIF(t.total_gross, 0), 2), 0) AS "Direct / Unknown"
+           COALESCE(ROUND(100 * t.paid     / NULLIF(t.total_gross, 0), 2), 0) AS paid,
+           COALESCE(ROUND(100 * t.organic  / NULLIF(t.total_gross, 0), 2), 0) AS organic,
+           COALESCE(ROUND(100 * t.referral / NULLIF(t.total_gross, 0), 2), 0) AS referral,
+           COALESCE(ROUND(100 * t.email    / NULLIF(t.total_gross, 0), 2), 0) AS email,
+           COALESCE(ROUND(100 * t.social   / NULLIF(t.total_gross, 0), 2), 0) AS social,
+           COALESCE(ROUND(100 * t.direct   / NULLIF(t.total_gross, 0), 2), 0) AS direct_unknown
     FROM totals t
     $$,
 NULL,
@@ -1299,23 +1299,23 @@ NULL,
 '019fffa2-0f80-77e4-8127-7707ab16f3d5',
         'Attribution Gap Report',
         'Sales Channel Attribution/Attribution Health/TABLE/Attribution Gap Report',
-        '
+        $$
     WITH filtered_orders AS (
 SELECT o.id,
-               COALESCE(NULLIF(TRIM(o.source_name), ''''), ''Unknown'') AS source_name,
+               COALESCE(NULLIF(TRIM(o.source_name), ''), 'Unknown') AS source_name,
 COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    ''Unattributed''
+    'Unattributed'
 ) AS channel,
-               (NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,source}''), '''') IS NULL
-            AND NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,medium}''), '''') IS NULL
-            AND NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,campaign}''), '''') IS NULL) AS missing_utm,
-               (o.customer_journey_summary #>> ''{lastVisit,referrerUrl}'' IS NULL) AS missing_referring_site,
+               (NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,source}'), '') IS NULL
+            AND NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,medium}'), '') IS NULL
+            AND NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,campaign}'), '') IS NULL) AS missing_utm,
+               (o.customer_journey_summary #>> '{lastVisit,referrerUrl}' IS NULL) AS missing_referring_site,
                (o.attribution_displayname IS NULL
             AND o.order_app_id IS NULL
-            AND NULLIF(TRIM(o.source_name), '''') IS NULL) AS missing_channel,
+            AND NULLIF(TRIM(o.source_name), '') IS NULL) AS missing_channel,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
@@ -1337,7 +1337,7 @@ SELECT f.id AS order_id,
     ORDER BY f.net_sales DESC, f.id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 NULL,
         'TABLE',
         60,
@@ -1374,9 +1374,10 @@ VALUES (
         'Channel Customer Quality Report',
         'Sales Channel Attribution/Customer Quality/TABLE/Channel Customer Quality Report',
         '
-    WITH filtered_orders AS (
+    WITH all_orders AS (
         SELECT o.id,
                o.customer_id,
+               o.created_at,
 COALESCE(
     o.attribution_displayname,
     o.order_app_name,
@@ -1390,21 +1391,32 @@ FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
 AND o.test = FALSE
           AND o.customer_id IS NOT NULL
-          AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
-          AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+    ),
+    channel_ranked AS (
+        SELECT ao.*,
+               ROW_NUMBER() OVER (PARTITION BY ao.customer_id, ao.channel
+                                  ORDER BY ao.created_at ASC, ao.id ASC) AS channel_order_rank
+        FROM all_orders ao
+    ),
+    filtered_orders AS (
+        SELECT *
+        FROM channel_ranked
+        WHERE (:currentStartDate IS NULL OR created_at::date >= :currentStartDate::date)
+          AND (:currentEndDate IS NULL OR created_at::date <= :currentEndDate::date)
     ),
     channel_customer AS (
         SELECT f.channel,
                f.customer_id,
-               COUNT(*) AS orders_in_window,
+               MIN(f.channel_order_rank) AS min_channel_rank,
+               MAX(f.channel_order_rank) AS max_channel_rank,
                SUM(f.net_sales) AS revenue
         FROM filtered_orders f
         GROUP BY f.channel, f.customer_id
     ),
     channel_customers AS (
         SELECT cc.channel,
-               COUNT(*) FILTER (WHERE cc.orders_in_window = 1) AS new_customers,
-               COUNT(*) FILTER (WHERE cc.orders_in_window > 1) AS repeat_customers,
+               COUNT(*) FILTER (WHERE cc.min_channel_rank = 1) AS new_customers,
+               COUNT(*) FILTER (WHERE cc.max_channel_rank > 1) AS repeat_customers,
                COUNT(*) AS total_customers,
                SUM(cc.revenue) AS customer_revenue
         FROM channel_customer cc
@@ -1573,11 +1585,11 @@ NULL,
         ) t
     )
     SELECT f.country AS country,
-           ROUND(COALESCE(SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 1), 0), 2) AS "Online Store",
-           ROUND(COALESCE(SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 2), 0), 2) AS "Point of Sale",
-           ROUND(COALESCE(SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 3), 0), 2) AS "Shop",
-           ROUND(COALESCE(SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 4), 0), 2) AS "Other",
-           ROUND(COALESCE(SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 5), 0), 2) AS "Unattributed"
+           ROUND(COALESCE(SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 1), 0), 2) AS online_store,
+           ROUND(COALESCE(SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 2), 0), 2) AS point_of_sale,
+           ROUND(COALESCE(SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 3), 0), 2) AS shop,
+           ROUND(COALESCE(SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 4), 0), 2) AS other,
+           ROUND(COALESCE(SUM(f.gross_sales) FILTER (WHERE f.channel_bucket = 5), 0), 2) AS unattributed
     FROM filtered_orders f
     GROUP BY f.country
     ORDER BY SUM(f.gross_sales) DESC, f.country ASC

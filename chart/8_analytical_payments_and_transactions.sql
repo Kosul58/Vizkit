@@ -106,7 +106,7 @@ VALUES (
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
     SELECT COALESCE(t.gateway, 'unknown') AS gateway,
-           ROUND(COALESCE(SUM(t.amount), 0), 2) AS "Order Value"
+           ROUND(COALESCE(SUM(t.amount), 0), 2) AS payment_amount
     FROM public.fact_order_transactions t
     JOIN filtered_orders f ON f.id = t.order_id
     WHERE t.kind = 'SALE'
@@ -465,7 +465,7 @@ VALUES (
         VALUES (1, 'Success'), (2, 'Failed'), (3, 'Pending'), (4, 'Other')
     )
     SELECT b.status AS status,
-           COUNT(c.status) AS "Transaction Count"
+           COUNT(c.status) AS transaction_count
     FROM bands b
     LEFT JOIN classified c ON c.status = b.status
     GROUP BY b.ord, b.status
@@ -1271,7 +1271,7 @@ VALUES (
     'Payments & Transactions/POS & Alternative Payment Operations/PLOT/Card Brand Mix',
     $$
     SELECT tt.transaction_credit_card_company AS card_brand,
-           ROUND(SUM(COALESCE(tt.amount, 0)), 2) AS "Card Payment Amount"
+           ROUND(SUM(COALESCE(tt.amount, 0)), 2) AS card_payment_amount
     FROM public.fact_tender_transactions tt
     JOIN public.fact_order_headers o ON o.id = tt.order_id
     WHERE o.seller_id = :shopId

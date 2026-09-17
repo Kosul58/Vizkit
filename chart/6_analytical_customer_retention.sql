@@ -744,27 +744,27 @@ VALUES (
     )
     SELECT EXTRACT(YEAR FROM cl.cohort_month)::text || CHR(45)
              || LPAD(EXTRACT(MONTH FROM cl.cohort_month)::text, 2, CHR(48)) AS cohort,
-           ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 0), 0), 2) AS "Month 0",
+           ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 0), 0), 2) AS month_0,
            CASE WHEN cl.cohort_month + INTERVAL '1 month'
                      <= date_trunc('month', CURRENT_DATE)
                 THEN ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 1), 0), 2)
-                END AS "Month 1",
+                END AS month_1,
            CASE WHEN cl.cohort_month + INTERVAL '2 month'
                      <= date_trunc('month', CURRENT_DATE)
                 THEN ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 2), 0), 2)
-                END AS "Month 2",
+                END AS month_2,
            CASE WHEN cl.cohort_month + INTERVAL '3 month'
                      <= date_trunc('month', CURRENT_DATE)
                 THEN ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 3), 0), 2)
-                END AS "Month 3",
+                END AS month_3,
            CASE WHEN cl.cohort_month + INTERVAL '4 month'
                      <= date_trunc('month', CURRENT_DATE)
                 THEN ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 4), 0), 2)
-                END AS "Month 4",
+                END AS month_4,
            CASE WHEN cl.cohort_month + INTERVAL '5 month'
                      <= date_trunc('month', CURRENT_DATE)
                 THEN ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset >= 5), 0), 2)
-                END AS "Month 5+"
+                END AS month_5
     FROM cohort_list cl
     LEFT JOIN cohort_totals ct ON ct.cohort_month = cl.cohort_month
     GROUP BY cl.cohort_month

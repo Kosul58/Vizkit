@@ -277,10 +277,10 @@ VALUES (
     SELECT lr.location_name AS location,
            COUNT(*) FILTER (WHERE lr.available_quantity > 0
                               AND lr.safety_stock_quantity > 0
-                              AND lr.available_quantity <= lr.safety_stock_quantity) AS "Low Stock",
-           COUNT(*) FILTER (WHERE lr.available_quantity <= 0) AS "Out of Stock",
-           COUNT(*) FILTER (WHERE lr.damaged_quantity > 0)    AS "Damaged",
-           COUNT(*) FILTER (WHERE lr.reserved_quantity > 0)   AS "Reserved"
+                              AND lr.available_quantity <= lr.safety_stock_quantity) AS low_stock,
+           COUNT(*) FILTER (WHERE lr.available_quantity <= 0) AS out_of_stock,
+           COUNT(*) FILTER (WHERE lr.damaged_quantity > 0)    AS damaged,
+           COUNT(*) FILTER (WHERE lr.reserved_quantity > 0)   AS reserved
     FROM level_rows lr
     GROUP BY lr.location_id, lr.location_name
     ORDER BY lr.location_name, lr.location_id
