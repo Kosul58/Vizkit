@@ -95,6 +95,8 @@ VALUES (
                        + COALESCE(o.total_shipping_price, 0)
                END AS gross_sales,
                CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
+               CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(o.current_total_tax, 0) END AS tax,
+               CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(o.current_shipping_price, 0) END AS shipping,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
@@ -109,6 +111,8 @@ VALUES (
         SELECT f.bucket,
                COALESCE(SUM(f.gross_sales), 0) AS gross_sales,
                COALESCE(SUM(f.discounts), 0) AS discounts,
+               COALESCE(SUM(f.tax), 0) AS tax,
+               COALESCE(SUM(f.shipping), 0) AS shipping,
                COALESCE(SUM(f.net_sales), 0) AS net_sales
         FROM filtered_orders f
         GROUP BY f.bucket
@@ -142,6 +146,8 @@ VALUES (
                ROUND(COALESCE(o.gross_sales, 0), 2) AS gross_sales,
                ROUND(-COALESCE(o.discounts, 0), 2)  AS discounts,
                ROUND(-COALESCE(r.refunds, 0), 2)    AS refunds,
+               ROUND(-COALESCE(o.tax, 0), 2)         AS tax,
+               ROUND(-COALESCE(o.shipping, 0), 2)    AS shipping,
                ROUND(COALESCE(o.net_sales, 0), 2)   AS net_sales
         FROM date_filler df
         CROSS JOIN date_params dp
@@ -154,6 +160,8 @@ VALUES (
            s.gross_sales  AS gross_sales,
            s.discounts    AS discounts,
            s.refunds      AS refunds,
+           s.tax          AS tax,
+           s.shipping     AS shipping,
            s.net_sales    AS net_sales
     FROM stages s
     ORDER BY s.bucket
@@ -161,7 +169,7 @@ VALUES (
     NULL,
     'PLOT',
     60,
-    'Waterfall chart reconciling Gross Sales to Net Sales via order discounts and refunds, grouped by dynamic date granularity.',
+    'Waterfall chart reconciling Gross Sales to Net Sales via order discounts and refunds, with tax and shipping totals, grouped by dynamic date granularity.',
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },

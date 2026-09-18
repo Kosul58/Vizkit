@@ -110,7 +110,9 @@ VALUES (
                        + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
                        + COALESCE(o.total_shipping_price, 0)
                END AS gross_sales,
-               CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts
+               CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
+               CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(o.current_total_tax, 0) END AS tax,
+               CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(o.current_shipping_price, 0) END AS shipping
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
@@ -123,7 +125,9 @@ VALUES (
         SELECT f.bucket,
                COALESCE(SUM(f.net_sales), 0) AS net_sales,
                COALESCE(SUM(f.gross_sales), 0) AS gross_sales,
-               COALESCE(SUM(f.discounts), 0) AS discounts
+               COALESCE(SUM(f.discounts), 0) AS discounts,
+               COALESCE(SUM(f.tax), 0) AS tax,
+               COALESCE(SUM(f.shipping), 0) AS shipping
         FROM filtered_orders f
         GROUP BY f.bucket
     ),
@@ -157,6 +161,8 @@ VALUES (
                ROUND(COALESCE(t.gross_sales, 0), 2) AS gross_sales,
                ROUND(-COALESCE(t.discounts, 0), 2)  AS discounts,
                ROUND(-COALESCE(r.refunds, 0), 2)    AS refunds,
+               ROUND(-COALESCE(t.tax, 0), 2)        AS tax,
+               ROUND(-COALESCE(t.shipping, 0), 2)   AS shipping,
                ROUND(COALESCE(t.net_sales, 0), 2)   AS net_sales
         FROM date_filler df
         CROSS JOIN date_params dp
@@ -167,6 +173,8 @@ VALUES (
            s.gross_sales  AS gross_sales,
            s.discounts     AS discounts,
            s.refunds      AS refunds,
+           s.tax          AS tax,
+           s.shipping     AS shipping,
            s.net_sales    AS net_sales
     FROM stages s
     ORDER BY s.bucket
@@ -174,7 +182,7 @@ VALUES (
     NULL,
     'PLOT',
     60,
-    'Waterfall analysis connecting Gross Sales to Net Sales via Discounts and Refunds, grouped by dynamic date granularity.',
+    'Waterfall analysis connecting Gross Sales to Net Sales via Discounts, Refunds, Tax, and Shipping, grouped by dynamic date granularity.',
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },
