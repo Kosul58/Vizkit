@@ -1389,9 +1389,9 @@ VALUES (
     tokens AS (
         SELECT DISTINCT s.id AS refund_id,
                s.amount,
-               l.lexeme AS keyword
+               lexeme AS keyword
         FROM scoped_refunds s,
-             LATERAL unnest(to_tsvector('english', COALESCE(s.note, ''))) AS l
+             LATERAL unnest(to_tsvector('english', COALESCE(s.note, ''))) AS lexeme
     )
     SELECT t.keyword AS keyword,
            COUNT(*) AS refund_count,
@@ -1479,9 +1479,9 @@ OFFSET COALESCE(:offset, 0)
     ),
     tokens AS (
         SELECT DISTINCT s.id AS refund_id,
-               l.lexeme AS keyword
+               lexeme AS keyword
         FROM scoped_refunds s,
-             LATERAL unnest(to_tsvector('english', COALESCE(s.note, ''))) AS l
+             LATERAL unnest(to_tsvector('english', COALESCE(s.note, ''))) AS lexeme
     ),
     refund_keywords AS (
         SELECT t.refund_id,
