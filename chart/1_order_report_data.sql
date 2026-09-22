@@ -605,7 +605,7 @@ VALUES (
     GROUP BY f.fulfillment_status
     ORDER BY SUM(f.order_value) DESC
     $$,
-    NULL,
+'{"helperText": "See how your order value breaks down by fulfillment stage and payment status, so you can spot where orders are getting stuck."}',
     'PLOT',
     60,
     'Order value breakdown matrix across fulfillment status and financial status.',
@@ -765,7 +765,9 @@ VALUES (
          json_each_text(row_to_json(b)) WITH ORDINALITY AS e(bucket, amount, ord)
     ORDER BY e.ord
     $$,
-    NULL,
+'{
+    "helperText": "See how long unpaid orders have been outstanding, grouped from recent to overdue, so you know which ones need following up on first."
+}',
     'PLOT',
     60,
     'Aging distribution of unpaid outstanding order balances (0-1 days to 7+ days).',

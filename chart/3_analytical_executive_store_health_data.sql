@@ -442,7 +442,9 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{
+    "helperText": "See which products get returned or refunded the most, so you can dig into quality, fit, or listing issues."
+}',
     'PLOT',
     60,
     'Top products by refund dollar value and returned units.',
@@ -483,7 +485,9 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{
+    "helperText": "See how much inventory value you're holding at each location — useful for spotting imbalances or overstocked warehouses."
+}',
     'PLOT',
     60,
     'Valuation of inventory on hand distributed across fulfillment locations.',
@@ -527,7 +531,9 @@ OFFSET COALESCE(:offset, 0)
          json_each_text(row_to_json(b)) WITH ORDINALITY AS e(bucket, amount, ord)
     ORDER BY e.ord
     $$,
-    NULL,
+'{
+    "helperText": "See how much order value is still waiting to ship, grouped by how long it's been waiting, so you know what needs attention first."
+}',
     'PLOT',
     60,
     'Unfulfilled order revenue grouped into aging buckets (0-3 days to 31+ days).',
@@ -659,7 +665,9 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{
+    "helperText": "See which products are at risk of running out soon based on current stock and how fast they're selling, so you can restock in time."
+}',
     'PLOT',
     60,
     'Products ranked by stock cover days; items below 14 days flagged as stockout risk.',
@@ -987,7 +995,9 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{
+    "helperText": "See how much you're paying in transaction fees by payment gateway, in dollars and as a rate, so you can spot the costliest option."
+}',
     'PLOT',
     60,
     'Payment gateway transaction fee totals and effective fee rate percentages.',

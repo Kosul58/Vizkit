@@ -679,7 +679,9 @@ VALUES (
     GROUP BY b.ord, b.lo, b.hi
     ORDER BY b.ord
     ',
-    NULL,
+'{
+    "helperText": "See how many customers have placed 1 order versus repeat customers with many orders — to gauge single-purchase drop-off and repeat purchase loyalty."
+}',
     'PLOT',
     60,
     'Customer distribution across lifetime order frequency tiers (1 order to 21+ orders).',
@@ -905,7 +907,9 @@ VALUES (
     GROUP BY s.ord, s.segment
     ORDER BY s.ord
     $$,
-    NULL,
+'{
+    "helperText": "See which customer segments have the highest refund amounts and refund rates."
+}',
     'PLOT',
     60,
     'Refund dollar volume and refund rate % breakdown across customer segments.',

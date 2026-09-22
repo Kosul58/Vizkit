@@ -43,7 +43,7 @@ VALUES (
     GROUP BY b.ord, b.status
     ORDER BY b.ord
     $$,
-    NULL,
+'{"helperText": "A breakdown of your SKUs by stock status — In Stock, Low Stock, Out of Stock, and Overstock — so you can quickly spot items needing immediate reorder or liquidation."}',
     'PLOT',
     60,
     'Distribution of SKUs across stock status classifications (In Stock, Low Stock, Out of Stock, Overstock).',
@@ -159,7 +159,9 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
+'{
+    "helperText": "Compare units sold against what's still available, so you can see which top sellers might be running low."
+}',
     'PLOT',
     60,
     'Comparison of units sold vs available stock for top products.',

@@ -474,7 +474,9 @@ VALUES (
     ) AS v(source, amount, ord)
     ORDER BY v.ord
     $$,
-    NULL,
+'{
+    "helperText": "Compare what your refund records say against what actually went through your payment gateway, so you can catch any mismatches."
+}',
     'PLOT',
     60,
     'Reconciliation chart comparing refund records vs processed gateway refund transactions.',
@@ -835,7 +837,7 @@ VALUES (
     GROUP BY f.financial_status
     ORDER BY refunded_value DESC
     ',
-    NULL,
+'{"helperText": "See how much order value was refunded versus kept, broken down by financial status."}',
     'PLOT',
     60,
     'Distribution of refunded vs retained value grouped by order financial status.',
@@ -919,7 +921,9 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{
+    "helperText": "See which SKUs have the most units refunded or removed from orders — to spot potential product defects, sizing issues, or inaccurate listings."
+}',
     'PLOT',
     60,
     'Top SKUs ranked by refund removed item quantity.',
@@ -1218,7 +1222,9 @@ ORDER BY refund_transaction_amount DESC
 LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0);
     $$,
-    NULL,
+'{
+    "helperText": "See how much refunded money has gone out through each payment gateway — to track where refund outflows occur and monitor processor-specific return volumes."
+}',
     'PLOT',
     60,
     'Distribution of total refunded transaction values grouped by payment gateway.',

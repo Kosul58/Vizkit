@@ -31,7 +31,9 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
+'{
+    "helperText": "See which products are selling the most units, so you know what is flying off the shelves."
+}',
     'PLOT',
     60,
     'Top products ranked by total volume of units sold.',
@@ -159,7 +161,9 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
+'{
+    "helperText": "See which SKUs are generating the most revenue, ranked from highest to lowest — so you can identify your primary revenue drivers."
+}',
     'PLOT',
     60,
     'Top SKUs ranked by total net sales revenue.',
@@ -415,7 +419,9 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
+'{
+    "helperText": "See which SKUs have the biggest fulfillment backlog, so you can prioritize what to ship next."
+}',
     'PLOT',
     60,
     'SKUs ranked by total unfulfilled item quantity backlog.',
@@ -512,7 +518,9 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
+'{
+    "helperText": "See which SKUs have the most units refunded or removed from orders, to spot potential quality or fit issues."
+}',
     'PLOT',
     60,
     'SKUs ranked by total quantity of units removed due to refunds.',
@@ -845,7 +853,9 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
+'{
+    "helperText": "See how each of your collections is performing — products, units sold, sales, share of total revenue, and discount rate."
+}',
     'TABLE',
     60,
     'Performance scorecard per collection evaluating products count, units sold, net sales, contribution %, and discount %.',
@@ -894,7 +904,9 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
+'{
+    "helperText": "See which vendors are driving the most sales and units sold, so you know who your top suppliers are."
+}',
     'PLOT',
     60,
     'Net sales breakdown grouped by product vendor.',
@@ -940,7 +952,9 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
+'{
+    "helperText": "See which of your collections are generating the most sales and units sold — to understand which curated groups resonate most with buyers."
+}',
     'PLOT',
     60,
     'Net sales breakdown grouped by product collection.',
@@ -982,7 +996,7 @@ OFFSET COALESCE(:offset, 0)
          json_each_text(row_to_json(s)) WITH ORDINALITY AS e(segment, amount, ord)
     ORDER BY e.ord
     ',
-    NULL,
+'{"helperText": "See how your revenue splits between gift cards and regular merchandise — useful for tracking prepaid revenue versus immediate product sales."}',
     'PLOT',
     60,
     'Comparison of net sales between gift card items and standard merchandise.',
