@@ -345,6 +345,62 @@ VALUES (
     }'
 ),
 (
+    '01a0c8a1-3955-702b-a1b7-f49515d37273',
+    'Pending Amount',
+    'Order Reports/Payments & Collections/KPI/Pending Amount',
+    $$
+    SELECT ROUND(COALESCE(SUM(COALESCE(o.total_outstanding_amount, 0)), 0), 2) AS pending_amount
+    FROM public.fact_order_headers o
+    WHERE o.seller_id = :shopId
+      AND o.test = FALSE
+      AND o.financialstatus = 'PENDING'
+      AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+      AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+    $$,
+    NULL,
+    'KPI',
+    60,
+    'Value of orders still awaiting payment for the selected period vs the prior period.',
+    '{
+      "filterMappings": {
+        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
+        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
+        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
+        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
+        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
+      },
+      "excludeExtraParams": true
+    }'
+),
+(
+    '01a0c8a1-3955-7093-92da-73176d98a790',
+    'Refunded Amount',
+    'Order Reports/Payments & Collections/KPI/Refunded Amount',
+    $$
+    SELECT ROUND(COALESCE(SUM(COALESCE(o.total_refunded_amount, 0)), 0), 2) AS refunded_amount
+    FROM public.fact_order_headers o
+    WHERE o.seller_id = :shopId
+      AND o.test = FALSE
+      AND o.financialstatus IN ('REFUNDED', 'PARTIALLY_REFUNDED')
+      AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+      AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+    $$,
+    NULL,
+    'KPI',
+    60,
+    'Amount refunded on refunded and partially refunded orders for the selected period vs the prior period.',
+    '{
+      "filterMappings": {
+        "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
+        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
+        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate"       },
+        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
+        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate"   }
+      },
+      "excludeExtraParams": true
+    }'
+),
+(
     '01a066fc-a9bd-710e-b098-dc842579efff',
     'New Orders',
     'Order Reports/Customers/KPI/New Orders',
@@ -762,6 +818,60 @@ VALUES (
            ROUND(100 * (c.cur_rate - c.prv_rate)
                  / NULLIF(ABS(c.prv_rate), 0), 2) AS divergence
     FROM computed c
+    $$
+),
+(
+    '01a0c8ce-c332-7cfb-85f3-f36226d1f974',
+    '01a0c8a1-3955-702b-a1b7-f49515d37273',
+    'pending_amount',
+    $$
+    WITH order_totals AS (
+        SELECT COALESCE(SUM(pending_amount) FILTER (WHERE is_current), 0) AS cur_value,
+               COALESCE(SUM(pending_amount) FILTER (WHERE is_prior),   0) AS prv_value
+        FROM (
+            SELECT ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
+                   (:priorStartDate::date IS NOT NULL
+                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
+                   COALESCE(o.total_outstanding_amount, 0) AS pending_amount
+            FROM public.fact_order_headers o
+            WHERE o.seller_id = :shopId
+              AND o.test = FALSE
+              AND o.financialstatus = 'PENDING'
+        ) t
+        WHERE t.is_current OR t.is_prior
+    )
+    SELECT ROUND(ot.prv_value, 2) AS previous_value,
+           ROUND(100 * (ot.cur_value - ot.prv_value)
+                 / NULLIF(ABS(ot.prv_value), 0), 2) AS divergence
+    FROM order_totals ot
+    $$
+),
+(
+    '01a0c8ce-c333-7152-85b2-446fced2355e',
+    '01a0c8a1-3955-7093-92da-73176d98a790',
+    'refunded_amount',
+    $$
+    WITH refund_totals AS (
+        SELECT COALESCE(SUM(refunded_amount) FILTER (WHERE is_current), 0) AS cur_value,
+               COALESCE(SUM(refunded_amount) FILTER (WHERE is_prior),   0) AS prv_value
+        FROM (
+            SELECT ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
+                   (:priorStartDate::date IS NOT NULL
+                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
+                   COALESCE(o.total_refunded_amount, 0) AS refunded_amount
+            FROM public.fact_order_headers o
+            WHERE o.seller_id = :shopId
+              AND o.test = FALSE
+              AND o.financialstatus IN ('REFUNDED', 'PARTIALLY_REFUNDED')
+        ) t
+        WHERE t.is_current OR t.is_prior
+    )
+    SELECT ROUND(rt.prv_value, 2) AS previous_value,
+           ROUND(100 * (rt.cur_value - rt.prv_value)
+                 / NULLIF(ABS(rt.prv_value), 0), 2) AS divergence
+    FROM refund_totals rt
     $$
 ),
 (

@@ -301,13 +301,13 @@ VALUES (
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY COALESCE(pv.sku, pv.id)
     )
-    SELECT ROUND(100 * MAX(net_sales) / NULLIF(SUM(net_sales), 0), 2) AS top_sku_contribution
+    SELECT ROUND(COALESCE(MAX(net_sales), 0), 2) AS top_sku_contribution
     FROM sku_sales
     $$,
     NULL,
     'KPI',
     60,
-    'Revenue contribution percentage of the single top-performing SKU vs prior period.',
+    'Net sales of the single top-performing SKU for the selected period vs the prior period.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -337,6 +337,140 @@ VALUES (
     'KPI',
     60,
     'Total net sales generated from gift card line items vs prior period.',
+    '{
+      "filterMappings": {
+        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
+        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
+        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
+        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
+        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
+      },
+      "excludeExtraParams": true
+    }'
+),
+(
+    '01a0c8a1-3955-7d6f-a264-803c9518c1fb',
+    'Top Vendor',
+    'Order Line Item Analytics/Vendor & Collection/KPI/Top Vendor',
+    $$
+    WITH vendor_sales AS (
+        SELECT COALESCE(SUM(COALESCE(li.discounted_total_amount, 0)), 0) AS net_sales
+        FROM public.fact_order_line_items li
+        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id
+        LEFT JOIN public.dim_products p ON p.id = pv.product_id
+        WHERE o.seller_id = :shopId
+          AND o.test = FALSE
+          AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+          AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+        GROUP BY COALESCE(p.vendor, pv.sku, pv.id)
+    )
+    SELECT ROUND(COALESCE(MAX(net_sales), 0), 2) AS top_vendor
+    FROM vendor_sales
+    $$,
+    NULL,
+    'KPI',
+    60,
+    'Net sales of the single top-performing vendor for the selected period vs the prior period.',
+    '{
+      "filterMappings": {
+        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
+        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
+        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
+        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
+        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
+      },
+      "excludeExtraParams": true
+    }'
+),
+(
+    '01a0c8a1-3955-7155-bbf7-deab79320987',
+    'Total Vendor',
+    'Order Line Item Analytics/Vendor & Collection/KPI/Total Vendor',
+    $$
+    SELECT COUNT(DISTINCT p.vendor) AS total_vendor
+    FROM public.fact_order_line_items li
+    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id
+    WHERE o.seller_id = :shopId
+      AND o.test = FALSE
+      AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+      AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+    $$,
+    NULL,
+    'KPI',
+    60,
+    'Number of vendors with sales in the selected period vs the prior period.',
+    '{
+      "filterMappings": {
+        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
+        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
+        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
+        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
+        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
+      },
+      "excludeExtraParams": true
+    }'
+),
+(
+    '01a0c8a1-3955-7cc4-b581-30c3e0f7761d',
+    'Top Collection',
+    'Order Line Item Analytics/Vendor & Collection/KPI/Top Collection',
+    $$
+    WITH collection_sales AS (
+        SELECT COALESCE(SUM(COALESCE(li.discounted_total_amount, 0)), 0) AS net_sales
+        FROM public.fact_order_line_items li
+        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id
+        JOIN public.dim_collection_products cp ON cp.product_id = pv.product_id
+        JOIN public.dim_collections c ON c.id = cp.collection_id
+        WHERE o.seller_id = :shopId
+          AND o.test = FALSE
+          AND c.seller_id = :shopId
+          AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+          AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+        GROUP BY c.title
+    )
+    SELECT ROUND(COALESCE(MAX(net_sales), 0), 2) AS top_collection
+    FROM collection_sales
+    $$,
+    NULL,
+    'KPI',
+    60,
+    'Net sales of the single top-performing collection for the selected period vs the prior period.',
+    '{
+      "filterMappings": {
+        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
+        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
+        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" },
+        "priorStartDate":   { "source": "REQUEST_FILTER", "filterKey": "prevStartDate" },
+        "priorEndDate":     { "source": "REQUEST_FILTER", "filterKey": "prevEndDate" }
+      },
+      "excludeExtraParams": true
+    }'
+),
+(
+    '01a0c8a1-3955-7031-817e-cef871d2645c',
+    'Total Collection',
+    'Order Line Item Analytics/Vendor & Collection/KPI/Total Collection',
+    $$
+    SELECT COUNT(DISTINCT c.id) AS total_collection
+    FROM public.fact_order_line_items li
+    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id
+    JOIN public.dim_collection_products cp ON cp.product_id = pv.product_id
+    JOIN public.dim_collections c ON c.id = cp.collection_id
+    WHERE o.seller_id = :shopId
+      AND o.test = FALSE
+      AND c.seller_id = :shopId
+      AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+      AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+    $$,
+    NULL,
+    'KPI',
+    60,
+    'Number of collections with sales in the selected period vs the prior period.',
     '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -664,13 +798,13 @@ VALUES (
         GROUP BY COALESCE(pv.sku, pv.id)
     ),
     computed AS (
-        SELECT ROUND(100 * MAX(cur_net) / NULLIF(SUM(cur_net), 0), 2) AS cur_share,
-               ROUND(100 * MAX(prv_net) / NULLIF(SUM(prv_net), 0), 2) AS prv_share
+        SELECT COALESCE(MAX(cur_net), 0) AS cur_value,
+               COALESCE(MAX(prv_net), 0) AS prv_value
         FROM sku_sales
     )
-    SELECT c.prv_share AS previous_value,
-           ROUND(100 * (c.cur_share - c.prv_share)
-                 / NULLIF(ABS(c.prv_share), 0), 2) AS divergence
+    SELECT ROUND(c.prv_value, 2) AS previous_value,
+           ROUND(100 * (c.cur_value - c.prv_value)
+                 / NULLIF(ABS(c.prv_value), 0), 2) AS divergence
     FROM computed c
     $$
 ),
@@ -698,6 +832,140 @@ VALUES (
     )
     SELECT ROUND(t.prv_value, 2) AS previous_value,
            ROUND(100 * (t.cur_value - t.prv_value)
+                 / NULLIF(ABS(t.prv_value), 0), 2) AS divergence
+    FROM totals t
+    $$
+),
+(
+    '01a0c8ce-c334-784a-92ce-0a73547bbe78',
+    '01a0c8a1-3955-7d6f-a264-803c9518c1fb',
+    'top_vendor',
+    $$
+    WITH vendor_sales AS (
+        SELECT COALESCE(SUM(t.net_sales) FILTER (WHERE t.is_current), 0) AS cur_net,
+               COALESCE(SUM(t.net_sales) FILTER (WHERE t.is_prior),   0) AS prv_net
+        FROM (
+            SELECT li.product_variant_id,
+                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
+                   (:priorStartDate::date IS NOT NULL
+                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
+                   COALESCE(li.discounted_total_amount, 0) AS net_sales
+            FROM public.fact_order_line_items li
+            JOIN public.fact_order_headers o ON o.id = li.order_id
+            WHERE o.seller_id = :shopId
+              AND o.test = FALSE
+        ) t
+        JOIN public.dim_product_variants pv ON pv.id = t.product_variant_id
+        LEFT JOIN public.dim_products p ON p.id = pv.product_id
+        WHERE t.is_current OR t.is_prior
+        GROUP BY COALESCE(p.vendor, pv.sku, pv.id)
+    ),
+    computed AS (
+        SELECT COALESCE(MAX(cur_net), 0) AS cur_value,
+               COALESCE(MAX(prv_net), 0) AS prv_value
+        FROM vendor_sales
+    )
+    SELECT ROUND(c.prv_value, 2) AS previous_value,
+           ROUND(100 * (c.cur_value - c.prv_value)
+                 / NULLIF(ABS(c.prv_value), 0), 2) AS divergence
+    FROM computed c
+    $$
+),
+(
+    '01a0c8ce-c335-7fcb-bbb9-ca0e4735872b',
+    '01a0c8a1-3955-7155-bbf7-deab79320987',
+    'total_vendor',
+    $$
+    WITH totals AS (
+        SELECT COUNT(DISTINCT t.vendor) FILTER (WHERE t.is_current) AS cur_value,
+               COUNT(DISTINCT t.vendor) FILTER (WHERE t.is_prior)   AS prv_value
+        FROM (
+            SELECT p.vendor AS vendor,
+                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
+                   (:priorStartDate::date IS NOT NULL
+                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
+            FROM public.fact_order_line_items li
+            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id
+            LEFT JOIN public.dim_products p ON p.id = pv.product_id
+            WHERE o.seller_id = :shopId
+              AND o.test = FALSE
+        ) t
+        WHERE t.is_current OR t.is_prior
+    )
+    SELECT t.prv_value AS previous_value,
+           ROUND(100.0 * (t.cur_value - t.prv_value)
+                 / NULLIF(ABS(t.prv_value), 0), 2) AS divergence
+    FROM totals t
+    $$
+),
+(
+    '01a0c8ce-c336-7d52-a033-3a9a15f3ee6a',
+    '01a0c8a1-3955-7cc4-b581-30c3e0f7761d',
+    'top_collection',
+    $$
+    WITH collection_sales AS (
+        SELECT COALESCE(SUM(t.net_sales) FILTER (WHERE t.is_current), 0) AS cur_net,
+               COALESCE(SUM(t.net_sales) FILTER (WHERE t.is_prior),   0) AS prv_net
+        FROM (
+            SELECT li.product_variant_id,
+                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
+                   (:priorStartDate::date IS NOT NULL
+                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
+                   COALESCE(li.discounted_total_amount, 0) AS net_sales
+            FROM public.fact_order_line_items li
+            JOIN public.fact_order_headers o ON o.id = li.order_id
+            WHERE o.seller_id = :shopId
+              AND o.test = FALSE
+        ) t
+        JOIN public.dim_product_variants pv ON pv.id = t.product_variant_id
+        JOIN public.dim_collection_products cp ON cp.product_id = pv.product_id
+        JOIN public.dim_collections c ON c.id = cp.collection_id
+        WHERE c.seller_id = :shopId
+          AND (t.is_current OR t.is_prior)
+        GROUP BY c.title
+    ),
+    computed AS (
+        SELECT COALESCE(MAX(cur_net), 0) AS cur_value,
+               COALESCE(MAX(prv_net), 0) AS prv_value
+        FROM collection_sales
+    )
+    SELECT ROUND(c.prv_value, 2) AS previous_value,
+           ROUND(100 * (c.cur_value - c.prv_value)
+                 / NULLIF(ABS(c.prv_value), 0), 2) AS divergence
+    FROM computed c
+    $$
+),
+(
+    '01a0c8ce-c337-7e47-9aa0-13e858d65491',
+    '01a0c8a1-3955-7031-817e-cef871d2645c',
+    'total_collection',
+    $$
+    WITH totals AS (
+        SELECT COUNT(DISTINCT t.collection) FILTER (WHERE t.is_current) AS cur_value,
+               COUNT(DISTINCT t.collection) FILTER (WHERE t.is_prior)   AS prv_value
+        FROM (
+            SELECT c.id AS collection,
+                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
+                   (:priorStartDate::date IS NOT NULL
+                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
+            FROM public.fact_order_line_items li
+            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id
+            JOIN public.dim_collection_products cp ON cp.product_id = pv.product_id
+            JOIN public.dim_collections c ON c.id = cp.collection_id
+            WHERE o.seller_id = :shopId
+              AND o.test = FALSE
+              AND c.seller_id = :shopId
+        ) t
+        WHERE t.is_current OR t.is_prior
+    )
+    SELECT t.prv_value AS previous_value,
+           ROUND(100.0 * (t.cur_value - t.prv_value)
                  / NULLIF(ABS(t.prv_value), 0), 2) AS divergence
     FROM totals t
     $$
