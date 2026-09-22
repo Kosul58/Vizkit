@@ -52,7 +52,7 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-        NULL,
+'{"helperText": "See how your net sales and order count have moved over time, so you can spot growth, dips, or seasonal patterns."}',
         'PLOT',
         30,
         'Combo chart: net sales as bars, order count as a line, grouped by dynamic date granularity.',
@@ -97,7 +97,7 @@ VALUES (
     ORDER BY net_sales DESC
     LIMIT 10
     $$,
-        NULL,
+'{"helperText": "See which categories are generating the most net sales, ranked from highest to lowest, so you can identify your top-performing product groups."}',
         'PLOT',
         30,
         'Horizontal bar chart of net sales by category.',
@@ -189,7 +189,7 @@ VALUES (
     ORDER BY net_sales DESC
     LIMIT 10
     $$,
-        NULL,
+'{"helperText": "See which products are generating the most net sales, ranked from highest to lowest, so you can identify your top revenue drivers."}',
         'PLOT',
         30,
         'Bar chart of net sales by product.',
