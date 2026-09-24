@@ -10,7 +10,7 @@ VALUES (
     FROM public.dim_customers c
     WHERE c.seller_id = :shopId
     $$,
-    NULL,
+'{"helperText": "See your total number of customers, so you know the overall size of your customer base."}',
     'KPI',
     60,
     'All customer records for the shop, regardless of period.',
@@ -37,7 +37,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR c.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR c.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
+'{"helperText": "See how many new customers you gained in the selected period, so you can track your customer acquisition pace."}',
     'KPI',
     60,
     'Customer records created in the selected period vs the prior period.',
@@ -72,7 +72,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR r.day >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR r.day <= :currentEndDate::date)
     $$,
-    NULL,
+'{"helperText": "See how many customers made a repeat purchase in the selected period, so you know how many are coming back."}',
     'KPI',
     60,
     'Customers who ordered in the selected period and had ordered before, vs the prior period.',
@@ -118,7 +118,7 @@ VALUES (
     FROM repeats rp
     CROSS JOIN base b
     $$,
-    NULL,
+'{"helperText": "See what percentage of your customer base has made a repeat purchase, so you can gauge overall customer loyalty."}',
     'KPI',
     60,
     'Repeat customers as a percentage of the total customer base, for the selected period vs the prior period.',
@@ -148,7 +148,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
+'{"helperText": "See total revenue from identified customers in the selected period, so you know how much of your sales come from known customers."}',
     'KPI',
     60,
     'Net sales from identified customers for the selected period vs the prior period.',
@@ -184,7 +184,7 @@ VALUES (
     SELECT ROUND(COALESCE(SUM(rev), 0) / NULLIF(COUNT(*), 0), 2) AS average_customer_value
     FROM per_customer
     $$,
-    NULL,
+'{"helperText": "See how much revenue each active customer generates on average, so you can gauge overall customer value."}',
     'KPI',
     60,
     'Net sales per active customer for the selected period vs the prior period.',
@@ -219,7 +219,7 @@ VALUES (
            AS average_orders_per_customer
     FROM per_customer
     $$,
-    NULL,
+'{"helperText": "See how many orders your active customers place on average, so you can gauge purchase frequency."}',
     'KPI',
     60,
     'Orders per active customer for the selected period vs the prior period.',
@@ -262,7 +262,7 @@ VALUES (
     WHERE a.vip_cut IS NOT NULL
       AND c.rev >= a.vip_cut
     $$,
-    NULL,
+'{"helperText": "See how many customers fall into your top revenue tier, so you know the size of your most valuable customer group."}',
     'KPI',
     60,
     'Customers in the top revenue quintile for the selected period vs the prior period.',
@@ -311,7 +311,7 @@ VALUES (
       AND c.refunded > 0
       AND c.refunded >= x.cut
     $$,
-    NULL,
+'{"helperText": "See how many customers fall into your highest refund-risk tier, so you know how many need closer attention."}',
     'KPI',
     60,
     'Customers in the top refund quintile with non-zero refunds, for the selected period vs the prior period.',
@@ -364,7 +364,7 @@ VALUES (
     FROM known k
     CROSS JOIN guests g
     $$,
-    NULL,
+'{"helperText": "See how much revenue came from first-time customers, including guest checkouts, so you know how much new business you are bringing in."}',
     'KPI',
     60,
     'Net sales from first-time customers, including guest checkouts, for the selected period vs the prior period.',
@@ -401,7 +401,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR r.day >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR r.day <= :currentEndDate::date)
     $$,
-    NULL,
+'{"helperText": "See how much revenue came from returning customers, so you know how much of your sales rely on repeat business."}',
     'KPI',
     60,
     'Net sales from returning customers for the selected period vs the prior period.',
@@ -435,7 +435,7 @@ VALUES (
     JOIN cur_window w ON w.customer_id = c.id
     WHERE c.seller_id = :shopId
     $$,
-    NULL,
+'{"helperText": "See how many of your active customers are tax-exempt, so you can keep track of your tax-exempt customer base."}',
     'KPI',
     60,
     'Tax exempt customers active in the selected period vs the prior period.',
@@ -477,7 +477,7 @@ VALUES (
     CROSS JOIN anchor a
     WHERE a.anchor - l.last_day > 90
     $$,
-    NULL,
+'{"helperText": "See how many customers have not ordered in the last 90 days, so you know how many are at risk of churning."}',
     'KPI',
     60,
     'Customers with no order in the 90 days before the period end, vs the prior period.',
@@ -517,7 +517,7 @@ VALUES (
        OR COALESCE(LENGTH(TRIM(ca.country)), 0) = 0
        OR COALESCE(LENGTH(TRIM(ca.zip)), 0) = 0)
     $$,
-    NULL,
+'{"helperText": "See how many active customers have incomplete or unvalidated addresses, so you can catch shipping issues before they happen."}',
     'KPI',
     60,
     'Active customers with incomplete or unvalidated addresses, vs the prior period.',
@@ -533,8 +533,8 @@ VALUES (
     }'
 );
 
--- ---------- 2. chart signals: divergence ----------
 
+-- ---------- 2. chart signals: divergence ----------
 INSERT INTO vizkit.chart_signal (id, chart_id, name, query)
 VALUES (
     '019fff9a-1dfc-7b02-8fb2-6a2b3c4d1002',

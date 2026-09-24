@@ -3,6 +3,7 @@
 ----changeset deepankar.sharma:RW-45-1
 --comment seed Customer Overview tab
 
+
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff9a-1dfa-7282-8db8-0ad49fdec2cc',
@@ -42,7 +43,7 @@ CROSS JOIN date_params dp
 LEFT JOIN daily_new n ON n.bucket = df.bucket
 ORDER BY df.bucket ASC
     $$,
-    NULL,
+'{"helperText": "See how many new customers you are gaining over time, so you can track the pace of your customer base growth."}',
     'PLOT',
     60,
     'New customer acquisition growth trend grouped by dynamic date granularity.',
@@ -144,8 +145,9 @@ LEFT JOIN daily d
 LEFT JOIN daily_guests g
     ON g.bucket = df.bucket
 ORDER BY df.bucket ASC;
-    $$,
-    NULL,
+
+$$,
+'{"helperText": "See how new orders compare to repeat orders over time, so you can track how much of your business comes from returning customers."}',
     'PLOT',
     60,
     'Comparative trend of new vs repeat order count grouped by dynamic date granularity.',
@@ -214,7 +216,7 @@ ORDER BY df.bucket ASC;
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
+'{"helperText": "See every customer's order count, total spend, tax status, and location, so you can audit your customer base in detail."}',
     'TABLE',
     60,
     'Detailed customer audit report showing email, creation date, orders count, total spend, tax exempt status, and location.',
@@ -313,7 +315,7 @@ ORDER BY df.bucket ASC;
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
+'{"helperText": "Compare orders, revenue, AOV, and refund rate between new and repeat customers, so you can see how each group contributes to your business."}',
     'TABLE',
     60,
     'Comparative summary table evaluating orders, revenue, AOV, and refund rate between New vs Repeat customers.',
@@ -332,12 +334,23 @@ ORDER BY df.bucket ASC;
 --changeset deepankar.sharma:RW-45-2
 --comment seed Customer Revenue & Value tab
 
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fff9a-1dfb-76a0-844c-85dcf1a54191',
-    'New vs Repeat Customer Revenue',
-    'Customer Retention/Customer Revenue & Value/PLOT/New vs Repeat Customer Revenue',
-    $$
+'019fff9a-1dfb-76a0-844c-85dcf1a54191',
+        'New vs Repeat Customer Revenue',
+        'Customer Retention/Customer Revenue & Value/PLOT/New vs Repeat Customer Revenue',
+        $$
     WITH
     /*date_granularity_cte*/
     customer_order_ranks AS (
@@ -399,11 +412,11 @@ LEFT JOIN daily d ON d.bucket = df.bucket
 LEFT JOIN daily_guests g ON g.bucket = df.bucket
 ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Revenue trend comparison between new vs repeat customers grouped by dynamic date granularity.',
-    '{
+'{"helperText": "See how revenue from new customers compares to revenue from repeat customers over time, so you can track where your sales are coming from."}',
+        'PLOT',
+        60,
+        'Revenue trend comparison between new vs repeat customers grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -418,10 +431,10 @@ ORDER BY df.bucket ASC
     }'
 ),
     (
-    '019fff9a-1dfb-7d54-ae3f-df0d8febed39',
-    'Revenue by Customer Segment',
-    'Customer Retention/Customer Revenue & Value/PLOT/Revenue by Customer Segment',
-    $$
+'019fff9a-1dfb-7d54-ae3f-df0d8febed39',
+        'Revenue by Customer Segment',
+        'Customer Retention/Customer Revenue & Value/PLOT/Revenue by Customer Segment',
+        $$
     WITH per_customer AS (
         SELECT o.customer_id,
                SUM(COALESCE(o.current_subtotal_price, 0)
@@ -483,11 +496,11 @@ ORDER BY df.bucket ASC
     LEFT JOIN segment_totals st ON st.segment = sg.segment
     ORDER BY sg.sort_order
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Revenue contribution breakdown across customer segments (New, At-risk, VIP, Repeat).',
-    '{
+'{"helperText": "See how revenue breaks down across New, At-risk, VIP, and Repeat customers, so you know which segments drive the most value."}',
+        'PLOT',
+        60,
+        'Revenue contribution breakdown across customer segments (New, At-risk, VIP, Repeat).',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -497,10 +510,10 @@ ORDER BY df.bucket ASC
     }'
 ),
     (
-    '019fff9a-1dfb-7047-bd5e-e1400ef79384',
-    'Top Customers by Revenue',
-    'Customer Retention/Customer Revenue & Value/PLOT/Top Customers by Revenue',
-    $$
+'019fff9a-1dfb-7047-bd5e-e1400ef79384',
+        'Top Customers by Revenue',
+        'Customer Retention/Customer Revenue & Value/PLOT/Top Customers by Revenue',
+        $$
     WITH per_customer AS (
         SELECT o.customer_id,
                SUM(COALESCE(o.current_subtotal_price, 0)
@@ -524,11 +537,11 @@ ORDER BY df.bucket ASC
     ORDER BY p.revenue DESC, c.id
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Top individual customers ranked by total net spend revenue.',
-    '{
+'{"helperText": "See your highest-spending customers ranked by total revenue, so you know who your most valuable customers are."}',
+        'PLOT',
+        60,
+        'Top individual customers ranked by total net spend revenue.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -538,10 +551,10 @@ ORDER BY df.bucket ASC
     }'
 ),
     (
-    '019fff9a-1dfb-718e-b555-8d50bbaff35c',
-    'Customer Value Distribution',
-    'Customer Retention/Customer Revenue & Value/PLOT/Customer Value Distribution',
-    '
+'019fff9a-1dfb-718e-b555-8d50bbaff35c',
+        'Customer Value Distribution',
+        'Customer Retention/Customer Revenue & Value/PLOT/Customer Value Distribution',
+        '
     WITH per_customer AS (
         SELECT o.customer_id,
                SUM(COALESCE(o.current_subtotal_price, 0)
@@ -568,11 +581,11 @@ ORDER BY df.bucket ASC
     GROUP BY b.ord, b.lo, b.hi
     ORDER BY b.ord
     ',
-    NULL,
-    'PLOT',
-    60,
-    'Customer count distribution across revenue spend brackets.',
-    '{
+'{"helperText": "See how many customers fall into each spending bracket, so you can understand the overall shape of your customer value."}',
+        'PLOT',
+        60,
+        'Customer count distribution across revenue spend brackets.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -582,10 +595,10 @@ ORDER BY df.bucket ASC
     }'
 ),
     (
-    '019fff9a-1dfb-76bb-bfd3-3eee427a2d97',
-    'High-Value Customer Report',
-    'Customer Retention/Customer Revenue & Value/TABLE/High-Value Customer Report',
-    '
+'019fff9a-1dfb-76bb-bfd3-3eee427a2d97',
+        'High-Value Customer Report',
+        'Customer Retention/Customer Revenue & Value/TABLE/High-Value Customer Report',
+        '
     WITH per_customer AS (
         SELECT o.customer_id,
                SUM(COALESCE(o.current_subtotal_price, 0)
@@ -631,11 +644,11 @@ ORDER BY df.bucket ASC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
-    'TABLE',
-    60,
-    'Audit table listing VIP high-value customers with revenue, orders, AOV, last order date, and city/country.',
-    '{
+'{"helperText": "See your top VIP customers with revenue, orders, AOV, and last order date, so you know who to prioritize for retention."}',
+        'TABLE',
+        60,
+        'Audit table listing VIP high-value customers with revenue, orders, AOV, last order date, and city/country.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -650,12 +663,23 @@ OFFSET COALESCE(:offset, 0)
 --changeset deepankar.sharma:RW-45-3
 --comment seed Customer Retention & Loyalty tab
 
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fff9a-1dfb-756f-bf31-02577fcf2164',
-    'Orders per Customer Distribution',
-    'Customer Retention/Customer Retention & Loyalty/PLOT/Orders per Customer Distribution',
-    '
+'019fff9a-1dfb-756f-bf31-02577fcf2164',
+        'Orders per Customer Distribution',
+        'Customer Retention/Customer Retention & Loyalty/PLOT/Orders per Customer Distribution',
+        '
     WITH per_customer AS (
         SELECT o.customer_id, COUNT(*) AS order_count
         FROM public.fact_order_headers o
@@ -682,10 +706,10 @@ VALUES (
 '{
     "helperText": "See how many customers have placed 1 order versus repeat customers with many orders — to gauge single-purchase drop-off and repeat purchase loyalty."
 }',
-    'PLOT',
-    60,
-    'Customer distribution across lifetime order frequency tiers (1 order to 21+ orders).',
-    '{
+'PLOT',
+        60,
+        'Customer distribution across lifetime order frequency tiers (1 order to 21+ orders).',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -695,10 +719,10 @@ VALUES (
     }'
 ),
     (
-    '019fff9a-1dfb-70e1-9bb5-d0221b4e1569',
-    'Customer Revenue Cohort',
-    'Customer Retention/Customer Retention & Loyalty/PLOT/Customer Revenue Cohort',
-    $$
+'019fff9a-1dfb-70e1-9bb5-d0221b4e1569',
+        'Customer Revenue Cohort',
+        'Customer Retention/Customer Retention & Loyalty/PLOT/Customer Revenue Cohort',
+        $$
     WITH ranked AS (
         SELECT o.customer_id,
                o.created_at::date AS day,
@@ -772,11 +796,11 @@ VALUES (
     GROUP BY cl.cohort_month
     ORDER BY cl.cohort_month
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Monthly cohort revenue matrix tracking repeat revenue over 0 to 5+ months. Cells a cohort has not yet aged into are left empty rather than shown as zero.',
-    '{
+'{"helperText": "See how much repeat revenue each monthly cohort of customers generates over time, so you can track how customer value evolves after their first purchase."}',
+        'PLOT',
+        60,
+        'Monthly cohort revenue matrix tracking repeat revenue over 0 to 5+ months. Cells a cohort has not yet aged into are left empty rather than shown as zero.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -786,10 +810,10 @@ VALUES (
     }'
 ),
     (
-    '019fff9a-1dfb-7501-93db-3e10a209f815',
-    'Customer Cohort Report',
-    'Customer Retention/Customer Retention & Loyalty/TABLE/Customer Cohort Report',
-    $$
+'019fff9a-1dfb-7501-93db-3e10a209f815',
+        'Customer Cohort Report',
+        'Customer Retention/Customer Retention & Loyalty/TABLE/Customer Cohort Report',
+        $$
     WITH ranked AS (
         SELECT o.customer_id,
                o.created_at::date AS day,
@@ -844,11 +868,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    60,
-    'Detailed monthly cohort analysis report evaluating active customers, repeat orders, repeat revenue, and retention rate %.',
-    '{
+'{"helperText": "See active customers, repeat orders, repeat revenue, and retention rate for each monthly cohort, so you can track retention trends over time."}',
+        'TABLE',
+        60,
+        'Detailed monthly cohort analysis report evaluating active customers, repeat orders, repeat revenue, and retention rate %.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -863,12 +887,23 @@ OFFSET COALESCE(:offset, 0)
 --changeset deepankar.sharma:RW-45-4
 --comment seed Customer Risk & Refund Analysis tab
 
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fff9a-1dfb-7980-9aef-d4218448b532',
-    'Refund-Risk Customers by Segment',
-    'Customer Retention/Customer Risk & Refund Analysis/PLOT/Refund-Risk Customers by Segment',
-    $$
+'019fff9a-1dfb-7980-9aef-d4218448b532',
+        'Refund-Risk Customers by Segment',
+        'Customer Retention/Customer Risk & Refund Analysis/PLOT/Refund-Risk Customers by Segment',
+        $$
     WITH customer_first AS (
         SELECT o.customer_id, MIN(o.created_at) AS first_at
         FROM public.fact_order_headers o
@@ -910,10 +945,10 @@ VALUES (
 '{
     "helperText": "See which customer segments have the highest refund amounts and refund rates."
 }',
-    'PLOT',
-    60,
-    'Refund dollar volume and refund rate % breakdown across customer segments.',
-    '{
+'PLOT',
+        60,
+        'Refund dollar volume and refund rate % breakdown across customer segments.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -923,10 +958,10 @@ VALUES (
     }'
 ),
     (
-    '019fff9a-1dfb-702e-87f5-5d558c3b3a79',
-    'Refund-Risk Customer Report',
-    'Customer Retention/Customer Risk & Refund Analysis/TABLE/Refund-Risk Customer Report',
-    $$
+'019fff9a-1dfb-702e-87f5-5d558c3b3a79',
+        'Refund-Risk Customer Report',
+        'Customer Retention/Customer Risk & Refund Analysis/TABLE/Refund-Risk Customer Report',
+        $$
     WITH scoped_orders AS (
         SELECT o.id,
                o.customer_id,
@@ -983,11 +1018,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    60,
-    'Detailed audit log table of high refund-risk customers listing orders, refunded count, refunded amount, refund rate %, and last refund date.',
-    '{
+'{"helperText": "See which customers have the highest refund amounts and refund rates, so you can identify and address recurring refund risk."}',
+        'TABLE',
+        60,
+        'Detailed audit log table of high refund-risk customers listing orders, refunded count, refunded amount, refund rate %, and last refund date.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -1030,7 +1065,7 @@ VALUES (
     ORDER BY SUM(net_sales) DESC
     LIMIT 20
     $$,
-    NULL,
+'{"helperText": "See how many customers, orders, and how much revenue come from each country, so you know where your customer base is concentrated."}',
     'PLOT',
     60,
     'Geographic breakdown of customer count, orders, and revenue per country.',
@@ -1070,7 +1105,7 @@ VALUES (
     ORDER BY SUM(net_sales) DESC
     LIMIT 20
     $$,
-    NULL,
+'{"helperText": "See which cities and regions generate the most revenue and the highest average order value, so you can spot your strongest markets."}',
     'PLOT',
     60,
     'Ranking of top cities/regions by total customer revenue and AOV.',
@@ -1117,7 +1152,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{"helperText": "See customers, orders, revenue, and AOV broken down by country, province, and city, so you can audit performance by location."}',
     'TABLE',
     60,
     'Audit table breaking down customers, orders, revenue, and AOV per Country, Province, and City.',
@@ -1135,6 +1170,7 @@ VALUES (
 
 --changeset deepankar.sharma:RW-45-6
 --comment seed Customer Operations & Compliance tab
+
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
@@ -1170,7 +1206,7 @@ VALUES (
     LEFT JOIN status_totals t ON t.status = s.status
     ORDER BY s.sort_order
     $$,
-    NULL,
+'{"helperText": "See how revenue splits between tax-exempt and taxable customers, so you understand how much of your business is tax-exempt."}',
     'PLOT',
     60,
     'Revenue split comparison between tax-exempt vs taxable customer orders.',
@@ -1224,7 +1260,7 @@ VALUES (
     GROUP BY b.ord, b.lo, b.hi
     ORDER BY b.ord
     $$,
-    NULL,
+'{"helperText": "See how many customers are inactive and for how long, so you can prioritize win-back efforts for the most at-risk groups."}',
     'PLOT',
     30,
     'Distribution of inactive customers across inactivity aging brackets (16-30 days to 181+ days).',
@@ -1283,7 +1319,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
+'{"helperText": "See customers who haven'\''t ordered in over 90 days, along with their last order date, spend, and order count, so you know who to target for re-engagement."}',
     'TABLE',
     60,
     'Detailed audit log table of inactive customers (>90 days) showing last order date, days inactive, total spend, and order count.',
@@ -1335,7 +1371,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
+'{"helperText": "See your tax-exempt customers with their exemption details, revenue, and orders, so you can keep your tax records accurate."}',
     'TABLE',
     60,
     'Audit table listing tax-exempt customers, exemption reasons/types, net revenue, and total orders.',
@@ -1397,7 +1433,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{"helperText": "See which customer addresses have missing or unvalidated details, so you can clean up your data and avoid shipping issues."}',
     'TABLE',
     60,
     'Audit table highlighting customer address quality issues (unvalidated coordinates, missing geolocation, incomplete address fields).',

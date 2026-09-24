@@ -1,4 +1,3 @@
-
 -- ---------- 1. charts: value only ----------
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
@@ -15,11 +14,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Total line item units sold for the selected period vs the prior period.',
-    '{
+'{"helperText": "See how many units were sold in the selected period, so you can track overall sales volume."}',
+        'KPI',
+        60,
+        'Total line item units sold for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -43,11 +42,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Line item net sales (after discounts) for the selected period vs the prior period.',
-    '{
+'{"helperText": "See your total line item sales after discounts for the selected period, so you know what your products actually earned."}',
+        'KPI',
+        60,
+        'Line item net sales (after discounts) for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -71,11 +70,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Line item gross sales (before discounts) for the selected period vs the prior period.',
-    '{
+'{"helperText": "See your total line item sales before discounts for the selected period, so you know the full value of what customers ordered."}',
+        'KPI',
+        60,
+        'Line item gross sales (before discounts) for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -100,11 +99,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Average net price per unit sold for the selected period vs the prior period.',
-    '{
+'{"helperText": "See the average price customers paid per unit after discounts, so you can track whether pricing is rising or falling."}',
+        'KPI',
+        60,
+        'Average net price per unit sold for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -128,11 +127,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Total line item discount amount for the selected period vs the prior period.',
-    '{
+'{"helperText": "See the total value of discounts given on line items in the selected period, so you know how much revenue promotions are costing you."}',
+        'KPI',
+        60,
+        'Total line item discount amount for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -157,11 +156,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Discounts as a percentage of original line item value for the selected period vs the prior period.',
-    '{
+'{"helperText": "See what share of your original item value was given away as discounts, so you can check whether promotions are too generous."}',
+        'KPI',
+        60,
+        'Discounts as a percentage of original line item value for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -186,11 +185,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Unfulfilled item backlog volume for the selected period vs the prior period.',
-    '{
+'{"helperText": "See how many units are still waiting to be shipped on active orders, so you know how big your fulfillment backlog is."}',
+        'KPI',
+        60,
+        'Unfulfilled item backlog volume for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -214,11 +213,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Total unfulfilled revenue value for the selected period vs the prior period.',
-    '{
+'{"helperText": "See the sales value of items still waiting to be shipped, so you know how much revenue is tied up in your backlog."}',
+        'KPI',
+        60,
+        'Total unfulfilled revenue value for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -242,11 +241,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Line item units removed by refunds for the selected period vs the prior period.',
-    '{
+'{"helperText": "See how many units were refunded or removed from orders, so you can tell whether returns are on the rise."}',
+        'KPI',
+        60,
+        'Line item units removed by refunds for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -270,11 +269,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Line item units still eligible for refund for the selected period vs the prior period.',
-    '{
+'{"helperText": "See how many units are still eligible for a refund, so you know how much of your sales could still come back."}',
+        'KPI',
+        60,
+        'Line item units still eligible for refund for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -304,11 +303,11 @@ VALUES (
     SELECT ROUND(COALESCE(MAX(net_sales), 0), 2) AS top_sku_contribution
     FROM sku_sales
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Net sales of the single top-performing SKU for the selected period vs the prior period.',
-    '{
+'{"helperText": "See the net sales of your best-selling SKU, so you can tell how much revenue depends on a single product variant."}',
+        'KPI',
+        60,
+        'Net sales of the single top-performing SKU for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -333,11 +332,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Total net sales generated from gift card line items vs prior period.',
-    '{
+'{"helperText": "See how much revenue came from gift card sales, so you can track prepaid revenue separately from product sales."}',
+        'KPI',
+        60,
+        'Total net sales generated from gift card line items vs prior period.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -368,11 +367,11 @@ VALUES (
     SELECT ROUND(COALESCE(MAX(net_sales), 0), 2) AS top_vendor
     FROM vendor_sales
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Net sales of the single top-performing vendor for the selected period vs the prior period.',
-    '{
+'{"helperText": "See the net sales of your top-performing vendor, so you know how much of your revenue comes from your biggest supplier."}',
+        'KPI',
+        60,
+        'Net sales of the single top-performing vendor for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -398,11 +397,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Number of vendors with sales in the selected period vs the prior period.',
-    '{
+'{"helperText": "See how many different vendors had sales in the selected period, so you can gauge the breadth of your supplier base."}',
+        'KPI',
+        60,
+        'Number of vendors with sales in the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -435,11 +434,11 @@ VALUES (
     SELECT ROUND(COALESCE(MAX(net_sales), 0), 2) AS top_collection
     FROM collection_sales
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Net sales of the single top-performing collection for the selected period vs the prior period.',
-    '{
+'{"helperText": "See the net sales of your best-performing collection, so you know which curated group of products sells the most."}',
+        'KPI',
+        60,
+        'Net sales of the single top-performing collection for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -467,11 +466,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Number of collections with sales in the selected period vs the prior period.',
-    '{
+'{"helperText": "See how many collections had sales in the selected period, so you can gauge how widely your collections are selling."}',
+        'KPI',
+        60,
+        'Number of collections with sales in the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },

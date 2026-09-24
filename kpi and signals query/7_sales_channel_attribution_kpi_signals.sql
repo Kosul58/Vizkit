@@ -1,4 +1,3 @@
-
 -- ---------- 1. charts: value only ----------
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
@@ -20,7 +19,9 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
+'{
+      "helperText": "See your total gross sales across all sales channels for the selected period, so you know your overall channel revenue."
+    }',
     'KPI',
     60,
     'Gross sales across all sales channels, including tax and shipping and excluding voided orders, for the selected period vs the prior period.',
@@ -47,7 +48,9 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
+'{
+      "helperText": "See the total number of orders across all channels for the selected period, so you can track overall order volume."
+    }',
     'KPI',
     60,
     'Order volume across all sales channels for the selected period vs the prior period.',
@@ -77,7 +80,9 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
+'{
+      "helperText": "See the average order value across all your sales channels, so you can track whether order sizes are growing or shrinking."
+    }',
     'KPI',
     60,
     'Average order value across all channels for the selected period vs the prior period.',
@@ -120,7 +125,9 @@ VALUES (
                      ORDER BY gross_sales DESC NULLS LAST, channel ASC
                      LIMIT 1), 0), 2) AS top_revenue_channel
     $$,
-    NULL,
+'{
+      "helperText": "See which sales channel generated the most revenue in the selected period, so you know your best-performing channel."
+    }',
     'KPI',
     60,
     'Sales channel with the highest gross sales in the selected period.',
@@ -160,7 +167,9 @@ VALUES (
                      ORDER BY aov DESC NULLS LAST, channel ASC
                      LIMIT 1), 0), 2) AS top_aov_channel
     $$,
-    NULL,
+'{
+      "helperText": "See which sales channel has the highest average order value, so you know where your highest-value orders are coming from."
+    }',
     'KPI',
     60,
     'Sales channel with the highest average order value in the selected period.',
@@ -190,7 +199,9 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
+'{
+      "helperText": "See your net sales after refunds across all channels, so you know what you''re actually keeping from your orders."
+    }',
     'KPI',
     60,
     'Net sales after refunds for the selected period vs the prior period.',
@@ -237,7 +248,9 @@ VALUES (
     FROM order_totals ot
     CROSS JOIN refund_totals rt
     $$,
-    NULL,
+'{
+      "helperText": "See what percentage of your gross sales are being refunded, so you can monitor how refunds are affecting your revenue."
+    }',
     'KPI',
     60,
     'Refunds as a percentage of gross sales for the selected period vs the prior period.',
@@ -270,7 +283,9 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
+'{
+      "helperText": "See what percentage of your gross sales are going to discounts, so you can track how much margin you''re giving up."
+    }',
     'KPI',
     60,
     'Discounts as a percentage of gross sales for the selected period vs the prior period.',
@@ -306,7 +321,9 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
+'{
+      "helperText": "See how much revenue came from orders with UTM tracking, so you know how much sales your tagged marketing efforts are driving."
+    }',
     'KPI',
     60,
     'Gross sales from UTM-tagged orders for the selected period vs the prior period.',
@@ -339,7 +356,9 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
+'{
+      "helperText": "See the average order value of UTM-tagged orders, so you can gauge the quality of orders from your tracked marketing campaigns."
+    }',
     'KPI',
     60,
     'Average order value of UTM-tagged orders for the selected period vs the prior period.',
@@ -373,7 +392,9 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
+'{
+      "helperText": "See how much revenue came from orders with a referring website, so you know how much external sites are contributing to sales."
+    }',
     'KPI',
     60,
     'Gross sales from orders with a referring site for the selected period vs the prior period.',
@@ -415,7 +436,9 @@ VALUES (
                           / NULLIF(COALESCE(SUM(gross_sales), 0), 0), 2), 0) AS paid_revenue_share
     FROM classified
     $$,
-    NULL,
+'{
+      "helperText": "See what percentage of your revenue comes from paid marketing channels, so you can gauge how reliant your sales are on paid traffic."
+    }',
     'KPI',
     60,
     'Paid media gross sales as a percentage of total gross sales, for the selected period vs the prior period.',
@@ -449,7 +472,9 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
+'{
+      "helperText": "See how many orders are missing UTM, referrer, or channel data, so you know how big your attribution blind spot is."
+    }',
     'KPI',
     60,
     'Orders missing UTM, referrer, or channel attribution for the selected period vs the prior period.',
@@ -476,7 +501,9 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
+'{
+      "helperText": "See the total tax collected across all channels, so you have visibility into your tax obligations."
+    }',
     'KPI',
     60,
     'Tax collected across all channels for the selected period vs the prior period.',
@@ -505,7 +532,9 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
+'{
+      "helperText": "See the total dollar value of unfulfilled orders across all channels, so you know how much order value is still at risk of delayed fulfillment."
+    }',
     'KPI',
     60,
     'Unfulfilled order value at risk for the selected period vs the prior period.',

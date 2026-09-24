@@ -72,11 +72,13 @@ VALUES (
     LEFT JOIN daily_refunds r ON r.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Breakdown of gross sales, net sales, and total refunds grouped by dynamic date granularity.',
-    '{
+'{
+    "helperText": "See how your gross sales, net sales, and refunds have moved over time, so you can spot growth, dips, or seasonal patterns."
+}',
+        'PLOT',
+        60,
+        'Breakdown of gross sales, net sales, and total refunds grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
@@ -179,11 +181,13 @@ VALUES (
     FROM stages s
     ORDER BY s.bucket
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Waterfall analysis connecting Gross Sales to Net Sales via Discounts, Refunds, Tax, and Shipping, grouped by dynamic date granularity.',
-    '{
+'{
+    "helperText": "See how your gross sales turn into net sales after discounts, refunds, tax, and shipping, so you can tell exactly where your money is going."
+}',
+        'PLOT',
+        60,
+        'Waterfall analysis connecting Gross Sales to Net Sales via Discounts, Refunds, Tax, and Shipping, grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"   },
@@ -239,11 +243,13 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Correlation between total order count and Average Order Value (AOV) grouped by dynamic date granularity.',
-    '{
+'{
+    "helperText": "See how your order count and average order value move together over time, so you can tell whether growth comes from more orders or bigger baskets."
+}',
+        'PLOT',
+        60,
+        'Correlation between total order count and Average Order Value (AOV) grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"   },
@@ -306,11 +312,13 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Tracking of discount totals and discount rate % relative to gross sales grouped by dynamic date granularity.',
-    '{
+'{
+    "helperText": "See how much you give away in discounts, and what share of gross sales that represents over time, so you can tell whether promotions are eating into your revenue."
+}',
+        'PLOT',
+        60,
+        'Tracking of discount totals and discount rate % relative to gross sales grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"   },
@@ -365,11 +373,13 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Trend of total refunded dollar value and refund count grouped by dynamic date granularity.',
-    '{
+'{
+    "helperText": "See how much money you refund and how many refunds happen over time, so you can catch rising returns early."
+}',
+        'PLOT',
+        60,
+        'Trend of total refunded dollar value and refund count grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"   },
@@ -486,7 +496,7 @@ VALUES (
 OFFSET COALESCE(:offset, 0)
     $$,
 '{
-    "helperText": "See how much inventory value you're holding at each location — useful for spotting imbalances or overstocked warehouses."
+"helperText":"See how much inventory value you're holding at each location — useful for spotting imbalances or overstocked warehouses."
 }',
     'PLOT',
     60,
@@ -591,11 +601,13 @@ OFFSET COALESCE(:offset, 0)
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Order revenue split by status (Fulfilled, Partially Fulfilled, Unfulfilled) grouped by dynamic date granularity.',
-    '{
+'{
+    "helperText": "See how much order value is fulfilled, partially fulfilled, or still unfulfilled over time, so you can spot shipping backlogs early."
+}',
+        'PLOT',
+        60,
+        'Order revenue split by status (Fulfilled, Partially Fulfilled, Unfulfilled) grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"   },
@@ -666,7 +678,7 @@ OFFSET COALESCE(:offset, 0)
     OFFSET COALESCE(:offset, 0)
     $$,
 '{
-    "helperText": "See which products are at risk of running out soon based on current stock and how fast they're selling, so you can restock in time."
+"helperText":"See which products are at risk of running out soon based on current stock and how fast they''re selling, so you can restock in time."
 }',
     'PLOT',
     60,
@@ -740,11 +752,13 @@ OFFSET COALESCE(:offset, 0)
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Net revenue contribution from new vs returning customers grouped by dynamic date granularity.',
-    '{
+'{
+    "helperText": "See how much of your net revenue comes from first-time versus returning customers over time, so you can judge how well you keep customers coming back."
+}',
+        'PLOT',
+        60,
+        'Net revenue contribution from new vs returning customers grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"   },
@@ -798,11 +812,13 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Top geographic customer segments ranked by net sales, order volume, and AOV.',
-    '{
+'{
+    "helperText": "See which countries or regions bring in the most net sales, orders, and average order value, so you can find your strongest markets."
+}',
+        'PLOT',
+        60,
+        'Top geographic customer segments ranked by net sales, order volume, and AOV.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -840,11 +856,13 @@ ORDER BY net_sales DESC
 LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Breakdown of net sales and order volume across sales channels and integration apps.',
-    '{
+'{
+    "helperText": "See which sales channels bring in the most net sales and orders, so you know where your revenue is really coming from."
+}',
+        'PLOT',
+        60,
+        'Breakdown of net sales and order volume across sales channels and integration apps.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -911,11 +929,13 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    60,
-    'Comparative performance scorecard per sales channel evaluating AOV, refund %, and discount %.',
-    '{
+'{
+    "helperText": "Compare each sales channel on order value, refund rate, and discount rate, so you can find channels that bring in quality sales, not just volume."
+}',
+        'TABLE',
+        60,
+        'Comparative performance scorecard per sales channel evaluating AOV, refund %, and discount %.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -932,10 +952,10 @@ OFFSET COALESCE(:offset, 0)
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
-    '019fff82-e31a-7585-80ff-4990966674d4',
-    'Payment Method Mix',
-    'Executive Store Health/Payment & Business Risk/PLOT/Payment Method Mix',
-    $$
+'019fff82-e31a-7585-80ff-4990966674d4',
+        'Payment Method Mix',
+        'Executive Store Health/Payment & Business Risk/PLOT/Payment Method Mix',
+        $$
     WITH filtered_orders AS (
         SELECT o.id
         FROM public.fact_order_headers o
@@ -954,11 +974,13 @@ VALUES (
     ORDER BY 2 DESC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Distribution of transaction amounts grouped by payment method.',
-    '{
+'{
+    "helperText": "See which payment methods your customers use most, by order value, so you know which payment options matter most to your business."
+}',
+        'PLOT',
+        60,
+        'Distribution of transaction amounts grouped by payment method.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -996,12 +1018,12 @@ VALUES (
     OFFSET COALESCE(:offset, 0)
     $$,
 '{
-    "helperText": "See how much you're paying in transaction fees by payment gateway, in dollars and as a rate, so you can spot the costliest option."
+"helperText":"See how much you''re paying in transaction fees by payment gateway, in dollars and as a rate, so you can spot the costliest option."
 }',
-    'PLOT',
-    60,
-    'Payment gateway transaction fee totals and effective fee rate percentages.',
-    '{
+'PLOT',
+        60,
+        'Payment gateway transaction fee totals and effective fee rate percentages.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },

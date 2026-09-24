@@ -44,7 +44,9 @@ AND o.test = FALSE
     ORDER BY SUM(f.gross_sales) DESC, f.channel ASC
     LIMIT 20
     $$,
-NULL,
+'{
+      "helperText": "See how much revenue each sales channel is generating, so you can identify which channels drive the most sales."
+    }',
         'PLOT',
         60,
         'Revenue distribution per sales channel.',
@@ -79,7 +81,9 @@ AND o.test = FALSE
     ORDER BY COUNT(*) DESC, f.channel ASC
     LIMIT 20
     $$,
-NULL,
+'{
+      "helperText": "See how many orders came from each sales channel, so you can compare order volume across channels."
+    }',
         'PLOT',
         60,
         'Order count distribution per sales channel.',
@@ -117,7 +121,9 @@ AND o.test = FALSE
     ORDER BY SUM(f.net_sales) / NULLIF(COUNT(*), 0) DESC NULLS LAST, f.channel ASC
     LIMIT 20
     $$,
-NULL,
+'{
+      "helperText": "Compare average order value across your sales channels, so you can spot which channels bring in higher-value orders."
+    }',
         'PLOT',
         60,
         'Average Order Value (AOV) comparison across sales channels.',
@@ -131,7 +137,7 @@ NULL,
     }'
 ),
     (
-    '019fffa2-0f80-777c-ae56-782c587a8bde',
+'019fffa2-0f80-777c-ae56-782c587a8bde',
         'Channel Revenue Trend',
         'Sales Channel Attribution/Channel Performance/PLOT/Channel Revenue Trend',
         $$
@@ -200,7 +206,9 @@ SELECT
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-NULL,
+'{
+      "helperText": "See how revenue from each sales channel has trended over time, so you can spot growth, dips, or shifts between channels."
+    }',
         'PLOT',
         60,
         'Revenue trend by sales channel, grouped by dynamic date granularity.',
@@ -284,7 +292,9 @@ FROM public.fact_order_refunds r
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     ',
-NULL,
+'{
+      "helperText": "A detailed scorecard for each sales channel showing orders, gross sales, discounts, net sales, AOV, and refund rate, so you can compare channel performance side by side."
+    }',
         'TABLE',
         60,
         'Comprehensive scorecard table per sales channel showing orders, gross sales, discounts, net sales, AOV, and refund rate %.',
@@ -298,11 +308,12 @@ NULL,
       },
       "excludeExtraParams": true
     }'
-),(
-    '019fffa2-0f80-7a6c-a7fa-d1b9b8e71fd8',
-    'Channel Order Detail Report',
-    'Sales Channel Attribution/Channel Performance/TABLE/Channel Order Detail Report',
-    '
+),
+    (
+        '019fffa2-0f80-7a6c-a7fa-d1b9b8e71fd8',
+        'Channel Order Detail Report',
+        'Sales Channel Attribution/Channel Performance/TABLE/Channel Order Detail Report',
+        '
     WITH filtered_orders AS (
         SELECT
             o.id,
@@ -401,7 +412,8 @@ NULL,
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-    '{
+'{
+"helperText":"A line-by-line list of individual orders with their channel, source, sales, discounts, and refund status, so you can dig into the details behind your channel numbers.",
       "filters": [
         {
           "id": "financialStatus",
@@ -422,10 +434,10 @@ NULL,
         }
       ]
     }',
-    'TABLE',
-    60,
-    'Detailed audit log table of individual channel orders listing date, customer, channel, source, app, sales, discounts, refund status, and financial status.',
-    '{
+'TABLE',
+        60,
+        'Detailed audit log table of individual channel orders listing date, customer, channel, source, app, sales, discounts, refund status, and financial status.',
+        '{
       "filterMappings": {
         "shopId": {
           "source": "AUTH_CONTEXT",
@@ -538,7 +550,9 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-NULL,
+'{
+      "helperText": "See a side-by-side quality comparison of your channels based on revenue, AOV, refund rate, and discount rate, so you can judge which channels are healthiest, not just biggest."
+    }',
         'TABLE',
         60,
         'Normalized quality index matrix comparing revenue, AOV, low refund rate, and low discount rate across channels.',
@@ -578,7 +592,9 @@ AND o.test = FALSE
     ORDER BY SUM(f.net_sales) DESC, f.channel ASC
     LIMIT 20
     $$,
-NULL,
+'{
+      "helperText": "See how much revenue each channel keeps after refunds, so you know what channels are actually contributing to your bottom line."
+    }',
         'PLOT',
         60,
         'Net revenue realization after refunds across channels.',
@@ -638,7 +654,9 @@ FROM public.fact_order_refunds r
              cg.channel ASC
     LIMIT 20
     $$,
-NULL,
+'{
+      "helperText": "Compare refund rates across your sales channels, so you can spot channels with higher return or refund issues."
+    }',
         'PLOT',
         60,
         'Refund rate percentage comparison per channel.',
@@ -680,7 +698,9 @@ AND o.financialstatus != 'VOIDED'
              f.channel ASC
     LIMIT 20
     $$,
-NULL,
+'{
+      "helperText": "Compare how much of each channel''s sales are going to discounts, so you can see where you''re giving away the most margin."
+    }',
         'PLOT',
         60,
         'Discount rate percentage comparison per channel.',
@@ -759,7 +779,9 @@ FROM public.fact_order_refunds r
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     ',
-NULL,
+'{
+      "helperText": "A detailed report of orders, net sales, AOV, discount rate, refund rate, unpaid balances, and unfulfilled orders per channel, so you can assess channel quality beyond just revenue."
+    }',
         'TABLE',
         60,
         'Detailed channel quality report table listing orders, net sales, AOV, discount rate %, refund rate %, unpaid balance, and unfulfilled orders count.',
@@ -853,7 +875,9 @@ GROUP BY
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     ',
-NULL,
+'{
+      "helperText": "A breakdown of refunded orders, refund amounts, refund rate, and the most-refunded products per channel, so you can pinpoint where returns are hurting you most."
+    }',
         'TABLE',
         60,
         'Detailed refund analysis report per channel showing refunded orders count, refunded dollar amount, refund rate %, and top refunded SKUs.',
@@ -912,7 +936,9 @@ AND o.test = FALSE
     ORDER BY SUM(f.gross_sales) DESC, f.utm_campaign ASC
     LIMIT 20
     $$,
-NULL,
+'{
+      "helperText": "See how much revenue each marketing campaign has generated, so you can tell which campaigns are paying off."
+    }',
         'PLOT',
         60,
         'Net revenue contribution per marketing campaign name.',
@@ -958,7 +984,9 @@ AND o.test = FALSE
     ORDER BY SUM(l.net_sales) DESC, l.source_medium ASC
     LIMIT 20
     $$,
-NULL,
+'{
+      "helperText": "Compare net sales, AOV, and order volume across your UTM source/medium combinations, so you can see which traffic sources convert best."
+    }',
         'PLOT',
         60,
         'Performance breakdown across combined UTM source / medium pairs evaluating net sales, AOV, and orders.',
@@ -999,7 +1027,9 @@ AND o.test = FALSE
     ORDER BY SUM(f.gross_sales) DESC, f.referring_site ASC
     LIMIT 20
     $$,
-NULL,
+'{
+      "helperText": "See how much revenue is coming from each referring website, so you can identify your most valuable external traffic sources."
+    }',
         'PLOT',
         60,
         'Revenue contribution per referring website URL/domain.',
@@ -1066,7 +1096,9 @@ AND o.test = FALSE
            COALESCE(ROUND(100 * t.direct   / NULLIF(t.total_gross, 0), 2), 0) AS direct_unknown
     FROM totals t
     $$,
-NULL,
+'{
+      "helperText": "See what share of your revenue comes from paid, organic, referral, email, social, and direct traffic, so you can understand where your sales are really coming from."
+    }',
         'PLOT',
         60,
         'Proportional revenue mix percentage across traffic acquisition mediums (Paid, Organic, Referral, Email, Social, Direct).',
@@ -1148,7 +1180,9 @@ FROM public.fact_order_refunds r
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     ',
-NULL,
+'{
+      "helperText": "A detailed report per campaign showing source, medium, orders, net sales, AOV, refund rate, and discount rate, so you can evaluate campaign performance in depth."
+    }',
         'TABLE',
         60,
         'Detailed performance report table per campaign listing UTM source, medium, campaign name, orders, net sales, AOV, refund %, and discount %.',
@@ -1196,7 +1230,9 @@ AND o.test = FALSE
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     ',
-NULL,
+'{
+      "helperText": "A detailed report per referring site showing first and last order dates, orders, net sales, AOV, and customer count, so you can see how each referral source performs over time."
+    }',
         'TABLE',
         60,
         'Report table per referring site domain listing first order date, last order date, orders, net sales, AOV, and customer count.',
@@ -1277,7 +1313,9 @@ SELECT
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-NULL,
+'{
+      "helperText": "See how the number of orders missing channel or marketing attribution has changed over time, so you can track how well your tracking is working."
+    }',
         'PLOT',
         60,
         'Volume trend of unattributed orders grouped by dynamic date granularity.',
@@ -1338,7 +1376,9 @@ SELECT f.id AS order_id,
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-NULL,
+'{
+      "helperText": "A list of individual orders missing UTM, referral, or channel data along with their value, so you can find and fix gaps in your attribution tracking."
+    }',
         'TABLE',
         60,
         'Audit table listing individual unattributed orders with flags for missing UTM, missing referral site, and net order value.',
@@ -1468,7 +1508,9 @@ FROM public.fact_order_refunds r
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     ',
-NULL,
+'{
+      "helperText": "See new vs. repeat customers, repeat rate, customer revenue, and refund-risk customers by channel, so you can judge which channels bring in the best long-term customers."
+    }',
         'TABLE',
         60,
         'Channel quality scorecard evaluating new customers, repeat customers, repeat rate %, customer revenue, and refund-risk customers count.',
@@ -1534,7 +1576,9 @@ FROM public.fact_order_line_items li
     ORDER BY SUM(ou.unfulfilled_value) DESC, f.channel ASC
     LIMIT 20
     $$,
-NULL,
+'{
+      "helperText": "See the dollar value of unfulfilled orders sitting in each channel, so you can spot where fulfillment is falling behind."
+    }',
         'PLOT',
         60,
         'Unfulfilled order backlog dollar value per channel.',
@@ -1595,7 +1639,9 @@ NULL,
     ORDER BY SUM(f.gross_sales) DESC, f.country ASC
     LIMIT 20
     $$,
-NULL,
+'{
+      "helperText": "See how revenue from each channel breaks down by destination country, so you can understand where your channel sales are shipping to."
+    }',
         'PLOT',
         60,
         'Revenue breakdown per destination country across sales channels, taken from the order attribution display name. Other Channels holds any named channel outside the first three, and Unattributed holds orders carrying no channel information at all.',
@@ -1661,7 +1707,9 @@ FROM public.fact_order_line_items li
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-NULL,
+'{
+      "helperText": "A detailed report per channel showing unfulfilled orders, unfulfilled value, fulfillment status breakdown, and aging days, so you can prioritize which channels need fulfillment attention first."
+    }',
         'TABLE',
         60,
         'Fulfillment backlog report table per channel showing unfulfilled orders count, unfulfilled value, fully/partially unfulfilled breakdown, and average/max aging days.',

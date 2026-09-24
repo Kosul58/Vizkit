@@ -3,12 +3,23 @@
 --changeset saugat:RW-36-1
 --comment seed refund overview tab
 
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fff82-e31b-748a-8425-3bb474a85b65',
-    'Refund Trend',
-    'Refunds & Reversals/Refund Overview/PLOT/Refund Trend',
-    $$
+'019fff82-e31b-748a-8425-3bb474a85b65',
+        'Refund Trend',
+        'Refunds & Reversals/Refund Overview/PLOT/Refund Trend',
+        $$
     WITH
     /*date_granularity_cte*/
     scoped_refunds AS (
@@ -45,11 +56,11 @@ VALUES (
     LEFT JOIN daily_refunds d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Trend of total refunded dollar value and refund count grouped by dynamic date granularity.',
-    '{
+'{"helperText": "See how your total refunded amount and refund count have changed over time, so you can spot spikes or trends in refund activity."}',
+        'PLOT',
+        60,
+        'Trend of total refunded dollar value and refund count grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -64,10 +75,10 @@ VALUES (
     }'
 ),
     (
-    '019fff82-e31b-74ba-ba74-370b43f625be',
-    'Refund Rate Trend',
-    'Refunds & Reversals/Refund Overview/PLOT/Refund Rate Trend',
-    $$
+'019fff82-e31b-74ba-ba74-370b43f625be',
+        'Refund Rate Trend',
+        'Refunds & Reversals/Refund Overview/PLOT/Refund Rate Trend',
+        $$
     WITH
     /*date_granularity_cte*/
     filtered_orders AS (
@@ -125,11 +136,11 @@ VALUES (
     LEFT JOIN daily_refunds dr ON dr.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Refund percentage rate relative to gross sales grouped by dynamic date granularity.',
-    '{
+'{"helperText": "See how your refund rate has moved over time relative to gross sales, so you can tell if refunds are becoming a bigger or smaller share of your business."}',
+        'PLOT',
+        60,
+        'Refund percentage rate relative to gross sales grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -144,10 +155,10 @@ VALUES (
     }'
 ),
     (
-    '019fff82-e31b-79f4-9202-7fba04cbf8de',
-    'Refunds vs Sales',
-    'Refunds & Reversals/Refund Overview/PLOT/Refunds vs Sales',
-    $$
+'019fff82-e31b-79f4-9202-7fba04cbf8de',
+        'Refunds vs Sales',
+        'Refunds & Reversals/Refund Overview/PLOT/Refunds vs Sales',
+        $$
     WITH
     /*date_granularity_cte*/
     filtered_orders AS (
@@ -201,11 +212,11 @@ VALUES (
     LEFT JOIN daily_refunds r ON r.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Comparison trend of net sales vs total refunded amount grouped by dynamic date granularity.',
-    '{
+'{"helperText": "Compare net sales against total refunds over time, so you can see how refund activity tracks against your overall sales."}',
+        'PLOT',
+        60,
+        'Comparison trend of net sales vs total refunded amount grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -218,11 +229,12 @@ VALUES (
           "args": { "startDateParam": "currentStartDate", "endDateParam": "currentEndDate", "granularityParam": "granularity" } }
       ]
     }'
-),(
-    '019fff82-e31b-75ee-96c8-10a77eeb0a92',
-    'Refunded Orders Report',
-    'Refunds & Reversals/Refund Overview/TABLE/Refunded Orders Report',
-    '
+),
+    (
+        '019fff82-e31b-75ee-96c8-10a77eeb0a92',
+        'Refunded Orders Report',
+        'Refunds & Reversals/Refund Overview/TABLE/Refunded Orders Report',
+        '
     WITH scoped_refunds AS (
         SELECT
             r.order_id,
@@ -309,7 +321,8 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-    '{
+'{
+"helperText":"Browse a detailed list of individual refunded orders with their gross sales, net sales, refund amount, and refund rate, so you can audit refunds at the order level.",
       "filters": [
         {
           "id": "financialStatus",
@@ -330,10 +343,10 @@ VALUES (
         }
       ]
     }',
-    'TABLE',
-    60,
-    'Detailed tabular audit report of individual refunded orders.',
-    '{
+'TABLE',
+        60,
+        'Detailed tabular audit report of individual refunded orders.',
+        '{
       "filterMappings": {
         "shopId": {
           "source": "AUTH_CONTEXT",
@@ -379,6 +392,7 @@ VALUES (
 --changeset saugat:RW-36-2
 --comment seed Revenue Impact and Financial Reconciliation tab
 
+
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff82-e31b-78d0-9da5-5953fef1cb38',
@@ -417,7 +431,7 @@ VALUES (
     LEFT JOIN daily_shipping d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
+'{"helperText": "See how much you have refunded in shipping charges over time, so you can track shipping-related refund trends."}',
     'PLOT',
     60,
     'Trend of refunded shipping amounts grouped by dynamic date granularity.',
@@ -541,7 +555,7 @@ VALUES (
         GROUP BY t.order_id, t.gateway
     )
 
-    SELECT
+SELECT
         COALESCE(rr.refund_id, o.id::text) AS refund_id,
         o.id AS order_id,
         ROUND(COALESCE(rr.refund_amount, 0), 2) AS refund_amount,
@@ -568,7 +582,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{"helperText": "See a line-by-line match between your recorded refunds and the actual gateway transactions per order, so you can quickly spot and investigate mismatches."}',
     'TABLE',
     30,
     'Granular reconciliation report matching refund entities against gateway transactions per order.',
@@ -654,7 +668,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{"helperText": "Compare shipping paid against shipping refunded for each order, so you can audit shipping refund accuracy."}',
     'TABLE',
     30,
     'Audit table comparing paid shipping vs refunded shipping per order.',
@@ -737,6 +751,7 @@ VALUES (
     OFFSET COALESCE(:offset, 0)
     ',
     '{
+"helperText":"See which orders were partially or fully refunded and how much value remains un-refunded, so you can track outstanding refund exposure.",
       "filters": [
         {
           "id": "financialStatus",
@@ -805,12 +820,23 @@ VALUES (
 
 --changeset saugat:RW-36-3
 --comment seed order refund analysis tab
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fff82-e31b-7f26-b6d9-e5be106a2e02',
-    'Refunds by Financial Status',
-    'Refunds & Reversals/Order Refund Analysis/PLOT/Refunds by Financial Status',
-    '
+'019fff82-e31b-7f26-b6d9-e5be106a2e02',
+        'Refunds by Financial Status',
+        'Refunds & Reversals/Order Refund Analysis/PLOT/Refunds by Financial Status',
+        '
     WITH filtered_orders AS (
         SELECT o.id,
                o.financialstatus AS financial_status,
@@ -838,10 +864,10 @@ VALUES (
     ORDER BY refunded_value DESC
     ',
 '{"helperText": "See how much order value was refunded versus kept, broken down by financial status."}',
-    'PLOT',
-    60,
-    'Distribution of refunded vs retained value grouped by order financial status.',
-    '{
+        'PLOT',
+        60,
+        'Distribution of refunded vs retained value grouped by order financial status.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -851,10 +877,10 @@ VALUES (
     }'
 ),
     (
-    '019fff82-e31b-72dd-a2be-2d371f692040',
-    'Refund Severity Distribution',
-    'Refunds & Reversals/Order Refund Analysis/PLOT/Refund Severity Distribution',
-    $$
+'019fff82-e31b-72dd-a2be-2d371f692040',
+        'Refund Severity Distribution',
+        'Refunds & Reversals/Order Refund Analysis/PLOT/Refund Severity Distribution',
+        $$
     WITH scoped_refunds AS (
         SELECT COALESCE(r.total_refunded_amount, 0) AS amount
         FROM public.fact_order_refunds r
@@ -877,11 +903,11 @@ VALUES (
     GROUP BY b.ord, b.lo, b.hi
     ORDER BY b.ord
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Frequency distribution of refund dollar sizes grouped into severity buckets.',
-    '{
+'{"helperText": "See how your refunds are distributed by dollar size, so you can tell whether most refunds are small or if a few large ones are driving your totals."}',
+        'PLOT',
+        60,
+        'Frequency distribution of refund dollar sizes grouped into severity buckets.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -894,12 +920,23 @@ VALUES (
 --changeset saugat:RW-36-4
 --comment seed product refund analysis tab
 
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fff82-e31b-7510-b989-6f45dce0489f',
-    'Top Refunded Products / SKUs',
-    'Refunds & Reversals/Product Refund Analysis/PLOT/Top Refunded Products / SKUs',
-    $$
+'019fff82-e31b-7510-b989-6f45dce0489f',
+        'Top Refunded Products / SKUs',
+        'Refunds & Reversals/Product Refund Analysis/PLOT/Top Refunded Products / SKUs',
+        $$
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                li.quantity - COALESCE(li.current_quantity, li.quantity) AS removed_units
@@ -924,10 +961,10 @@ OFFSET COALESCE(:offset, 0)
 '{
     "helperText": "See which SKUs have the most units refunded or removed from orders — to spot potential product defects, sizing issues, or inaccurate listings."
 }',
-    'PLOT',
-    60,
-    'Top SKUs ranked by refund removed item quantity.',
-    '{
+'PLOT',
+        60,
+        'Top SKUs ranked by refund removed item quantity.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -939,10 +976,10 @@ OFFSET COALESCE(:offset, 0)
     }'
 ),
     (
-    '019fff82-e31b-7f43-a957-21278090eb7f',
-    'Top Refunded Products Report',
-    'Refunds & Reversals/Product Refund Analysis/TABLE/Top Refunded Products Report',
-    $$
+'019fff82-e31b-7f43-a957-21278090eb7f',
+        'Top Refunded Products Report',
+        'Refunds & Reversals/Product Refund Analysis/TABLE/Top Refunded Products Report',
+        $$
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                li.quantity AS ordered_units,
@@ -974,11 +1011,11 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    30,
-    'Detailed tabular breakdown per product evaluating ordered vs current vs removed and refundable item quantities.',
-    '{
+'{"helperText": "See a detailed breakdown per product of ordered, current, and refunded quantities, so you can identify which products are driving the most returns."}',
+        'TABLE',
+        30,
+        'Detailed tabular breakdown per product evaluating ordered vs current vs removed and refundable item quantities.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -992,6 +1029,7 @@ OFFSET COALESCE(:offset, 0)
 
 --changeset saugat:RW-36-5
 --comment seed channel customer and geography analysis tab
+
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
@@ -1029,7 +1067,7 @@ VALUES (
     GROUP BY f.channel
     ORDER BY refunded_amount DESC
     $$,
-    NULL,
+'{"helperText": "See how refunds break down by sales channel, so you can tell which channels have the highest refund amounts and rates."}',
     'PLOT',
     60,
     'Refund dollar amount and refund % rate breakdown grouped by sales channel.',
@@ -1085,7 +1123,7 @@ VALUES (
     GROUP BY s.ord, s.segment
     ORDER BY s.ord
     $$,
-    NULL,
+'{"helperText": "Compare refund counts and rates between new and repeat customers, so you can see which group is driving more refunds."}',
     'PLOT',
     60,
     'Refund count and refund rate % breakdown between New and Repeat customer segments.',
@@ -1162,7 +1200,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
+'{"helperText": "See how refunds vary by region, so you can spot geographic patterns in refund amounts and rates."}',
     'PLOT',
     60,
     'Geographic breakdown of total refunded amounts and refund rate % per region.',
@@ -1221,7 +1259,8 @@ GROUP BY COALESCE(t.gateway, 'Unknown')
 ORDER BY refund_transaction_amount DESC
 LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0);
-    $$,
+
+$$,
 '{
     "helperText": "See how much refunded money has gone out through each payment gateway — to track where refund outflows occur and monitor processor-specific return volumes."
 }',
@@ -1284,7 +1323,7 @@ OFFSET COALESCE(:offset, 0);
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{"helperText": "Compare orders, net sales, and refund rates across sales channels, so you can see which channels perform best and which need attention."}',
     'TABLE',
     60,
     'Comparative scorecard table per sales channel evaluating orders, net sales, refunded orders, and refund rate %.',
@@ -1354,7 +1393,7 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{"helperText": "See which customers refund most often or for the highest amounts, so you can identify accounts that may need extra attention."}',
     'TABLE',
     30,
     'Customer-level refund risk scorecard flagging high refund frequency and high refund value accounts.',
@@ -1373,12 +1412,23 @@ OFFSET COALESCE(:offset, 0)
 --changeset saugat:RW-36-6
 --comment seed staff and audit controls tab
 
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fff82-e31d-7e78-99f7-d8efbb717b07',
-    'Refund Note Keyword Analysis',
-    'Refunds & Reversals/Staff & Audit Controls/TABLE/Refund Note Keyword Analysis',
-    $$
+'019fff82-e31d-7e78-99f7-d8efbb717b07',
+        'Refund Note Keyword Analysis',
+        'Refunds & Reversals/Staff & Audit Controls/TABLE/Refund Note Keyword Analysis',
+        $$
     WITH scoped_refunds AS (
         SELECT r.id,
                COALESCE(r.total_refunded_amount, 0) AS amount,
@@ -1409,11 +1459,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    30,
-    'Audit text analysis ranking recurring keywords found in refund notes.',
-    '{
+'{"helperText": "See the most common keywords mentioned in refund notes, so you can spot recurring reasons customers are asking for refunds."}',
+        'TABLE',
+        30,
+        'Audit text analysis ranking recurring keywords found in refund notes.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -1425,10 +1475,10 @@ OFFSET COALESCE(:offset, 0)
     }'
 ),
     (
-    '019fff82-e31d-78ee-b15c-582a98b59a1f',
-    'Refund Detail Report',
-    'Refunds & Reversals/Staff & Audit Controls/TABLE/Refund Detail Report',
-    $$
+'019fff82-e31d-78ee-b15c-582a98b59a1f',
+        'Refund Detail Report',
+        'Refunds & Reversals/Staff & Audit Controls/TABLE/Refund Detail Report',
+        $$
     SELECT r.id AS refund_id,
            o.id AS order_id,
            COALESCE(NULLIF(TRIM(CONCAT_WS(' ', cu.first_name, cu.last_name)), ''),
@@ -1450,11 +1500,11 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    30,
-    'Detailed audit log listing individual refund transactions, notes, and customer info.',
-    '{
+'{"helperText": "Browse a detailed log of individual refunds with notes and customer info, so you can audit refund activity at a granular level."}',
+        'TABLE',
+        30,
+        'Detailed audit log listing individual refund transactions, notes, and customer info.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -1466,10 +1516,10 @@ OFFSET COALESCE(:offset, 0)
     }'
 ),
     (
-    '019fff82-e31d-71d9-8086-eb0e7405032c',
-    'Refund Notes Report',
-    'Refunds & Reversals/Staff & Audit Controls/TABLE/Refund Notes Report',
-    $$
+'019fff82-e31d-71d9-8086-eb0e7405032c',
+        'Refund Notes Report',
+        'Refunds & Reversals/Staff & Audit Controls/TABLE/Refund Notes Report',
+        $$
     WITH scoped_refunds AS (
         SELECT r.id,
                r.note,
@@ -1507,11 +1557,11 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    30,
-    'Tabular report of refund notes mapped to extracted search keywords for compliance audit.',
-    '{
+'{"helperText": "See refund notes alongside their extracted keywords, so you can review and audit the reasons behind refunds for compliance."}',
+        'TABLE',
+        30,
+        'Tabular report of refund notes mapped to extracted search keywords for compliance audit.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },

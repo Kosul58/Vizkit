@@ -13,11 +13,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Net sales (order total less tax and shipping) for the selected period vs the prior period.',
-    '{
+'{"helperText": "See your total net sales for the selected period, so you know what you are actually earning from orders after tax and duties."}',
+        'KPI',
+        60,
+        'Net sales (order total less tax and shipping) for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
@@ -46,11 +46,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Gross sales before discounts, including tax and shipping and excluding voided orders, for the selected period vs the prior period.',
-    '{
+'{"helperText": "See your gross sales for the selected period, before discounts are taken off, so you know the full value of what customers ordered."}',
+        'KPI',
+        60,
+        'Gross sales before discounts, including tax and shipping and excluding voided orders, for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
@@ -73,11 +73,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Total order volume for the selected period vs the prior period.',
-    '{
+'{"helperText": "See how many orders came in during the selected period, so you can track overall order volume."}',
+        'KPI',
+        60,
+        'Total order volume for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
@@ -103,11 +103,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Average order value (net sales per order) for the selected period vs the prior period.',
-    '{
+'{"helperText": "See how much customers spend on average per order, so you can track whether order sizes are growing or shrinking."}',
+        'KPI',
+        60,
+        'Average order value (net sales per order) for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
@@ -131,11 +131,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR r.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR r.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Total amount refunded for the selected period vs the prior period.',
-    '{
+'{"helperText": "See how much money you have refunded to customers in the selected period, so you know how much revenue is going back out."}',
+        'KPI',
+        60,
+        'Total amount refunded for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
@@ -178,11 +178,11 @@ VALUES (
     FROM refund_totals rt
     CROSS JOIN order_gross og
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Refunded amount as a percentage of gross sales for the selected period vs the prior period.',
-    '{
+'{"helperText": "See what share of your gross sales was refunded, so you can tell whether returns are becoming a bigger problem."}',
+        'KPI',
+        60,
+        'Refunded amount as a percentage of gross sales for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
@@ -210,11 +210,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Discounts as a percentage of gross sales for the selected period vs the prior period.',
-    '{
+'{"helperText": "See what share of your gross sales is given away as discounts, so you can check whether your promotions are costing you too much."}',
+        'KPI',
+        60,
+        'Discounts as a percentage of gross sales for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
@@ -280,11 +280,11 @@ VALUES (
                     ELSE 0 END), 0), 2) AS low_stock_revenue_risk
     FROM velocity
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Revenue from variants with under 14 days of stock cover, for the selected period vs the prior period.',
-    '{
+'{"helperText": "See how much revenue you could lose from products likely to run out within about two weeks, so you know what to restock first."}',
+        'KPI',
+        60,
+        'Revenue from variants with under 14 days of stock cover, for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
@@ -307,11 +307,11 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Total outstanding unpaid order balances for the selected period vs the prior period.',
-    '{
+'{"helperText": "See how much money is still unpaid on orders in the selected period, so you can follow up on payments you are still waiting for."}',
+        'KPI',
+        60,
+        'Total outstanding unpaid order balances for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },
@@ -360,11 +360,11 @@ VALUES (
     FROM order_totals ot
     CROSS JOIN cogs_totals ct
     $$,
-    NULL,
-    'KPI',
-    60,
-    'Estimated gross margin (net sales less COGS) for the selected period vs the prior period.',
-    '{
+'{"helperText": "See an estimate of what you keep after product costs, based on net sales minus what your items cost you, so you know how profitable your sales are."}',
+        'KPI',
+        60,
+        'Estimated gross margin (net sales less COGS) for the selected period vs the prior period.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"      },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"     },

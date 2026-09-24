@@ -121,11 +121,13 @@ OFFSET COALESCE(:offset, 0)
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Line item net sales and units sold trends grouped by dynamic date granularity.',
-    '{
+'{
+    "helperText": "See how your net sales and units sold move over time, so you can spot growth, dips, or seasonal patterns."
+}',
+        'PLOT',
+        60,
+        'Line item net sales and units sold trends grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -216,11 +218,13 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    30,
-    'Detailed tabular breakdown of performance per SKU evaluating units sold, gross/net sales, discounts, and AUP.',
-    '{
+'{
+    "helperText": "See units sold, gross and net sales, discounts, average price, and unfulfilled units for each SKU, so you can compare how every SKU performs."
+}',
+        'TABLE',
+        30,
+        'Detailed tabular breakdown of performance per SKU evaluating units sold, gross/net sales, discounts, and AUP.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -281,11 +285,13 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    30,
-    'Detailed tabular breakdown of product-level sales performance, vendor, category, and discount rates.',
-    '{
+'{
+    "helperText": "See how each product performs across orders, units sold, sales, and discount rate, along with its vendor and category, so you can find your best and weakest products."
+}',
+        'TABLE',
+        30,
+        'Detailed tabular breakdown of product-level sales performance, vendor, category, and discount rates.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -325,11 +331,13 @@ VALUES (
     ORDER BY discount_amount DESC
     LIMIT 20
     ',
-    NULL,
-    'PLOT',
-    60,
-    'SKUs ranked by total discount dollar leakage.',
-    '{
+'{
+    "helperText": "See which SKUs have the most money given away in discounts, so you can spot where promotions are costing you the most."
+}',
+        'PLOT',
+        60,
+        'SKUs ranked by total discount dollar leakage.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -374,11 +382,13 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    30,
-    'Granular tabular audit of individual line item discount leakage per order.',
-    '{
+'{
+    "helperText": "See each discounted order line with its original price, final price, and discount rate, so you can review where discounts are being applied."
+}',
+        'TABLE',
+        30,
+        'Granular tabular audit of individual line item discount leakage per order.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -473,11 +483,13 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    60,
-    'Granular tabular audit of individual unfulfilled line items per order.',
-    '{
+'{
+    "helperText": "See every order line that still has items waiting to ship, with the quantity and value at stake, so you can work through your backlog."
+}',
+        'TABLE',
+        60,
+        'Granular tabular audit of individual unfulfilled line items per order.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -570,11 +582,13 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    30,
-    'Detailed tabular breakdown of ordered vs current vs removed and refundable item quantities per SKU.',
-    '{
+'{
+    "helperText": "See how many units were ordered, how many remain, and how many were refunded or removed for each SKU, so you can spot products with high return activity."
+}',
+        'TABLE',
+        30,
+        'Detailed tabular breakdown of ordered vs current vs removed and refundable item quantities per SKU.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -622,11 +636,13 @@ VALUES (
     ORDER BY ps.net_sales DESC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Pareto chart showing individual product revenue contribution % and cumulative % concentration.',
-    '{
+'{
+    "helperText": "See how much each top product contributes to your revenue and how quickly the total builds up, so you can tell how dependent your sales are on a few products."
+}',
+        'PLOT',
+        60,
+        'Pareto chart showing individual product revenue contribution % and cumulative % concentration.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -706,11 +722,13 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Trend of Average Unit Price (AUP) grouped by dynamic date granularity.',
-    '{
+'{
+    "helperText": "See how the average price customers pay per unit changes over time, so you can spot the effects of pricing, discounts, or product mix."
+}',
+        'PLOT',
+        60,
+        'Trend of Average Unit Price (AUP) grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -747,11 +765,13 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Net sales breakdown grouped across taxonomy categories and product types.',
-    '{
+'{
+    "helperText": "See which product categories bring in the most net sales, ranked from highest to lowest, so you can identify your top-performing product groups."
+}',
+        'PLOT',
+        60,
+        'Net sales breakdown grouped across taxonomy categories and product types.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -791,11 +811,13 @@ OFFSET COALESCE(:offset, 0)
     ORDER BY net_sales DESC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Comparison of gross sales vs net sales per product.',
-    '{
+'{
+    "helperText": "See sales before and after discounts for your top products, so you can tell which ones lose the most revenue to discounting."
+}',
+        'PLOT',
+        60,
+        'Comparison of gross sales vs net sales per product.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -1044,11 +1066,13 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
-    'TABLE',
-    60,
-    'Detailed tabular breakdown per vendor showing products, skus, units sold, gross/net sales, and discount %.',
-    '{
+'{
+    "helperText": "See products, SKUs, units sold, refunded units, sales, and discount rate for each vendor, so you can compare how your suppliers perform."
+}',
+        'TABLE',
+        60,
+        'Detailed tabular breakdown per vendor showing products, skus, units sold, gross/net sales, and discount %.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },

@@ -43,7 +43,7 @@ VALUES (
     GROUP BY b.ord, b.status
     ORDER BY b.ord
     $$,
-'{"helperText": "A breakdown of your SKUs by stock status — In Stock, Low Stock, Out of Stock, and Overstock — so you can quickly spot items needing immediate reorder or liquidation."}',
+'{"helperText": "A breakdown of your SKUs by stock status \u2014 In Stock, Low Stock, Out of Stock, and Overstock \u2014 so you can quickly spot items that need restocking or are piling up."}',
     'PLOT',
     60,
     'Distribution of SKUs across stock status classifications (In Stock, Low Stock, Out of Stock, Overstock).',
@@ -102,7 +102,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
+'{"helperText": "See how much of each product'\''s available stock has already sold, so you can spot your best sellers and the items that are moving slowly."}',
     'PLOT',
     60,
     'Products ranked by sell-through rate percentage.',
@@ -160,7 +160,7 @@ VALUES (
     OFFSET COALESCE(:offset, 0)
     ',
 '{
-    "helperText": "Compare units sold against what's still available, so you can see which top sellers might be running low."
+"helperText":"Compare units sold against what'\''s still available, so you can see which top sellers might be running low."
 }',
     'PLOT',
     60,
@@ -224,7 +224,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{"helperText": "See available, committed, reserved, and safety stock for every SKU and location, so you can audit your inventory health down to the last detail."}',
     'TABLE',
     30,
     'Detailed inventory audit report per SKU and location showing available, committed, reserved, and safety stock.',
@@ -301,7 +301,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{"helperText": "See your fastest-selling SKUs with sell-through rate and days of stock cover, so you know exactly what to reorder first."}',
     'TABLE',
     30,
     'Report ranking fast-moving SKUs by units sold and sell-through rate for the selected period, with days of stock cover as of today.',
@@ -320,12 +320,23 @@ VALUES (
 --changeset saugat:RW-37-2
 --comment seed Replenishment & Stock Risk tab
 
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fff82-e31e-7fec-a16b-dd174e41fe83',
-    'Low Stock Revenue Risk by SKU',
-    'Product & Inventory Health/Replenishment & Stock Risk/PLOT/Low Stock Revenue Risk by SKU',
-    $$
+'019fff82-e31e-7fec-a16b-dd174e41fe83',
+        'Low Stock Revenue Risk by SKU',
+        'Product & Inventory Health/Replenishment & Stock Risk/PLOT/Low Stock Revenue Risk by SKU',
+        $$
     WITH sales_window AS (
         SELECT MIN(o.created_at::date) AS min_day,
                MAX(o.created_at::date) AS max_day
@@ -392,11 +403,11 @@ VALUES (
     ORDER BY r.revenue_at_risk DESC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Low stock SKUs ranked by estimated potential revenue loss at risk.',
-    '{
+'{"helperText": "See how much potential revenue is at risk from low-stock SKUs, ranked from highest to lowest, so you know which items to reorder first."}',
+        'PLOT',
+        60,
+        'Low stock SKUs ranked by estimated potential revenue loss at risk.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -406,10 +417,10 @@ VALUES (
     }'
 ),
     (
-    '019fff82-e31e-7c77-934f-8e50724277f0',
-    'Stock Coverage Days by SKU',
-    'Product & Inventory Health/Replenishment & Stock Risk/PLOT/Stock Coverage Days by SKU',
-    $$
+'019fff82-e31e-7c77-934f-8e50724277f0',
+        'Stock Coverage Days by SKU',
+        'Product & Inventory Health/Replenishment & Stock Risk/PLOT/Stock Coverage Days by SKU',
+        $$
     WITH sales_window AS (
         SELECT MIN(o.created_at::date) AS min_day,
                MAX(o.created_at::date) AS max_day
@@ -460,11 +471,11 @@ VALUES (
     ORDER BY stock_coverage_days ASC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'SKUs ranked by remaining stock coverage days based on recent sales velocity.',
-    '{
+'{"helperText": "See how many days of stock are left for each SKU based on recent sales, so you can spot items that will run out soon."}',
+        'PLOT',
+        60,
+        'SKUs ranked by remaining stock coverage days based on recent sales velocity.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -474,10 +485,10 @@ VALUES (
     }'
 ),
     (
-    '019fff82-e31e-7a3e-859a-6ba09f321cc8',
-    'Inventory Movement Trend',
-    'Product & Inventory Health/Replenishment & Stock Risk/PLOT/Inventory Movement Trend',
-    $$
+'019fff82-e31e-7a3e-859a-6ba09f321cc8',
+        'Inventory Movement Trend',
+        'Product & Inventory Health/Replenishment & Stock Risk/PLOT/Inventory Movement Trend',
+        $$
     WITH
     /*date_granularity_cte*/
     filtered_sales AS (
@@ -522,11 +533,11 @@ VALUES (
     CROSS JOIN current_stock cs
     ORDER BY sa.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Movement trend of units sold vs available stock trajectory grouped by dynamic date granularity.',
-    '{
+'{"helperText": "See how units sold and available stock have trended over time, so you can spot patterns in demand and stock depletion."}',
+        'PLOT',
+        60,
+        'Movement trend of units sold vs available stock trajectory grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"   },
@@ -549,10 +560,10 @@ VALUES (
     }'
 ),
     (
-    '019fff82-e31e-7fbe-8a1d-8005aaea2a53',
-    'Low Stock Report',
-    'Product & Inventory Health/Replenishment & Stock Risk/TABLE/Low Stock Report',
-    $$
+'019fff82-e31e-7fbe-8a1d-8005aaea2a53',
+        'Low Stock Report',
+        'Product & Inventory Health/Replenishment & Stock Risk/TABLE/Low Stock Report',
+        $$
     WITH sales_window AS (
         SELECT MIN(o.created_at::date) AS min_day,
                MAX(o.created_at::date) AS max_day
@@ -620,11 +631,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    30,
-    'Audit table listing low stock SKUs with sales velocity, stockout horizon, and revenue at risk.',
-    '{
+'{"helperText": "See low-stock SKUs with sales velocity, days of stock left, and revenue at risk, so you know exactly what to prioritize reordering."}',
+        'TABLE',
+        30,
+        'Audit table listing low stock SKUs with sales velocity, stockout horizon, and revenue at risk.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
@@ -636,10 +647,10 @@ VALUES (
     }'
 ),
     (
-    '019fff82-e31e-748e-b205-28aafe15d0e8',
-    'Out of Stock Report',
-    'Product & Inventory Health/Replenishment & Stock Risk/TABLE/Out of Stock Report',
-    $$
+'019fff82-e31e-748e-b205-28aafe15d0e8',
+        'Out of Stock Report',
+        'Product & Inventory Health/Replenishment & Stock Risk/TABLE/Out of Stock Report',
+        $$
     WITH sales_window AS (
         SELECT MIN(o.created_at::date) AS min_day,
                MAX(o.created_at::date) AS max_day
@@ -707,11 +718,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    30,
-    'Out of stock SKU report showing last sold date, affected locations, and estimated lost revenue.',
-    '{
+'{"helperText": "See which SKUs are completely out of stock, along with their last sold date and estimated lost revenue, so you can prioritize restocking."}',
+        'TABLE',
+        30,
+        'Out of stock SKU report showing last sold date, affected locations, and estimated lost revenue.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
@@ -725,6 +736,7 @@ VALUES (
 
 --changeset saugat:RW-37-3
 --comment seed Inventory Value & Capital Management tab (P0/P1)
+
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
@@ -752,7 +764,7 @@ VALUES (
     ORDER BY inventory_value DESC
     LIMIT 20
     $$,
-    NULL,
+'{"helperText": "See how much capital is tied up in each product'\''s on-hand inventory, so you can spot where your stock investment is concentrated."}',
     'PLOT',
     60,
     'Valuation of inventory on hand per product.',
@@ -805,7 +817,7 @@ VALUES (
     ORDER BY dead_stock_value DESC
     LIMIT 20
     $$,
-    NULL,
+'{"helperText": "See how much capital is tied up in products that haven'\''t sold during the period, so you can decide what to discount or clear out."}',
     'PLOT',
     60,
     'Dead stock capital valuation tied up in unsold products during the period.',
@@ -848,7 +860,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{"helperText": "See unit cost, on-hand quantity, and total value for every SKU and location, so you can audit exactly where your inventory capital sits."}',
     'TABLE',
     30,
     'Detailed valuation audit report listing product, SKU, unit cost, on-hand quantity, and total inventory value.',
@@ -921,7 +933,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{"helperText": "See SKUs with no recent sales, along with tied-up capital and days since last sale, so you can decide what to liquidate."}',
     'TABLE',
     30,
     'Report listing dead stock SKUs, tied-up capital value, last sold date, and days without sale.',
@@ -940,12 +952,23 @@ VALUES (
 --changeset saugat:RW-37-4
 --comment seed Fulfillment & Demand tab (P0/P1)
 
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fff82-e31e-7ab0-8fde-619cbe1d3f63',
-    'Unfulfilled Quantity by Product',
-    'Product & Inventory Health/Fulfillment & Demand/PLOT/Unfulfilled Quantity by Product',
-    $$
+'019fff82-e31e-7ab0-8fde-619cbe1d3f63',
+        'Unfulfilled Quantity by Product',
+        'Product & Inventory Health/Fulfillment & Demand/PLOT/Unfulfilled Quantity by Product',
+        $$
     WITH filtered_line_items AS (
         SELECT li.product_variant_id,
                li.unfulfilled_quantity
@@ -967,11 +990,11 @@ VALUES (
     ORDER BY unfulfilled_quantity DESC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Products ranked by total unfulfilled item quantity backlog.',
-    '{
+'{"helperText": "See which products have the largest unfulfilled order backlog, so you know exactly where fulfillment is falling behind."}',
+        'PLOT',
+        60,
+        'Products ranked by total unfulfilled item quantity backlog.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -981,10 +1004,10 @@ VALUES (
     }'
 ),
     (
-    '019fff82-e31e-7bfd-a6b5-2777df9b07ba',
-    'Unfulfilled Inventory Report',
-    'Product & Inventory Health/Fulfillment & Demand/TABLE/Unfulfilled Inventory Report',
-    $$
+'019fff82-e31e-7bfd-a6b5-2777df9b07ba',
+        'Unfulfilled Inventory Report',
+        'Product & Inventory Health/Fulfillment & Demand/TABLE/Unfulfilled Inventory Report',
+        $$
     WITH filtered_line_items AS (
         SELECT li.id AS line_id,
                o.id AS order_id,
@@ -1040,11 +1063,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    30,
-    'Audit table listing unfulfilled orders, item quantity, backlog value, available stock, and location.',
-    '{
+'{"helperText": "See unfulfilled orders with backlog value, available stock, and location, so you can prioritize what to ship next."}',
+        'TABLE',
+        30,
+        'Audit table listing unfulfilled orders, item quantity, backlog value, available stock, and location.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
@@ -1059,12 +1082,23 @@ VALUES (
 --changeset saugat:RW-37-5
 --comment seed Locations & Operations tab (P0/P1)
 
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fff82-e31e-741a-9b77-036f24795d55',
-    'Inventory by Location',
-    'Product & Inventory Health/Locations & Operations/PLOT/Inventory by Location',
-    $$
+'019fff82-e31e-741a-9b77-036f24795d55',
+        'Inventory by Location',
+        'Product & Inventory Health/Locations & Operations/PLOT/Inventory by Location',
+        $$
     SELECT COALESCE(loc.name, 'Unknown') AS name,
            COALESCE(SUM(il.available_quantity), 0) AS available_quantity,
            COALESCE(SUM(il.committed_quantity), 0) AS committed_quantity,
@@ -1077,11 +1111,11 @@ VALUES (
     ORDER BY available_quantity DESC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Inventory breakdown across locations showing available, committed, and reserved quantities.',
-    '{
+'{"helperText": "See how available, committed, and reserved stock breaks down across your locations, so you know where your inventory actually sits."}',
+        'PLOT',
+        60,
+        'Inventory breakdown across locations showing available, committed, and reserved quantities.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1091,10 +1125,10 @@ VALUES (
     }'
 ),
     (
-    '019fff82-e31e-7b01-8e90-b7e72ea47d3d',
-    'Damaged / QC / Safety Stock Mix',
-    'Product & Inventory Health/Locations & Operations/PLOT/Damaged / QC / Safety Stock Mix',
-    $$
+'019fff82-e31e-7b01-8e90-b7e72ea47d3d',
+        'Damaged / QC / Safety Stock Mix',
+        'Product & Inventory Health/Locations & Operations/PLOT/Damaged / QC / Safety Stock Mix',
+        $$
     SELECT COALESCE(loc.name, 'Unknown') AS name,
            COALESCE(SUM(il.damaged_quantity), 0) AS damaged_quantity,
            COALESCE(SUM(il.quality_control_quantity), 0) AS quality_control_quantity,
@@ -1109,11 +1143,11 @@ VALUES (
               + COALESCE(SUM(il.safety_stock_quantity), 0)) DESC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Non-sellable stock breakdown per location covering damaged, quality control, and safety stock.',
-    '{
+'{"helperText": "See damaged, quality-control, and safety stock by location, so you can spot where non-sellable inventory is building up."}',
+        'PLOT',
+        60,
+        'Non-sellable stock breakdown per location covering damaged, quality control, and safety stock.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1123,10 +1157,10 @@ VALUES (
     }'
 ),
     (
-    '019fff82-e31e-7f12-862d-2a71d90c903a',
-    'Location Stock Report',
-    'Product & Inventory Health/Locations & Operations/TABLE/Location Stock Report',
-    '
+'019fff82-e31e-7f12-862d-2a71d90c903a',
+        'Location Stock Report',
+        'Product & Inventory Health/Locations & Operations/TABLE/Location Stock Report',
+        '
     SELECT COALESCE(loc.name, ''Unknown'') AS location,
            COALESCE(loc.is_active, FALSE) AS active_status,
            COALESCE(SUM(il.available_quantity), 0) AS available_stock,
@@ -1143,11 +1177,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
-    'TABLE',
-    60,
-    'Detailed audit table per location showing active status, available stock, committed stock, reserved stock, and damaged stock.',
-    '{
+'{"helperText": "See available, committed, reserved, and damaged stock for every location, so you can audit inventory operations site by site."}',
+        'TABLE',
+        60,
+        'Detailed audit table per location showing active status, available stock, committed stock, reserved stock, and damaged stock.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
@@ -1162,12 +1196,23 @@ VALUES (
 --changeset saugat:RW-37-6
 --comment seed Vendor & Collection Analysis tab (P1/P2, no KPI cards)
 
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fff82-e31e-7444-b17e-549809be2b6b',
-    'Inventory Value by Vendor',
-    'Product & Inventory Health/Vendor & Collection Analysis/PLOT/Inventory Value by Vendor',
-    $$
+'019fff82-e31e-7444-b17e-549809be2b6b',
+        'Inventory Value by Vendor',
+        'Product & Inventory Health/Vendor & Collection Analysis/PLOT/Inventory Value by Vendor',
+        $$
     SELECT COALESCE(p.vendor, 'Unknown') AS name,
            ROUND(COALESCE(SUM(COALESCE(il.on_hand_quantity, 0) * COALESCE(ii.unit_cost, 0)), 0), 2) AS inventory_value
     FROM public.dim_inventory_levels il
@@ -1182,11 +1227,11 @@ VALUES (
     ORDER BY inventory_value DESC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Inventory valuation distribution grouped by product vendor.',
-    '{
+'{"helperText": "See how much inventory capital is tied up with each vendor, so you know which suppliers make up the bulk of your stock investment."}',
+        'PLOT',
+        60,
+        'Inventory valuation distribution grouped by product vendor.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1196,10 +1241,10 @@ VALUES (
     }'
 ),
     (
-    '019fff82-e31e-752c-8bf6-3c3f866777c0',
-    'Inventory Value by Collection',
-    'Product & Inventory Health/Vendor & Collection Analysis/PLOT/Inventory Value by Collection',
-    $$
+'019fff82-e31e-752c-8bf6-3c3f866777c0',
+        'Inventory Value by Collection',
+        'Product & Inventory Health/Vendor & Collection Analysis/PLOT/Inventory Value by Collection',
+        $$
     SELECT COALESCE(col.title, 'Uncategorized') AS name,
            ROUND(COALESCE(SUM(COALESCE(il.on_hand_quantity, 0) * COALESCE(ii.unit_cost, 0)), 0), 2) AS inventory_value
     FROM public.dim_inventory_levels il
@@ -1216,11 +1261,11 @@ VALUES (
     ORDER BY inventory_value DESC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Inventory valuation distribution grouped by product collection.',
-    '{
+'{"helperText": "See how much inventory capital is tied up in each collection, so you can spot which product groupings hold the most stock value."}',
+        'PLOT',
+        60,
+        'Inventory valuation distribution grouped by product collection.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1230,10 +1275,10 @@ VALUES (
     }'
 ),
     (
-    '019fff82-e31e-7603-b866-cadd19d65482',
-    'Origin Country Stock Mix',
-    'Product & Inventory Health/Vendor & Collection Analysis/PLOT/Origin Country Stock Mix',
-    $$
+'019fff82-e31e-7603-b866-cadd19d65482',
+        'Origin Country Stock Mix',
+        'Product & Inventory Health/Vendor & Collection Analysis/PLOT/Origin Country Stock Mix',
+        $$
     SELECT COALESCE(ii.country_code_of_origin, 'Unknown') AS name,
            COALESCE(SUM(COALESCE(il.on_hand_quantity, 0)), 0) AS units,
            ROUND(COALESCE(SUM(COALESCE(il.on_hand_quantity, 0) * COALESCE(ii.unit_cost, 0)), 0), 2) AS inventory_value
@@ -1247,11 +1292,11 @@ VALUES (
     ORDER BY inventory_value DESC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Stock units and inventory valuation distribution grouped by country of origin.',
-    '{
+'{"helperText": "See stock units and inventory value broken down by country of origin, so you can understand where your inventory comes from."}',
+        'PLOT',
+        60,
+        'Stock units and inventory valuation distribution grouped by country of origin.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1261,10 +1306,10 @@ VALUES (
     }'
 ),
     (
-    '019fff82-e31e-706d-838e-ee315b8dde04',
-    'Vendor Inventory Report',
-    'Product & Inventory Health/Vendor & Collection Analysis/TABLE/Vendor Inventory Report',
-    '
+'019fff82-e31e-706d-838e-ee315b8dde04',
+        'Vendor Inventory Report',
+        'Product & Inventory Health/Vendor & Collection Analysis/TABLE/Vendor Inventory Report',
+        '
     WITH sku_inventory AS (
         SELECT pv.id AS variant_id,
                p.vendor,
@@ -1306,11 +1351,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
-    'TABLE',
-    60,
-    'Comprehensive scorecard table per vendor listing SKUs, inventory units, inventory value, pooled sell-through %, and dead stock value.',
-    '{
+'{"helperText": "See SKU count, inventory value, sell-through rate, and dead stock value by vendor, so you can compare supplier performance at a glance."}',
+        'TABLE',
+        60,
+        'Comprehensive scorecard table per vendor listing SKUs, inventory units, inventory value, pooled sell-through %, and dead stock value.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
@@ -1322,10 +1367,10 @@ VALUES (
     }'
 ),
     (
-    '019fff82-e31e-7e78-8f78-8a4b440e0b84',
-    'Collection Inventory Report',
-    'Product & Inventory Health/Vendor & Collection Analysis/TABLE/Collection Inventory Report',
-    '
+'019fff82-e31e-7e78-8f78-8a4b440e0b84',
+        'Collection Inventory Report',
+        'Product & Inventory Health/Vendor & Collection Analysis/TABLE/Collection Inventory Report',
+        '
     WITH sales_window AS (
         SELECT MIN(o.created_at::date) AS min_day,
                MAX(o.created_at::date) AS max_day
@@ -1388,11 +1433,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
-    'TABLE',
-    60,
-    'Comprehensive scorecard table per collection listing products count, available stock, inventory value, sales velocity, and stock risk SKUs.',
-    '{
+'{"helperText": "See product count, available stock, inventory value, and stock-risk SKUs by collection, so you can spot which collections need attention."}',
+        'TABLE',
+        60,
+        'Comprehensive scorecard table per collection listing products count, available stock, inventory value, sales velocity, and stock risk SKUs.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },

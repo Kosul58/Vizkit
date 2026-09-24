@@ -51,7 +51,7 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
+'{"helperText": "See how your gross and net sales have moved over time, so you can spot growth, dips, or seasonal patterns."}',
     'PLOT',
     60,
     'Order gross vs net sales trend grouped by dynamic date granularity.',
@@ -166,7 +166,7 @@ VALUES (
     FROM stages s
     ORDER BY s.bucket
     $$,
-    NULL,
+'{"helperText": "See how your gross sales turn into net sales after discounts, refunds, tax, and shipping, so you can tell exactly where your money is going."}',
     'PLOT',
     60,
     'Waterfall chart reconciling Gross Sales to Net Sales via order discounts and refunds, with tax and shipping totals, grouped by dynamic date granularity.',
@@ -236,7 +236,7 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
+'{"helperText": "See how much you give away in discounts, and what share of gross sales that represents over time, so you can tell whether promotions are eating into your revenue."}',
     'PLOT',
     60,
     'Discount dollar total and discount rate % trend grouped by dynamic date granularity.',
@@ -304,7 +304,7 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
+'{"helperText": "See how many orders were refunded and how much money went back to customers over time, so you can catch rising returns early."}',
     'PLOT',
     60,
     'Trend of refunded order counts and total refunded value grouped by dynamic date granularity.',
@@ -371,7 +371,7 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
+'{"helperText": "See how your order count and average order value move together over time, so you can tell whether growth comes from more orders or bigger baskets."}',
     'PLOT',
     60,
     'Order volume and Average Order Value (AOV) trend grouped by dynamic date granularity.',
@@ -474,6 +474,7 @@ VALUES (
     OFFSET COALESCE(:offset, 0)
     $$,
     '{
+"helperText":"See every order with its customer, channel, payment and fulfillment status, and sales amounts, so you can look up or review individual orders.",
         "filters": [
             {
                 "id": "financialStatus",
@@ -574,7 +575,7 @@ VALUES (
 );
 
 --changeset kosul:RW-38-2
---comment seed Orders & Fulfillment tab 
+--comment seed Orders & Fulfillment tab
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
@@ -656,11 +657,11 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Dollar value trend of lost sales from cancelled orders grouped by dynamic date granularity.',
-    '{
+'{"helperText": "See how much order value you lost to cancellations over time, so you can spot spikes and look into why customers or your team are cancelling."}',
+        'PLOT',
+        60,
+        'Dollar value trend of lost sales from cancelled orders grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"    },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate"   },
@@ -717,11 +718,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    60,
-    'Detailed audit log of cancelled orders including customer, date, lost value, and channel.',
-    '{
+'{"helperText": "See each cancelled order with its customer, channel, and lost value, so you can review what was cancelled and where it came from."}',
+        'TABLE',
+        60,
+        'Detailed audit log of cancelled orders including customer, date, lost value, and channel.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "limit":            { "source": "REQUEST_FILTER", "filterKey": "limit"     },
@@ -734,7 +735,7 @@ VALUES (
 );
 
 --changeset kosul:RW-38-3
---comment seed Payments & Collections tab 
+--comment seed Payments & Collections tab
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
@@ -768,10 +769,10 @@ VALUES (
 '{
     "helperText": "See how long unpaid orders have been outstanding, grouped from recent to overdue, so you know which ones need following up on first."
 }',
-    'PLOT',
-    60,
-    'Aging distribution of unpaid outstanding order balances (0-1 days to 7+ days).',
-    '{
+'PLOT',
+        60,
+        'Aging distribution of unpaid outstanding order balances (0-1 days to 7+ days).',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -803,11 +804,11 @@ VALUES (
     ORDER BY 2 DESC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    30,
-    'Distribution of paid order volume across payment gateways.',
-    '{
+'{"helperText": "See which payment gateways your customers pay through most, by order value, so you know which payment options matter most to your business."}',
+        'PLOT',
+        30,
+        'Distribution of paid order volume across payment gateways.',
+        '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -884,7 +885,8 @@ AND UPPER(t.status) = '' SUCCESS ''
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
 ',
-    '{
+'{
+"helperText":"See a list of unpaid orders with the customer, amount still owed, and days unpaid, longest waiting first, so you know who to follow up with.",
       "filters": [
         {
           "id": "financialStatus",
@@ -952,7 +954,7 @@ AND UPPER(t.status) = '' SUCCESS ''
 );
 
 --changeset kosul:RW-38-4
---comment seed Customers tab 
+--comment seed Customers tab
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
     '019fff82-e31d-7cbb-9e99-db4ae79df001',
@@ -1038,8 +1040,9 @@ LEFT JOIN daily d
 LEFT JOIN daily_guests g
     ON g.bucket = df.bucket
 ORDER BY df.bucket ASC;
-    $$,
-    NULL,
+
+$$,
+'{"helperText": "See how many orders come from first-time versus returning customers over time, so you can judge how well you keep customers coming back."}',
     'PLOT',
     60,
     'Comparative order count trend of new vs repeat orders grouped by dynamic date granularity.',
@@ -1067,7 +1070,7 @@ ORDER BY df.bucket ASC;
 );
 
 --changeset kosul:RW-38-5
---comment seed Channels & Geography tab 
+--comment seed Channels & Geography tab
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
 VALUES (
@@ -1098,7 +1101,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{"helperText": "See which sales channels bring in the most net sales and orders, so you know where your revenue is really coming from."}',
     'PLOT',
     60,
     'Sales and order volume breakdown grouped across channel, source, and integration apps.',
@@ -1175,7 +1178,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{"helperText": "Compare each sales channel on orders, net sales, average order value, refund rate, and discount rate, so you can find channels that bring in quality sales, not just volume."}',
     'TABLE',
     60,
     'Comparative performance report across channels evaluating orders, net sales, AOV, refund %, and discount %.',
@@ -1221,7 +1224,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
+'{"helperText": "See which countries or regions your orders and net sales come from, so you can find your strongest markets."}',
     'PLOT',
     60,
     'Distribution of order volume and net sales grouped by customer destination country, province, or city.',
@@ -1297,7 +1300,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
+'{"helperText": "See orders, sales, average order value, and refund rate for each country, province, and city, so you can compare how different locations perform."}',
     'TABLE',
     60,
     'Detailed geographic report breakdown per Country, Province, and City evaluating orders, sales, AOV, and refund rate %.',

@@ -1,9 +1,20 @@
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fffa3-ddd3-72e3-a14e-782dfd330b5b',
-    'Payment Amount Trend',
-    'Payments & Transactions/Payment Overview/PLOT/Payment Amount Trend',
-    $$
+'019fffa3-ddd3-72e3-a14e-782dfd330b5b',
+        'Payment Amount Trend',
+        'Payments & Transactions/Payment Overview/PLOT/Payment Amount Trend',
+        $$
     WITH
     date_params AS (
         SELECT
@@ -78,11 +89,11 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Gross payments, refunds, and net payment trend grouped by dynamic date granularity.',
-    '{
+'{"helperText": "See how your gross payments, refunds, and net payments have trended over time, so you can spot patterns in cash flow."}',
+        'PLOT',
+        60,
+        'Gross payments, refunds, and net payment trend grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -93,10 +104,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-7b3c-9f95-309dbdb57dfe',
-    'Payment Method Mix',
-    'Payments & Transactions/Payment Overview/PLOT/Payment Method Mix',
-    $$
+'019fffa3-ddd3-7b3c-9f95-309dbdb57dfe',
+        'Payment Method Mix',
+        'Payments & Transactions/Payment Overview/PLOT/Payment Method Mix',
+        $$
     WITH filtered_orders AS (
         SELECT o.id
         FROM public.fact_order_headers o
@@ -115,11 +126,11 @@ VALUES (
     ORDER BY 2 DESC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    30,
-    'Distribution of transaction amounts grouped by payment method.',
-    '{
+'{"helperText": "See how your payment volume breaks down by payment method, so you know which methods your customers prefer."}',
+        'PLOT',
+        30,
+        'Distribution of transaction amounts grouped by payment method.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -129,10 +140,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-752f-9af4-6c1f2cb046f1',
-    'Gateway Performance',
-    'Payments & Transactions/Payment Overview/PLOT/Gateway Performance',
-    $$
+'019fffa3-ddd3-752f-9af4-6c1f2cb046f1',
+        'Gateway Performance',
+        'Payments & Transactions/Payment Overview/PLOT/Gateway Performance',
+        $$
    WITH scoped_txn AS (
         SELECT COALESCE(t.gateway, 'Unknown') AS gateway,
                COALESCE(t.amount, 0) AS amount,
@@ -155,11 +166,11 @@ VALUES (
     ORDER BY SUM(s.amount) DESC, s.gateway ASC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Gateway performance comparison showing total amount processed and fee rate %.',
-    '{
+'{"helperText": "Compare how much each payment gateway processes and what it costs you in fees, so you can spot your most efficient gateways."}',
+        'PLOT',
+        60,
+        'Gateway performance comparison showing total amount processed and fee rate %.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -169,10 +180,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-7057-8f69-3814f3324a8e',
-    'Transaction Detail Report',
-    'Payments & Transactions/Payment Overview/TABLE/Transaction Detail Report',
-    '
+'019fffa3-ddd3-7057-8f69-3814f3324a8e',
+        'Transaction Detail Report',
+        'Payments & Transactions/Payment Overview/TABLE/Transaction Detail Report',
+        '
     WITH scoped_txn AS (
         SELECT t.id as transaction_gid,
                o.id as order_gid,
@@ -209,11 +220,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-    NULL,
-    'TABLE',
-    60,
-    'Comprehensive transaction detail log table listing transaction ID, order ID, date, kind, status, gateway, amount, fee, and location.',
-    '{
+'{"helperText": "Browse a detailed log of every transaction — ID, order, date, kind, status, gateway, amount, fee, and location — so you can dig into individual payments."}',
+        'TABLE',
+        60,
+        'Comprehensive transaction detail log table listing transaction ID, order ID, date, kind, status, gateway, amount, fee, and location.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -225,10 +236,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-74f4-8b88-84aa1bf30d42',
-    'Payment Method Report',
-    'Payments & Transactions/Payment Overview/TABLE/Payment Method Report',
-    $$
+'019fffa3-ddd3-74f4-8b88-84aa1bf30d42',
+        'Payment Method Report',
+        'Payments & Transactions/Payment Overview/TABLE/Payment Method Report',
+        $$
     WITH scoped_txn AS (
         SELECT COALESCE(t.gateway, 'Unattributed') AS gateway,
                t.kind AS kind,
@@ -269,11 +280,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    60,
-    'Payment method performance table showing transaction count, total amount, revenue share %, refund amount, and failed transactions.',
-    '{
+'{"helperText": "See how each payment method performs — transaction count, amount, revenue share, refunds, and failures — so you can compare methods side by side."}',
+        'TABLE',
+        60,
+        'Payment method performance table showing transaction count, total amount, revenue share %, refund amount, and failed transactions.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -288,12 +299,23 @@ VALUES (
 --changeset saugat:RW-41-2
 --comment seed Payment Costs & Gateway Performance tab
 
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fffa3-ddd3-7597-a973-629f58d62294',
-    'Transaction Fee Trend',
-    'Payments & Transactions/Payment Costs & Gateway Performance/PLOT/Transaction Fee Trend',
-    $$
+'019fffa3-ddd3-7597-a973-629f58d62294',
+        'Transaction Fee Trend',
+        'Payments & Transactions/Payment Costs & Gateway Performance/PLOT/Transaction Fee Trend',
+        $$
     WITH
     date_params AS (
         SELECT
@@ -366,11 +388,11 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Transaction fees and fee rate % trend grouped by dynamic date granularity.',
-    '{
+'{"helperText": "See how your transaction fees and fee rate have trended over time, so you can track what payment processing is costing you."}',
+        'PLOT',
+        60,
+        'Transaction fees and fee rate % trend grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -381,10 +403,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-7325-ae53-eba74722bea6',
-    'Gateway Fee Report',
-    'Payments & Transactions/Payment Costs & Gateway Performance/TABLE/Gateway Fee Report',
-    $$
+'019fffa3-ddd3-7325-ae53-eba74722bea6',
+        'Gateway Fee Report',
+        'Payments & Transactions/Payment Costs & Gateway Performance/TABLE/Gateway Fee Report',
+        $$
     WITH scoped_txn AS (
         SELECT t.gateway AS gateway,
                COALESCE(t.amount, 0) AS amount,
@@ -422,11 +444,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    60,
-    'Gateway fee analysis report table listing amount processed, transaction count, total fees, fee rate %, and failed transaction volume.',
-    '{
+'{"helperText": "See amount processed, transaction count, total fees, fee rate, and failed volume for each gateway, so you can find your most cost-effective option."}',
+        'TABLE',
+        60,
+        'Gateway fee analysis report table listing amount processed, transaction count, total fees, fee rate %, and failed transaction volume.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -441,12 +463,23 @@ VALUES (
 --changeset saugat:RW-41-3
 --comment seed Payment Health & Reliability tab
 
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fffa3-ddd3-795f-a999-4897d4e273db',
-    'Transaction Status Mix',
-    'Payments & Transactions/Payment Health & Reliability/PLOT/Transaction Status Mix',
-    $$
+'019fffa3-ddd3-795f-a999-4897d4e273db',
+        'Transaction Status Mix',
+        'Payments & Transactions/Payment Health & Reliability/PLOT/Transaction Status Mix',
+        $$
     WITH classified AS (
         SELECT CASE WHEN UPPER(t.status) IN ('FAILURE', 'ERROR')             THEN 'Failed'
                     WHEN UPPER(t.status) IN ('PENDING', 'AWAITING_RESPONSE') THEN 'Pending'
@@ -471,11 +504,11 @@ VALUES (
     GROUP BY b.ord, b.status
     ORDER BY b.ord
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Transaction status distribution breakdown (Success, Failed, Pending, Other).',
-    '{
+'{"helperText": "See how your transactions break down by status — successful, failed, pending, or other — so you can gauge overall payment health."}',
+        'PLOT',
+        60,
+        'Transaction status distribution breakdown (Success, Failed, Pending, Other).',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -485,10 +518,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-73c3-a7d0-1e7c6562c512',
-    'Failed / Pending Payment Trend',
-    'Payments & Transactions/Payment Health & Reliability/PLOT/Failed / Pending Payment Trend',
-    $$
+'019fffa3-ddd3-73c3-a7d0-1e7c6562c512',
+        'Failed / Pending Payment Trend',
+        'Payments & Transactions/Payment Health & Reliability/PLOT/Failed / Pending Payment Trend',
+        $$
     WITH
     /*date_granularity_cte*/
     scoped_txn AS (
@@ -527,11 +560,11 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Volume trend of failed and pending transactions grouped by dynamic date granularity.',
-    '{
+'{"helperText": "See how failed and pending transaction volumes have trended over time, so you can catch payment issues early."}',
+        'PLOT',
+        60,
+        'Volume trend of failed and pending transactions grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -546,10 +579,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-7be5-89dc-101e463d6bb3',
-    'Failed / Pending Transactions Report',
-    'Payments & Transactions/Payment Health & Reliability/TABLE/Failed / Pending Transactions Report',
-    $$
+'019fffa3-ddd3-7be5-89dc-101e463d6bb3',
+        'Failed / Pending Transactions Report',
+        'Payments & Transactions/Payment Health & Reliability/TABLE/Failed / Pending Transactions Report',
+        $$
     WITH scoped_txn AS (
         SELECT t.id as transaction_gid,
                o.id as order_gid,
@@ -584,11 +617,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    60,
-    'Audit table listing failed and pending payment transactions with gateway, amount, status, date, and customer details.',
-    '{
+'{"helperText": "Review every failed or pending transaction — gateway, amount, status, date, and customer — so you can follow up on payment issues."}',
+        'TABLE',
+        60,
+        'Audit table listing failed and pending payment transactions with gateway, amount, status, date, and customer details.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -603,12 +636,23 @@ VALUES (
 --changeset saugat:RW-41-4
 --comment seed Reconciliation & Refund Payments tab
 
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fffa3-ddd3-7db7-8dbd-baf76c474af1',
-    'Sales vs Payments Reconciliation',
-    'Payments & Transactions/Reconciliation & Refund Payments/PLOT/Sales vs Payments Reconciliation',
-    $$
+'019fffa3-ddd3-7db7-8dbd-baf76c474af1',
+        'Sales vs Payments Reconciliation',
+        'Payments & Transactions/Reconciliation & Refund Payments/PLOT/Sales vs Payments Reconciliation',
+        $$
     WITH
     date_params AS (
         SELECT
@@ -685,11 +729,11 @@ VALUES (
     LEFT JOIN daily_captured p ON p.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Comparison trend of order total sales vs captured payment amounts grouped by dynamic date granularity.',
-    '{
+'{"helperText": "Compare your order totals against captured payments over time, so you can spot gaps between sales and money actually received."}',
+        'PLOT',
+        60,
+        'Comparison trend of order total sales vs captured payment amounts grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -700,10 +744,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-726f-b9ab-c57314c5f5e1',
-    'Refund Transaction Trend',
-    'Payments & Transactions/Reconciliation & Refund Payments/PLOT/Refund Transaction Trend',
-    $$
+'019fffa3-ddd3-726f-b9ab-c57314c5f5e1',
+        'Refund Transaction Trend',
+        'Payments & Transactions/Reconciliation & Refund Payments/PLOT/Refund Transaction Trend',
+        $$
     WITH
     date_params AS (
         SELECT
@@ -775,11 +819,11 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Refund transaction dollar amount and count trend grouped by dynamic date granularity.',
-    '{
+'{"helperText": "See how your refund amount and refund count have trended over time, so you can track how much is going back to customers."}',
+        'PLOT',
+        60,
+        'Refund transaction dollar amount and count trend grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -790,10 +834,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-7cbb-9fbc-b0387524b1f4',
-    'Order Payment Reconciliation Report',
-    'Payments & Transactions/Reconciliation & Refund Payments/TABLE/Order Payment Reconciliation Report',
-    $$
+'019fffa3-ddd3-7cbb-9fbc-b0387524b1f4',
+        'Order Payment Reconciliation Report',
+        'Payments & Transactions/Reconciliation & Refund Payments/TABLE/Order Payment Reconciliation Report',
+        $$
     WITH filtered_orders AS (
         SELECT o.id,
                o.created_at,
@@ -847,11 +891,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    60,
-    'Order reconciliation report table comparing order total, net payment, transaction amount, captured amount, refunded amount, and variance difference.',
-    '{
+'{"helperText": "Compare order total, net payment, captured amount, and refunds side by side, so you can spot and investigate mismatches."}',
+        'TABLE',
+        60,
+        'Order reconciliation report table comparing order total, net payment, transaction amount, captured amount, refunded amount, and variance difference.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -863,10 +907,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-7bfd-8994-043808a9ede2',
-    'Refund Transaction Report',
-    'Payments & Transactions/Reconciliation & Refund Payments/TABLE/Refund Transaction Report',
-    $$
+'019fffa3-ddd3-7bfd-8994-043808a9ede2',
+        'Refund Transaction Report',
+        'Payments & Transactions/Reconciliation & Refund Payments/TABLE/Refund Transaction Report',
+        $$
     WITH scoped_refunds AS (
         SELECT t.id as transaction_gid,
                o.id as order_gid,
@@ -898,11 +942,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    60,
-    'Detailed refund audit report listing transaction ID, order ID, refund amount, gateway, parent transaction ID, status, and date.',
-    '{
+'{"helperText": "Browse a detailed audit of refunds — transaction ID, order, amount, gateway, parent transaction, status, and date — so you can track every refund issued."}',
+        'TABLE',
+        60,
+        'Detailed refund audit report listing transaction ID, order ID, refund amount, gateway, parent transaction ID, status, and date.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -917,12 +961,23 @@ VALUES (
 --changeset saugat:RW-41-5
 --comment seed Authorization & Payment Risk tab
 
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fffa3-ddd3-72e7-921a-5c061dedb213',
-    'Authorization vs Capture',
-    'Payments & Transactions/Authorization & Payment Risk/PLOT/Authorization vs Capture',
-    $$
+'019fffa3-ddd3-72e7-921a-5c061dedb213',
+        'Authorization vs Capture',
+        'Payments & Transactions/Authorization & Payment Risk/PLOT/Authorization vs Capture',
+        $$
     WITH scoped_txn AS (
         SELECT t.order_id,
                INITCAP(REPLACE(COALESCE(t.gateway, 'Unknown'),
@@ -965,11 +1020,11 @@ VALUES (
     ORDER BY gt.captured_amount DESC, gt.gateway ASC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Comparison per gateway between authorized amount, captured amount, and uncaptured amount.',
-    '{
+'{"helperText": "Compare authorized, captured, and uncaptured amounts per gateway, so you can see how much authorized money is still uncaptured."}',
+        'PLOT',
+        60,
+        'Comparison per gateway between authorized amount, captured amount, and uncaptured amount.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -979,10 +1034,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-7fa3-835b-cd566678e1df',
-    'Authorization Capture Report',
-    'Payments & Transactions/Authorization & Payment Risk/TABLE/Authorization Capture Report',
-    '
+'019fffa3-ddd3-7fa3-835b-cd566678e1df',
+        'Authorization Capture Report',
+        'Payments & Transactions/Authorization & Payment Risk/TABLE/Authorization Capture Report',
+        '
     WITH filtered_orders AS (
         SELECT
             o.id,
@@ -1116,7 +1171,8 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-    '{
+'{
+"helperText":"See authorized amount, captured amount, and uncaptured balance for each order alongside its status and gateway, so you can find orders still awaiting capture.",
       "filters": [
         {
           "id": "financialStatus",
@@ -1137,10 +1193,10 @@ VALUES (
         }
       ]
     }',
-    'TABLE',
-    60,
-    'Audit table for order authorizations listing authorized amount, captured amount, uncaptured balance, status, and gateway.',
-    '{
+'TABLE',
+        60,
+        'Audit table for order authorizations listing authorized amount, captured amount, uncaptured balance, status, and gateway.',
+        '{
       "filterMappings": {
         "shopId": {
           "source": "AUTH_CONTEXT",
@@ -1186,12 +1242,23 @@ VALUES (
 --changeset saugat:RW-41-6
 --comment seed POS & Alternative Payment Operations tab
 
-INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
+INSERT INTO
+    vizkit.chart (
+        id,
+        name,
+        purpose,
+        query,
+        metadata,
+        chart_type,
+        cache_ttl,
+        description,
+        configuration
+    )
 VALUES (
-    '019fffa3-ddd3-7ac0-84ad-a47393da0230',
-    'Manual vs Automated Payments',
-    'Payments & Transactions/POS & Alternative Payment Operations/PLOT/Manual vs Automated Payments',
-    $$
+'019fffa3-ddd3-7ac0-84ad-a47393da0230',
+        'Manual vs Automated Payments',
+        'Payments & Transactions/POS & Alternative Payment Operations/PLOT/Manual vs Automated Payments',
+        $$
     WITH classified AS (
         SELECT CASE WHEN t.manual_payment_gateway THEN 'Manual'
                     ELSE 'Automated' END AS payment_type,
@@ -1217,11 +1284,11 @@ VALUES (
     GROUP BY b.ord, b.payment_type
     ORDER BY b.ord
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Proportional breakdown between manual vs automated gateway payment volume.',
-    '{
+'{"helperText": "See how much of your payment volume comes through manual gateways versus automated ones, so you know how much processing still needs manual work."}',
+        'PLOT',
+        60,
+        'Proportional breakdown between manual vs automated gateway payment volume.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1231,10 +1298,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-79b5-978e-90241244259a',
-    'POS Payments by Location',
-    'Payments & Transactions/POS & Alternative Payment Operations/PLOT/POS Payments by Location',
-    $$
+'019fffa3-ddd3-79b5-978e-90241244259a',
+        'POS Payments by Location',
+        'Payments & Transactions/POS & Alternative Payment Operations/PLOT/POS Payments by Location',
+        $$
     SELECT COALESCE(loc.name, 'Unknown') AS location,
            ROUND(SUM(COALESCE(t.amount, 0)), 2) AS payment_amount
     FROM public.fact_order_transactions t
@@ -1252,11 +1319,11 @@ VALUES (
     ORDER BY SUM(COALESCE(t.amount, 0)) DESC, 1 ASC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Point of Sale payment volume per physical store location.',
-    '{
+'{"helperText": "See how much payment volume each physical store location is bringing in, so you can compare performance across locations."}',
+        'PLOT',
+        60,
+        'Point of Sale payment volume per physical store location.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1266,10 +1333,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-70da-a2b4-ba575ac4d820',
-    'Card Brand Mix',
-    'Payments & Transactions/POS & Alternative Payment Operations/PLOT/Card Brand Mix',
-    $$
+'019fffa3-ddd3-70da-a2b4-ba575ac4d820',
+        'Card Brand Mix',
+        'Payments & Transactions/POS & Alternative Payment Operations/PLOT/Card Brand Mix',
+        $$
     SELECT tt.transaction_credit_card_company AS card_brand,
            ROUND(SUM(COALESCE(tt.amount, 0)), 2) AS card_payment_amount
     FROM public.fact_tender_transactions tt
@@ -1284,11 +1351,11 @@ VALUES (
     ORDER BY SUM(COALESCE(tt.amount, 0)) DESC, 1 ASC
     LIMIT 20
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Payment volume mix per credit card network/brand.',
-    '{
+'{"helperText": "See how your payment volume breaks down by credit card brand, so you know which networks your customers use most."}',
+        'PLOT',
+        60,
+        'Payment volume mix per credit card network/brand.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1298,10 +1365,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-7803-b1ad-78780dcea258',
-    'Cash Rounding Adjustments Trend',
-    'Payments & Transactions/POS & Alternative Payment Operations/PLOT/Cash Rounding Adjustments Trend',
-    $$
+'019fffa3-ddd3-7803-b1ad-78780dcea258',
+        'Cash Rounding Adjustments Trend',
+        'Payments & Transactions/POS & Alternative Payment Operations/PLOT/Cash Rounding Adjustments Trend',
+        $$
     WITH
     date_params AS (
         SELECT
@@ -1368,11 +1435,11 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-    NULL,
-    'PLOT',
-    60,
-    'Cash rounding adjustment dollar volume trend grouped by dynamic date granularity.',
-    '{
+'{"helperText": "See how cash rounding adjustments have trended over time, so you can track the small gains or losses from rounding at checkout."}',
+        'PLOT',
+        60,
+        'Cash rounding adjustment dollar volume trend grouped by dynamic date granularity.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
@@ -1383,10 +1450,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-7b1a-a7b4-6d3cc0d9d8b7',
-    'Manual Payment Report',
-    'Payments & Transactions/POS & Alternative Payment Operations/TABLE/Manual Payment Report',
-    $$
+'019fffa3-ddd3-7b1a-a7b4-6d3cc0d9d8b7',
+        'Manual Payment Report',
+        'Payments & Transactions/POS & Alternative Payment Operations/TABLE/Manual Payment Report',
+        $$
     WITH scoped_txn AS (
         SELECT t.id,
                o.id as order_gid,
@@ -1415,11 +1482,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    60,
-    'Detailed audit log table of manual payment transactions listing order ID, gateway name, amount, date, and status.',
-    '{
+'{"helperText": "Review every manual payment transaction — order, gateway, amount, date, and status — so you can audit payments taken outside automated gateways."}',
+        'TABLE',
+        60,
+        'Detailed audit log table of manual payment transactions listing order ID, gateway name, amount, date, and status.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -1431,10 +1498,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-7964-b52a-a330c2f1e7a0',
-    'POS Payment Report',
-    'Payments & Transactions/POS & Alternative Payment Operations/TABLE/POS Payment Report',
-    $$
+'019fffa3-ddd3-7964-b52a-a330c2f1e7a0',
+        'POS Payment Report',
+        'Payments & Transactions/POS & Alternative Payment Operations/TABLE/POS Payment Report',
+        $$
     WITH scoped_orders AS (
         SELECT o.id
         FROM public.fact_order_headers o
@@ -1503,11 +1570,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    60,
-    'POS terminal report table listing location, device ID, payment amount, payment method, and refund amount.',
-    '{
+'{"helperText": "See payment amount, method, and refunds by location and device, so you can review how each POS terminal is performing."}',
+        'TABLE',
+        60,
+        'POS terminal report table listing location, device ID, payment amount, payment method, and refund amount.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
@@ -1519,10 +1586,10 @@ VALUES (
     }'
 ),
     (
-    '019fffa3-ddd3-7ca6-a8ff-5976abc98ff7',
-    'Card Brand Report',
-    'Payments & Transactions/POS & Alternative Payment Operations/TABLE/Card Brand Report',
-    $$
+'019fffa3-ddd3-7ca6-a8ff-5976abc98ff7',
+        'Card Brand Report',
+        'Payments & Transactions/POS & Alternative Payment Operations/TABLE/Card Brand Report',
+        $$
     WITH scoped_orders AS (
         SELECT o.id
         FROM public.fact_order_headers o
@@ -1592,11 +1659,11 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-    NULL,
-    'TABLE',
-    60,
-    'Credit card brand report table listing transaction count, total amount, refund amount, and failure rate %.',
-    '{
+'{"helperText": "See transaction count, amount, refunds, and failure rate for each card brand, so you can compare how different card networks perform."}',
+        'TABLE',
+        60,
+        'Credit card brand report table listing transaction count, total amount, refund amount, and failure rate %.',
+        '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
         "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },

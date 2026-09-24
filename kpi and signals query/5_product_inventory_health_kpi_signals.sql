@@ -1,4 +1,3 @@
-
 -- ---------- 1. charts: value only ----------
 
 INSERT INTO vizkit.chart (id, name, purpose, query, metadata, chart_type, cache_ttl, description, configuration)
@@ -17,7 +16,7 @@ VALUES (
       AND il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-    NULL,
+'{"helperText": "See your total inventory units across available, committed, and reserved stock, so you know your overall stock levels at a glance."}',
     'KPI',
     60,
     'Total inventory units on hand across available, committed, and reserved stock.',
@@ -45,7 +44,7 @@ VALUES (
       AND il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-    NULL,
+'{"helperText": "See how much stock you currently have available to sell, so you know what is ready to fulfill new orders."}',
     'KPI',
     60,
     'Total stock currently available to sell.',
@@ -80,7 +79,7 @@ VALUES (
     SELECT COUNT(*) FILTER (WHERE available_quantity > 0 AND any_location_low) AS low_stock_skus
     FROM sku_inventory
     $$,
-    NULL,
+'{"helperText": "See how many SKUs are still in stock but running low, so you know what needs reordering soon."}',
     'KPI',
     60,
     'SKUs still in stock but at or below safety stock in at least one location.',
@@ -113,7 +112,7 @@ VALUES (
     SELECT COUNT(*) FILTER (WHERE available_quantity <= 0) AS out_of_stock_skus
     FROM sku_inventory
     $$,
-    NULL,
+'{"helperText": "See how many SKUs have completely run out of stock, so you know where you might be missing out on sales right now."}',
     'KPI',
     60,
     'SKUs with no available stock remaining.',
@@ -165,7 +164,7 @@ VALUES (
                  / NULLIF(r.available_stock + r.units, 0), 2) AS sell_through_rate
     FROM rolled r
     $$,
-    NULL,
+'{"helperText": "See what percentage of your available stock has sold, so you can gauge how efficiently your inventory is moving."}',
     'KPI',
     60,
     'Units sold as a percentage of units sold plus available stock, for the selected period vs the prior period.',
@@ -235,7 +234,7 @@ VALUES (
                     ELSE 0 END), 0), 2) AS low_stock_revenue_risk
     FROM velocity
     $$,
-    NULL,
+'{"helperText": "See the total revenue at risk from low-stock SKUs, so you know how much you stand to lose if you do not restock in time."}',
     'KPI',
     60,
     'Revenue at risk from low-stock SKUs over a seven day horizon, for the selected period vs the prior period.',
@@ -295,7 +294,7 @@ VALUES (
     SELECT ROUND(SUM(available_quantity) / NULLIF(SUM(per_day), 0), 1) AS stock_coverage_days
     FROM velocity
     $$,
-    NULL,
+'{"helperText": "See how many days your current stock will last at your recent sales pace, so you know when it is time to reorder."}',
     'KPI',
     60,
     'Days of stock cover at the current sales rate, for the selected period vs the prior period.',
@@ -323,7 +322,7 @@ VALUES (
       AND il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-    NULL,
+'{"helperText": "See how many units are currently inbound to your locations, so you know what stock is on its way."}',
     'KPI',
     60,
     'Units currently inbound to inventory locations.',
@@ -352,7 +351,7 @@ VALUES (
       AND il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-    NULL,
+'{"helperText": "See the total value of inventory you are currently holding, so you know how much capital is tied up in stock right now."}',
     'KPI',
     60,
     'Total capital tied up in on-hand inventory at unit cost.',
@@ -400,7 +399,7 @@ VALUES (
     FROM sku_inventory si
     LEFT JOIN sales s ON s.product_variant_id = si.variant_id
     $$,
-    NULL,
+'{"helperText": "See how much capital is tied up in stock that has not sold in the selected period, so you know how much money is sitting idle."}',
     'KPI',
     60,
     'Capital held in SKUs with no sales in the selected period vs the prior period.',
@@ -429,7 +428,7 @@ VALUES (
       AND il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-    NULL,
+'{"helperText": "See how much capital is tied up in damaged inventory, so you know how much value you are losing to damage."}',
     'KPI',
     60,
     'Capital held in damaged inventory at unit cost.',
@@ -454,7 +453,7 @@ VALUES (
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-    NULL,
+'{"helperText": "See how much stock is committed to open orders, so you know how much of your inventory is already spoken for."}',
     'KPI',
     60,
     'Stock committed to open orders.',
@@ -479,7 +478,7 @@ VALUES (
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-    NULL,
+'{"helperText": "See how much stock is reserved and unavailable to sell, so you understand what is being held back from your sellable inventory."}',
     'KPI',
     60,
     'Stock reserved and not available to sell.',
@@ -507,7 +506,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-    NULL,
+'{"helperText": "See how many ordered units are still waiting to be fulfilled, so you know how much demand has not shipped yet."}',
     'KPI',
     60,
     'Units ordered but not yet fulfilled for the selected period vs the prior period.',
@@ -541,7 +540,7 @@ VALUES (
                  + COALESCE(il.reserved_quantity, 0)) > 0
     ) stocked_locations
     $$,
-    NULL,
+'{"helperText": "See how many of your locations are actively holding stock, so you know how spread out your inventory operations are."}',
     'KPI',
     60,
     'Count of active fulfillment locations holding active inventory stock.',
@@ -559,7 +558,6 @@ VALUES (
 
 -- ---------- 2. chart signals: divergence ----------
 -- Only the five metrics that carried a comparison in the source get a signal.
-
 INSERT INTO vizkit.chart_signal (id, chart_id, name, query)
 VALUES (
     '019fff82-e31e-7fa1-8f91-5a2b3c4d1001',
