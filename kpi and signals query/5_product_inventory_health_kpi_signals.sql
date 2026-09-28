@@ -149,7 +149,7 @@ VALUES (
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
-          AND o.test = FALSE
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
@@ -187,10 +187,10 @@ VALUES (
     WITH period AS (
         SELECT GREATEST(COALESCE(:currentEndDate::date,
                                  (SELECT MAX(o.created_at::date) FROM public.fact_order_headers o
-                                  WHERE o.seller_id = :shopId AND o.test = FALSE))
+                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))))
                       - COALESCE(:currentStartDate::date,
                                  (SELECT MIN(o.created_at::date) FROM public.fact_order_headers o
-                                  WHERE o.seller_id = :shopId AND o.test = FALSE)) + 1, 1) AS days
+                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT')))) + 1, 1) AS days
     ),
     sku_inventory AS (
         SELECT pv.id AS variant_id,
@@ -212,7 +212,7 @@ VALUES (
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
-          AND o.test = FALSE
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
@@ -257,10 +257,10 @@ VALUES (
     WITH period AS (
         SELECT GREATEST(COALESCE(:currentEndDate::date,
                                  (SELECT MAX(o.created_at::date) FROM public.fact_order_headers o
-                                  WHERE o.seller_id = :shopId AND o.test = FALSE))
+                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))))
                       - COALESCE(:currentStartDate::date,
                                  (SELECT MIN(o.created_at::date) FROM public.fact_order_headers o
-                                  WHERE o.seller_id = :shopId AND o.test = FALSE)) + 1, 1) AS days
+                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT')))) + 1, 1) AS days
     ),
     sku_inventory AS (
         SELECT pv.id AS variant_id,
@@ -279,7 +279,7 @@ VALUES (
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
-          AND o.test = FALSE
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
@@ -389,7 +389,7 @@ VALUES (
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
-          AND o.test = FALSE
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
         GROUP BY li.product_variant_id
@@ -502,7 +502,7 @@ VALUES (
     FROM public.fact_order_line_items li
     JOIN public.fact_order_headers o ON o.id = li.order_id
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -589,7 +589,7 @@ VALUES (
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
         GROUP BY product_variant_id
@@ -645,7 +645,7 @@ VALUES (
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
         GROUP BY product_variant_id
@@ -681,7 +681,7 @@ VALUES (
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )

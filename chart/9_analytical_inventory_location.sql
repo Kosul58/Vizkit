@@ -603,7 +603,7 @@ OFFSET COALESCE(:offset, 0)
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
-          AND o.test = FALSE
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         GROUP BY li.product_variant_id
     ),
     level_rows AS (

@@ -33,7 +33,7 @@ SELECT COALESCE(
                END AS gross_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -70,7 +70,7 @@ SELECT COALESCE(
     ) AS channel
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -110,7 +110,7 @@ SELECT COALESCE(
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -166,7 +166,7 @@ AND o.test = FALSE
             FROM public.fact_order_headers o
             CROSS JOIN date_params dp
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.created_at >= dp.start_bucket
               AND o.created_at < dp.end_bucket + dp.step
         ) t
@@ -254,7 +254,7 @@ o.order_app_name AS app_name,
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -339,7 +339,7 @@ OFFSET COALESCE(:offset, 0)
                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND o.test = FALSE
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
           AND (
               :currentStartDate IS NULL
               OR o.created_at::date >= :currentStartDate::date
@@ -516,7 +516,7 @@ VALUES (
                COALESCE(o.attribution_displayname, o.source_name, 'unknown') AS channel
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND o.test = FALSE
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -581,7 +581,7 @@ SELECT COALESCE(
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -629,7 +629,7 @@ COALESCE(
                END AS gross_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -685,7 +685,7 @@ SELECT COALESCE(
                COALESCE(o.total_discounts_amount, 0) AS discounts
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
 AND o.financialstatus != 'VOIDED'
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -741,7 +741,7 @@ o.fulfillmentStatus AS fulfillment_status,
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -818,7 +818,7 @@ COALESCE(
                END AS gross_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -924,7 +924,7 @@ SELECT NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,camp
                END AS gross_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -964,7 +964,7 @@ SELECT LOWER(NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameter
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1015,7 +1015,7 @@ SELECT o.customer_journey_summary #>> '{lastVisit,referrerUrl}' AS referring_sit
                END AS gross_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -1058,7 +1058,7 @@ SELECT LOWER(NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameter
                END AS gross_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1134,7 +1134,7 @@ LOWER(NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,sour
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1211,7 +1211,7 @@ o.customer_journey_summary #>> ''{lastVisit,referrerUrl}'' AS referring_site,
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -1282,7 +1282,7 @@ VALUES (
 FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
     ),
@@ -1359,7 +1359,7 @@ COALESCE(
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -1429,7 +1429,7 @@ COALESCE(
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
           AND o.customer_id IS NOT NULL
     ),
     channel_ranked AS (
@@ -1556,7 +1556,7 @@ COALESCE(
 ) AS channel
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),
@@ -1623,7 +1623,7 @@ FROM public.fact_order_line_items li
                    END AS gross_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
               AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
         ) t
@@ -1671,7 +1671,7 @@ COALESCE(
 ) AS channel
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND o.test = FALSE
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
     ),

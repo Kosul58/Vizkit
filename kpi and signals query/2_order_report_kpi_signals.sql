@@ -11,7 +11,7 @@ VALUES (
                             - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END), 0), 2) AS net_sales
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -44,7 +44,7 @@ VALUES (
                               END), 0), 2) AS gross_sales
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -74,7 +74,7 @@ VALUES (
                           / NULLIF(COUNT(*), 0), 0), 2) AS average_order_value
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -101,7 +101,7 @@ VALUES (
     SELECT ROUND(COALESCE(SUM(COALESCE(o.total_discounts_amount, 0)), 0), 2) AS discount_amount
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND o.financialstatus != 'VOIDED'
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -130,7 +130,7 @@ VALUES (
     FROM public.fact_order_refunds r
     JOIN public.fact_order_headers o ON o.id = r.order_id
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -157,7 +157,7 @@ VALUES (
     SELECT ROUND(COALESCE(SUM(COALESCE(o.current_total_tax, 0)), 0), 2) AS tax_collected
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -184,7 +184,7 @@ VALUES (
     SELECT COUNT(*) AS total_orders
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -211,7 +211,7 @@ VALUES (
     SELECT COUNT(*) AS fulfilled_orders
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND o.cancelled_at IS NULL
       AND o.fulfillmentStatus = 'FULFILLED'
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
@@ -240,7 +240,7 @@ VALUES (
     SELECT COUNT(*) AS fulfillment_pending_orders
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND o.cancelled_at IS NULL
       AND o.fulfillmentStatus != 'FULFILLED'
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
@@ -269,7 +269,7 @@ VALUES (
     SELECT COUNT(*) AS cancelled_orders
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND o.cancelled_at IS NOT NULL
       AND (:currentStartDate::date IS NULL OR o.cancelled_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.cancelled_at::date <= :currentEndDate::date)
@@ -297,7 +297,7 @@ VALUES (
     SELECT ROUND(COALESCE(SUM(COALESCE(o.total_outstanding_amount, 0)), 0), 2) AS outstanding_amount
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -325,7 +325,7 @@ VALUES (
                           / NULLIF(COUNT(*), 0), 0), 2) AS paid_order_rate
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -352,7 +352,7 @@ VALUES (
     SELECT ROUND(COALESCE(SUM(COALESCE(o.total_outstanding_amount, 0)), 0), 2) AS pending_amount
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND o.financialstatus = 'PENDING'
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -380,7 +380,7 @@ VALUES (
     SELECT ROUND(COALESCE(SUM(COALESCE(o.total_refunded_amount, 0)), 0), 2) AS refunded_amount
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND o.financialstatus IN ('REFUNDED', 'PARTIALLY_REFUNDED')
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -410,7 +410,7 @@ VALUES (
                ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND o.test = FALSE
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
     ),
     known AS (
@@ -424,7 +424,7 @@ VALUES (
         SELECT COUNT(*) AS new_guest
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND o.test = FALSE
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NULL
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -458,7 +458,7 @@ VALUES (
                ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND o.test = FALSE
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
     )
     SELECT COUNT(*) AS repeat_orders
@@ -504,7 +504,7 @@ VALUES (
                      - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -536,7 +536,7 @@ VALUES (
                    END AS gross_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -566,7 +566,7 @@ VALUES (
                      - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -597,7 +597,7 @@ VALUES (
                    COALESCE(o.total_discounts_amount, 0) AS discount_amount
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus != 'VOIDED'
         ) t
         WHERE t.is_current OR t.is_prior
@@ -624,7 +624,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         JOIN public.fact_order_refunds r ON r.order_id = t.id
         WHERE t.is_current OR t.is_prior
@@ -651,7 +651,7 @@ VALUES (
                    COALESCE(o.current_total_tax, 0) AS tax_collected
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -676,7 +676,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -701,7 +701,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.cancelled_at IS NULL
               AND o.fulfillmentStatus = 'FULFILLED'
         ) t
@@ -728,7 +728,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.cancelled_at IS NULL
               AND o.fulfillmentStatus != 'FULFILLED'
         ) t
@@ -755,7 +755,7 @@ VALUES (
                 AND o.cancelled_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.cancelled_at IS NOT NULL
         ) t
         WHERE t.is_current OR t.is_prior
@@ -782,7 +782,7 @@ VALUES (
                    COALESCE(o.total_outstanding_amount, 0) AS outstanding_amount
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -810,7 +810,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -836,7 +836,7 @@ VALUES (
                    COALESCE(o.total_outstanding_amount, 0) AS pending_amount
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus = 'PENDING'
         ) t
         WHERE t.is_current OR t.is_prior
@@ -863,7 +863,7 @@ VALUES (
                    COALESCE(o.total_refunded_amount, 0) AS refunded_amount
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus IN ('REFUNDED', 'PARTIALLY_REFUNDED')
         ) t
         WHERE t.is_current OR t.is_prior
@@ -884,7 +884,7 @@ VALUES (
                ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND o.test = FALSE
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
     ),
     known AS (
@@ -910,7 +910,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.customer_id IS NULL
         ) t
         WHERE t.is_current OR t.is_prior
@@ -937,7 +937,7 @@ VALUES (
                ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND o.test = FALSE
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
     ),
     repeat_totals AS (

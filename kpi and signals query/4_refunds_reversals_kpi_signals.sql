@@ -21,7 +21,7 @@ VALUES (
     FROM public.fact_order_refunds r
     JOIN public.fact_order_headers o ON o.id = r.order_id
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL
            OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL
@@ -52,7 +52,7 @@ VALUES (
         FROM public.fact_order_refunds r
         JOIN public.fact_order_headers o ON o.id = r.order_id
         WHERE o.seller_id = :shopId
-          AND o.test = FALSE
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.financialstatus != 'VOIDED'
           AND (:currentStartDate::date IS NULL
                OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
@@ -65,7 +65,7 @@ VALUES (
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id
         WHERE o.seller_id = :shopId
-          AND o.test = FALSE
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -97,7 +97,7 @@ VALUES (
     FROM public.fact_order_refunds r
     JOIN public.fact_order_headers o ON o.id = r.order_id
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND o.financialstatus != 'VOIDED'
       AND (:currentStartDate::date IS NULL
            OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
@@ -129,7 +129,7 @@ VALUES (
         FROM public.fact_order_refunds r
         JOIN public.fact_order_headers o ON o.id = r.order_id
         WHERE o.seller_id = :shopId
-          AND o.test = FALSE
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.financialstatus != 'VOIDED'
           AND (:currentStartDate::date IS NULL
                OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
@@ -140,7 +140,7 @@ VALUES (
         SELECT COUNT(*) AS orders
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND o.test = FALSE
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     )
@@ -173,7 +173,7 @@ VALUES (
     FROM public.fact_order_refunds r
     JOIN public.fact_order_headers o ON o.id = r.order_id
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND o.financialstatus != 'VOIDED'
       AND (:currentStartDate::date IS NULL
            OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
@@ -204,7 +204,7 @@ VALUES (
            AS refunded_shipping_amount
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -232,8 +232,8 @@ VALUES (
     FROM public.fact_order_transactions t
     JOIN public.fact_order_headers o ON o.id = t.order_id
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
-      AND t.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+      AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND t.kind = 'REFUND'
       AND t.status = 'SUCCESS'
       AND (:currentStartDate::date IS NULL OR t.processed_at::date >= :currentStartDate::date)
@@ -265,7 +265,7 @@ VALUES (
     FROM public.fact_order_line_items li
     JOIN public.fact_order_headers o ON o.id = li.order_id
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -292,7 +292,7 @@ VALUES (
     SELECT COUNT(*) AS partially_refunded_orders
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND o.financialstatus = 'PARTIALLY_REFUNDED'
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -320,7 +320,7 @@ VALUES (
     SELECT COUNT(*) AS fully_refunded_orders
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND o.financialstatus = 'REFUNDED'
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -350,7 +350,7 @@ VALUES (
     FROM public.fact_order_line_items li
     JOIN public.fact_order_headers o ON o.id = li.order_id
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -378,7 +378,7 @@ VALUES (
     FROM public.fact_order_line_items li
     JOIN public.fact_order_headers o ON o.id = li.order_id
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -422,7 +422,7 @@ VALUES (
             FROM public.fact_order_refunds r
             JOIN public.fact_order_headers o ON o.id = r.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -452,7 +452,7 @@ VALUES (
             FROM public.fact_order_refunds r
             JOIN public.fact_order_headers o ON o.id = r.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus != 'VOIDED'
         ) t
         WHERE t.is_current OR t.is_prior
@@ -472,7 +472,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         JOIN public.fact_order_line_items li ON li.order_id = t.id
         WHERE t.is_current OR t.is_prior
@@ -509,7 +509,7 @@ VALUES (
             FROM public.fact_order_refunds r
             JOIN public.fact_order_headers o ON o.id = r.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus != 'VOIDED'
         ) t
         WHERE t.is_current OR t.is_prior
@@ -540,7 +540,7 @@ VALUES (
             FROM public.fact_order_refunds r
             JOIN public.fact_order_headers o ON o.id = r.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus != 'VOIDED'
         ) t
         WHERE t.is_current OR t.is_prior
@@ -555,7 +555,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -595,7 +595,7 @@ VALUES (
             FROM public.fact_order_refunds r
             JOIN public.fact_order_headers o ON o.id = r.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus != 'VOIDED'
         ) t
         WHERE t.is_current OR t.is_prior
@@ -627,7 +627,7 @@ VALUES (
                    COALESCE(o.total_refunded_shipping_amount, 0) AS refunded_shipping
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -654,8 +654,8 @@ VALUES (
             FROM public.fact_order_transactions t
             JOIN public.fact_order_headers o ON o.id = t.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              AND t.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND t.kind = 'REFUND'
               AND t.status = 'SUCCESS'
         ) x
@@ -687,7 +687,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         JOIN public.fact_order_line_items li ON li.order_id = t.id
         WHERE t.is_current OR t.is_prior
@@ -713,7 +713,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus = 'PARTIALLY_REFUNDED'
         ) t
         WHERE t.is_current OR t.is_prior
@@ -739,7 +739,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus = 'REFUNDED'
         ) t
         WHERE t.is_current OR t.is_prior
@@ -767,7 +767,7 @@ VALUES (
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -794,7 +794,7 @@ VALUES (
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -827,7 +827,7 @@ VALUES (
             FROM public.fact_order_refunds r
             JOIN public.fact_order_headers o ON o.id = r.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -857,7 +857,7 @@ VALUES (
             FROM public.fact_order_refunds r
             JOIN public.fact_order_headers o ON o.id = r.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus != 'VOIDED'
         ) t
         WHERE t.is_current OR t.is_prior
@@ -877,7 +877,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         JOIN public.fact_order_line_items li ON li.order_id = t.id
         WHERE t.is_current OR t.is_prior
@@ -914,7 +914,7 @@ VALUES (
             FROM public.fact_order_refunds r
             JOIN public.fact_order_headers o ON o.id = r.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus != 'VOIDED'
         ) t
         WHERE t.is_current OR t.is_prior
@@ -945,7 +945,7 @@ VALUES (
             FROM public.fact_order_refunds r
             JOIN public.fact_order_headers o ON o.id = r.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus != 'VOIDED'
         ) t
         WHERE t.is_current OR t.is_prior
@@ -960,7 +960,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -1000,7 +1000,7 @@ VALUES (
             FROM public.fact_order_refunds r
             JOIN public.fact_order_headers o ON o.id = r.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus != 'VOIDED'
         ) t
         WHERE t.is_current OR t.is_prior
@@ -1032,7 +1032,7 @@ VALUES (
                    COALESCE(o.total_refunded_shipping_amount, 0) AS refunded_shipping
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -1059,8 +1059,8 @@ VALUES (
             FROM public.fact_order_transactions t
             JOIN public.fact_order_headers o ON o.id = t.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
-              AND t.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND t.kind = 'REFUND'
               AND t.status = 'SUCCESS'
         ) x
@@ -1092,7 +1092,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         JOIN public.fact_order_line_items li ON li.order_id = t.id
         WHERE t.is_current OR t.is_prior
@@ -1118,7 +1118,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus = 'PARTIALLY_REFUNDED'
         ) t
         WHERE t.is_current OR t.is_prior
@@ -1144,7 +1144,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus = 'REFUNDED'
         ) t
         WHERE t.is_current OR t.is_prior
@@ -1172,7 +1172,7 @@ VALUES (
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -1199,7 +1199,7 @@ VALUES (
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )

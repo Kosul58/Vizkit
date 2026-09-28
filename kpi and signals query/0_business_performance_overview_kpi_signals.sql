@@ -16,7 +16,7 @@ VALUES (
                               END), 0), 2) AS total_revenue
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -45,7 +45,7 @@ VALUES (
                             - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END), 0), 2) AS net_sales
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -75,7 +75,7 @@ VALUES (
                  / NULLIF(COUNT(*), 0), 2) AS average_order_value
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -102,7 +102,7 @@ VALUES (
     SELECT COUNT(*) AS orders
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
-      AND o.test = FALSE
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
@@ -130,7 +130,7 @@ VALUES (
     FROM public.dim_customers c
     WHERE c.seller_id = :shopId
     $$,
-'{"helperText": "See how many customers ordered during the selected period, so you can gauge the size of your active customer base."}',
+'{"helperText": "See your total number of customers, so you know the overall size of your customer base."}',
     'KPI',
     30,
     'All customer records for the shop, regardless of period.',
@@ -199,7 +199,7 @@ VALUES (
                    END AS gross_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -227,7 +227,7 @@ VALUES (
                      - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -257,7 +257,7 @@ VALUES (
                      - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -287,7 +287,7 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
-              AND o.test = FALSE
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
         ) t
         WHERE t.is_current OR t.is_prior
     )
