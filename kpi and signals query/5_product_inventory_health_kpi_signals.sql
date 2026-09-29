@@ -615,56 +615,6 @@ VALUES (
     $$
 ),
 (
-    '019fff82-e31e-7fa4-8f94-5a2b3c4d1004',
-    '01a066fd-069c-75ee-8553-9854ebeffc45',
-    'dead_stock_value',
-    $$
-    WITH sku_inventory AS (
-        SELECT pv.id AS variant_id,
-               ii.unit_cost,
-               SUM(COALESCE(il.on_hand_quantity, 0)) AS on_hand_quantity
-        FROM public.dim_inventory_items ii
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
-        WHERE ii.seller_id = :shopId
-          AND il.seller_id = :shopId
-          AND il.is_active = TRUE
-        GROUP BY pv.id, ii.unit_cost
-    ),
-    sales AS (
-        SELECT product_variant_id,
-               SUM(quantity) FILTER (WHERE is_current) AS cur_units,
-               SUM(quantity) FILTER (WHERE is_prior)   AS prv_units
-        FROM (
-            SELECT li.product_variant_id,
-                   li.quantity,
-                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
-            FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
-            WHERE o.seller_id = :shopId
-              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-        ) t
-        WHERE t.is_current OR t.is_prior
-        GROUP BY product_variant_id
-    ),
-    computed AS (
-        SELECT ROUND(COALESCE(SUM(si.on_hand_quantity * COALESCE(si.unit_cost, 0))
-                              FILTER (WHERE s.cur_units IS NULL), 0), 2) AS cur_value,
-               ROUND(COALESCE(SUM(si.on_hand_quantity * COALESCE(si.unit_cost, 0))
-                              FILTER (WHERE s.prv_units IS NULL), 0), 2) AS prv_value
-        FROM sku_inventory si
-        LEFT JOIN sales s ON s.product_variant_id = si.variant_id
-    )
-    SELECT c.prv_value AS previous_value,
-           ROUND(100 * (c.cur_value - c.prv_value)
-                 / NULLIF(ABS(c.prv_value), 0), 2) AS divergence
-    FROM computed c
-    $$
-),
-(
     '019fff82-e31e-7fa5-8f95-5a2b3c4d1005',
     '01a066fd-069d-7d71-b34f-430af60b31f8',
     'unfulfilled_stock_demand',

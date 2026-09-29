@@ -1000,39 +1000,6 @@ VALUES (
     $$
 ),
     (
-        '019fffa3-ddd4-7b0c-8ffc-8a2b3c4d100c',
-        '01a066fe-1720-702e-9532-cd90cb9c81f3',
-        'maximum_refundable_amount',
-        $$
-    WITH totals AS (
-        SELECT COALESCE(SUM(max_refundable) FILTER (WHERE is_current AND is_payment), 0) AS cur_value,
-               COALESCE(SUM(max_refundable) FILTER (WHERE is_prior   AND is_payment), 0) AS prv_value
-        FROM (
-            SELECT ((:currentStartDate::date IS NULL
-                     OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL
-                     OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND COALESCE(t.processed_at, t.created_at)::date
-                    BETWEEN :priorStartDate::date AND :priorEndDate::date)                      AS is_prior,
-                   COALESCE(t.maximum_refundable_amount, 0) AS max_refundable,
-                   (UPPER(t.kind) IN ('SALE', 'CAPTURE')
-                AND UPPER(t.status) = 'SUCCESS') AS is_payment
-            FROM public.fact_order_transactions t
-            JOIN public.fact_order_headers o ON o.id = t.order_id
-            WHERE o.seller_id = :shopId
-              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-              AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-        ) x
-        WHERE x.is_current OR x.is_prior
-    )
-    SELECT ROUND(t.prv_value, 2) AS previous_value,
-           ROUND(100 * (t.cur_value - t.prv_value)
-                 / NULLIF(ABS(t.prv_value), 0), 2) AS divergence
-    FROM totals t
-    $$
-),
-    (
         '019fffa3-ddd4-7b0d-8ffd-8a2b3c4d100d',
         '01a066fe-1721-7a63-85c9-1792687065a6',
         'uncaptured_amount',
@@ -1078,70 +1045,5 @@ VALUES (
            ROUND(100 * (c.cur_value - c.prv_value)
                  / NULLIF(ABS(c.prv_value), 0), 2) AS divergence
     FROM computed c
-    $$
-),
-    (
-        '019fffa3-ddd4-7b0e-8ffe-8a2b3c4d100e',
-        '01a066fe-1722-7467-82b1-0cc282753e93',
-        'manual_payment_amount',
-        $$
-    WITH txn_totals AS (
-        SELECT COALESCE(SUM(amount) FILTER (WHERE is_current AND is_payment AND is_manual), 0) AS cur_value,
-               COALESCE(SUM(amount) FILTER (WHERE is_prior   AND is_payment AND is_manual), 0) AS prv_value
-        FROM (
-            SELECT ((:currentStartDate::date IS NULL
-                     OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL
-                     OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND COALESCE(t.processed_at, t.created_at)::date
-                    BETWEEN :priorStartDate::date AND :priorEndDate::date)                      AS is_prior,
-                   COALESCE(t.amount, 0) AS amount,
-                   t.manual_payment_gateway AS is_manual,
-                   (UPPER(t.kind) IN ('SALE', 'CAPTURE')
-                AND UPPER(t.status) = 'SUCCESS') AS is_payment
-            FROM public.fact_order_transactions t
-            JOIN public.fact_order_headers o ON o.id = t.order_id
-            WHERE o.seller_id = :shopId
-              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-              AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-        ) x
-        WHERE x.is_current OR x.is_prior
-    )
-    SELECT ROUND(tot.prv_value, 2) AS previous_value,
-           ROUND(100 * (tot.cur_value - tot.prv_value)
-                 / NULLIF(ABS(tot.prv_value), 0), 2) AS divergence
-    FROM txn_totals tot
-    $$
-),
-    (
-        '019fffa3-ddd4-7b0f-8fff-8a2b3c4d100f',
-        '01a066fe-1722-7917-8925-07154749e843',
-        'cash_rounding_adjustment',
-        $$
-    WITH txn_totals AS (
-        SELECT COALESCE(SUM(rounding) FILTER (WHERE is_current), 0) AS cur_value,
-               COALESCE(SUM(rounding) FILTER (WHERE is_prior),   0) AS prv_value
-        FROM (
-            SELECT ((:currentStartDate::date IS NULL
-                     OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL
-                     OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND COALESCE(t.processed_at, t.created_at)::date
-                    BETWEEN :priorStartDate::date AND :priorEndDate::date)                      AS is_prior,
-                   COALESCE(t.amount_rounding, 0) AS rounding
-            FROM public.fact_order_transactions t
-            JOIN public.fact_order_headers o ON o.id = t.order_id
-            WHERE o.seller_id = :shopId
-              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-              AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-        ) x
-        WHERE x.is_current OR x.is_prior
-    )
-    SELECT ROUND(tot.prv_value, 2) AS previous_value,
-           ROUND(100 * (tot.cur_value - tot.prv_value)
-                 / NULLIF(ABS(tot.prv_value), 0), 2) AS divergence
-    FROM txn_totals tot
     $$
 );

@@ -968,45 +968,6 @@ VALUES (
     $$
 ),
 (
-    '019fff9a-1dfc-7b0c-8fbc-6a2b3c4d100c',
-    '01a066fd-5aa8-7ac3-a64a-da5dbb91eb1d',
-    'tax_exempt_customers',
-    $$
-    WITH valid_orders AS (
-        SELECT o.customer_id, o.created_at::date AS day
-        FROM public.fact_order_headers o
-        WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-          AND o.customer_id IS NOT NULL
-    ),
-    cur_window AS (
-        SELECT DISTINCT customer_id FROM valid_orders
-        WHERE (:currentStartDate::date IS NULL OR day >= :currentStartDate::date)
-          AND (:currentEndDate::date   IS NULL OR day <= :currentEndDate::date)
-    ),
-    prv_window AS (
-        SELECT DISTINCT customer_id FROM valid_orders
-        WHERE :priorStartDate::date IS NOT NULL
-          AND day BETWEEN :priorStartDate::date AND :priorEndDate::date
-    ),
-    exempt AS (
-        SELECT COUNT(*) FILTER (WHERE c.taxExempt) AS n
-        FROM public.dim_customers c JOIN cur_window w ON w.customer_id = c.id
-        WHERE c.seller_id = :shopId
-    ),
-    exempt_prv AS (
-        SELECT COUNT(*) FILTER (WHERE c.taxExempt) AS n
-        FROM public.dim_customers c JOIN prv_window w ON w.customer_id = c.id
-        WHERE c.seller_id = :shopId
-    )
-    SELECT ep.n AS previous_value,
-           ROUND(100.0 * (e.n - ep.n)
-                 / NULLIF(ABS(ep.n), 0), 2) AS divergence
-    FROM exempt e
-    CROSS JOIN exempt_prv ep
-    $$
-),
-(
     '019fff9a-1dfc-7b0d-8fbd-6a2b3c4d100d',
     '01a066fd-5aa8-7209-a3d7-fb5be4402c62',
     'inactive_customers',

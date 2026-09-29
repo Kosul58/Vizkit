@@ -554,32 +554,6 @@ VALUES (
     $$
 ),
 (
-    '019fff82-e31d-7c06-8f36-2a2b3c4d1006',
-    '01a066fc-a9ba-7e43-bd9c-fc29b7879642',
-    'tax_collected',
-    $$
-    WITH order_totals AS (
-        SELECT COALESCE(SUM(tax_collected) FILTER (WHERE is_current), 0) AS cur_value,
-               COALESCE(SUM(tax_collected) FILTER (WHERE is_prior),   0) AS prv_value
-        FROM (
-            SELECT ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(o.current_total_tax, 0) AS tax_collected
-            FROM public.fact_order_headers o
-            WHERE o.seller_id = :shopId
-              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-        ) t
-        WHERE t.is_current OR t.is_prior
-    )
-    SELECT ROUND(ot.prv_value, 2) AS previous_value,
-           ROUND(100 * (ot.cur_value - ot.prv_value)
-                 / NULLIF(ABS(ot.prv_value), 0), 2) AS divergence
-    FROM order_totals ot
-    $$
-),
-(
     '019fff82-e31d-7c07-8f37-2a2b3c4d1007',
     '01a066fc-a9bb-70d2-8554-8a69d923b309',
     'total_orders',

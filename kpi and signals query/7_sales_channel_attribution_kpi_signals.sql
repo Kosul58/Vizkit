@@ -868,49 +868,6 @@ VALUES (
     $$
 ),
 (
-    '019fffa2-0f81-7b0a-8fda-7a2b3c4d100a',
-    '01a066fd-afb1-7b89-adf5-f12628dbc974',
-    'paid_revenue_share',
-    $$
-    WITH totals AS (
-        SELECT COALESCE(SUM(gross_sales) FILTER (WHERE is_current AND is_paid), 0) AS cur_paid,
-               COALESCE(SUM(gross_sales) FILTER (WHERE is_prior   AND is_paid), 0) AS prv_paid,
-               COALESCE(SUM(gross_sales) FILTER (WHERE is_current), 0) AS cur_total,
-               COALESCE(SUM(gross_sales) FILTER (WHERE is_prior),   0) AS prv_total
-        FROM (
-            SELECT ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   LOWER(NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,medium}'), ''))
-                     IN ('cpc', 'ppc', 'paid', 'paidsearch', 'paid_search',
-                         'paid-search', 'cpm', 'cpv', 'display', 'banner',
-                         'retargeting') AS is_paid,
-                   CASE
-                        WHEN o.financialstatus = 'VOIDED' THEN 0
-                        ELSE COALESCE(o.subtotal_price, 0)
-                           + COALESCE(o.total_discounts_amount, 0)
-                           + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
-                           + COALESCE(o.total_shipping_price, 0)
-                   END AS gross_sales
-            FROM public.fact_order_headers o
-            WHERE o.seller_id = :shopId
-              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-        ) t
-        WHERE t.is_current OR t.is_prior
-    ),
-    computed AS (
-        SELECT ROUND(100 * t.cur_paid / NULLIF(t.cur_total, 0), 2) AS cur_share,
-               ROUND(100 * t.prv_paid / NULLIF(t.prv_total, 0), 2) AS prv_share
-        FROM totals t
-    )
-    SELECT c.prv_share AS previous_value,
-           ROUND(100 * (c.cur_share - c.prv_share)
-                 / NULLIF(ABS(c.prv_share), 0), 2) AS divergence
-    FROM computed c
-    $$
-),
-(
     '019fffa2-0f81-7b0b-8fdb-7a2b3c4d100b',
     '01a066fd-afb2-7213-8945-c5ce7d0ab71f',
     'orders_without_attribution',
@@ -942,32 +899,6 @@ VALUES (
            ROUND(100.0 * (t.cur_value - t.prv_value)
                  / NULLIF(ABS(t.prv_value), 0), 2) AS divergence
     FROM totals t
-    $$
-),
-(
-    '019fffa2-0f81-7b0c-8fdc-7a2b3c4d100c',
-    '01a066fd-afb3-7a51-941d-d59484127990',
-    'channel_tax_collected',
-    $$
-    WITH tax_totals AS (
-        SELECT COALESCE(SUM(tax) FILTER (WHERE is_current), 0) AS cur_value,
-               COALESCE(SUM(tax) FILTER (WHERE is_prior),   0) AS prv_value
-        FROM (
-            SELECT ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(o.current_total_tax, 0) AS tax
-            FROM public.fact_order_headers o
-            WHERE o.seller_id = :shopId
-              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-        ) t
-        WHERE t.is_current OR t.is_prior
-    )
-    SELECT ROUND(t.prv_value, 2) AS previous_value,
-           ROUND(100 * (t.cur_value - t.prv_value)
-                 / NULLIF(ABS(t.prv_value), 0), 2) AS divergence
-    FROM tax_totals t
     $$
 ),
 (

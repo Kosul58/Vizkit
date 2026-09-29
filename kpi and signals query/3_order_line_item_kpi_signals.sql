@@ -773,41 +773,6 @@ VALUES (
     $$
 ),
 (
-    '019fff82-e31b-7c0b-8f5b-3a2b3c4d100b',
-    '01a066fa-17e0-782d-a996-6ea0042f6dc7',
-    'top_sku_contribution',
-    $$
-    WITH sku_sales AS (
-        SELECT COALESCE(SUM(t.net_sales) FILTER (WHERE t.is_current), 0) AS cur_net,
-               COALESCE(SUM(t.net_sales) FILTER (WHERE t.is_prior),   0) AS prv_net
-        FROM (
-            SELECT li.product_variant_id,
-                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(li.discounted_total_amount, 0) AS net_sales
-            FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
-            WHERE o.seller_id = :shopId
-              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-        ) t
-        JOIN public.dim_product_variants pv ON pv.id = t.product_variant_id
-        WHERE t.is_current OR t.is_prior
-        GROUP BY COALESCE(pv.sku, pv.id)
-    ),
-    computed AS (
-        SELECT COALESCE(MAX(cur_net), 0) AS cur_value,
-               COALESCE(MAX(prv_net), 0) AS prv_value
-        FROM sku_sales
-    )
-    SELECT ROUND(c.prv_value, 2) AS previous_value,
-           ROUND(100 * (c.cur_value - c.prv_value)
-                 / NULLIF(ABS(c.prv_value), 0), 2) AS divergence
-    FROM computed c
-    $$
-),
-(
     '019fff82-e31b-7c0c-8f5c-3a2b3c4d100c',
     '01a066fa-17e1-76a4-905d-c947176ef144',
     'gift_card_line_sales',
@@ -833,42 +798,6 @@ VALUES (
            ROUND(100 * (t.cur_value - t.prv_value)
                  / NULLIF(ABS(t.prv_value), 0), 2) AS divergence
     FROM totals t
-    $$
-),
-(
-    '01a0c8ce-c334-784a-92ce-0a73547bbe78',
-    '01a0c8a1-3955-7d6f-a264-803c9518c1fb',
-    'top_vendor',
-    $$
-    WITH vendor_sales AS (
-        SELECT COALESCE(SUM(t.net_sales) FILTER (WHERE t.is_current), 0) AS cur_net,
-               COALESCE(SUM(t.net_sales) FILTER (WHERE t.is_prior),   0) AS prv_net
-        FROM (
-            SELECT li.product_variant_id,
-                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(li.discounted_total_amount, 0) AS net_sales
-            FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
-            WHERE o.seller_id = :shopId
-              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-        ) t
-        JOIN public.dim_product_variants pv ON pv.id = t.product_variant_id
-        LEFT JOIN public.dim_products p ON p.id = pv.product_id
-        WHERE t.is_current OR t.is_prior
-        GROUP BY COALESCE(p.vendor, pv.sku, pv.id)
-    ),
-    computed AS (
-        SELECT COALESCE(MAX(cur_net), 0) AS cur_value,
-               COALESCE(MAX(prv_net), 0) AS prv_value
-        FROM vendor_sales
-    )
-    SELECT ROUND(c.prv_value, 2) AS previous_value,
-           ROUND(100 * (c.cur_value - c.prv_value)
-                 / NULLIF(ABS(c.prv_value), 0), 2) AS divergence
-    FROM computed c
     $$
 ),
 (
@@ -898,44 +827,6 @@ VALUES (
            ROUND(100.0 * (t.cur_value - t.prv_value)
                  / NULLIF(ABS(t.prv_value), 0), 2) AS divergence
     FROM totals t
-    $$
-),
-(
-    '01a0c8ce-c336-7d52-a033-3a9a15f3ee6a',
-    '01a0c8a1-3955-7cc4-b581-30c3e0f7761d',
-    'top_collection',
-    $$
-    WITH collection_sales AS (
-        SELECT COALESCE(SUM(t.net_sales) FILTER (WHERE t.is_current), 0) AS cur_net,
-               COALESCE(SUM(t.net_sales) FILTER (WHERE t.is_prior),   0) AS prv_net
-        FROM (
-            SELECT li.product_variant_id,
-                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
-                AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
-                   (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(li.discounted_total_amount, 0) AS net_sales
-            FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
-            WHERE o.seller_id = :shopId
-              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-        ) t
-        JOIN public.dim_product_variants pv ON pv.id = t.product_variant_id
-        JOIN public.dim_collection_products cp ON cp.product_id = pv.product_id
-        JOIN public.dim_collections c ON c.id = cp.collection_id
-        WHERE c.seller_id = :shopId
-          AND (t.is_current OR t.is_prior)
-        GROUP BY c.title
-    ),
-    computed AS (
-        SELECT COALESCE(MAX(cur_net), 0) AS cur_value,
-               COALESCE(MAX(prv_net), 0) AS prv_value
-        FROM collection_sales
-    )
-    SELECT ROUND(c.prv_value, 2) AS previous_value,
-           ROUND(100 * (c.cur_value - c.prv_value)
-                 / NULLIF(ABS(c.prv_value), 0), 2) AS divergence
-    FROM computed c
     $$
 ),
 (
