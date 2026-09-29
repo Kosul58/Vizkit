@@ -340,11 +340,10 @@ VALUES (
     ),
     variant_cost AS (
         SELECT pv.id AS variant_id,
-               AVG(ii.unit_cost) AS unit_cost
+               ii.unit_cost AS unit_cost
         FROM public.dim_inventory_items ii
         JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
         WHERE ii.seller_id = :shopId
-        GROUP BY pv.id
     ),
     order_totals AS (
         SELECT COALESCE(SUM(net_sales), 0) AS net_sales
@@ -667,11 +666,10 @@ VALUES (
     ),
     variant_cost AS (
         SELECT pv.id AS variant_id,
-               AVG(ii.unit_cost) AS unit_cost
+               ii.unit_cost AS unit_cost
         FROM public.dim_inventory_items ii
         JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
         WHERE ii.seller_id = :shopId
-        GROUP BY pv.id
     ),
     order_totals AS (
         SELECT COALESCE(SUM(net_sales) FILTER (WHERE is_current), 0) AS cur_net_sales,
