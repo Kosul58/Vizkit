@@ -45,7 +45,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
     LIMIT 20
     $$,
 '{
-      "helperText": "See how much revenue each sales channel is generating, so you can identify which channels drive the most sales."
+      "helperText": "Shows how much revenue each sales channel is generating, so you can identify which channels drive the most sales."
     }',
         'PLOT',
         60,
@@ -82,7 +82,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
     LIMIT 20
     $$,
 '{
-      "helperText": "See how many orders came from each sales channel, so you can compare order volume across channels."
+      "helperText": "Shows how many orders came from each sales channel, so you can compare order volume across channels."
     }',
         'PLOT',
         60,
@@ -122,7 +122,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
     LIMIT 20
     $$,
 '{
-      "helperText": "Compare average order value across your sales channels, so you can spot which channels bring in higher-value orders."
+      "helperText": "Compares average order value across your sales channels, so you can spot which channels bring in higher-value orders."
     }',
         'PLOT',
         60,
@@ -207,7 +207,7 @@ SELECT
     ORDER BY df.bucket ASC
     $$,
 '{
-      "helperText": "See how revenue from each sales channel has trended over time, so you can spot growth, dips, or shifts between channels."
+      "helperText": "Shows how revenue from each sales channel has trended over time, so you can spot growth, dips, or shifts between channels."
     }',
         'PLOT',
         60,
@@ -551,7 +551,7 @@ VALUES (
     OFFSET COALESCE(:offset, 0)
     $$,
 '{
-      "helperText": "See a side-by-side quality comparison of your channels based on revenue, AOV, refund rate, and discount rate, so you can judge which channels are healthiest, not just biggest."
+      "helperText": "Shows a side-by-side quality comparison of your channels based on revenue, AOV, refund rate, and discount rate, so you can judge which channels are healthiest, not just biggest."
     }',
         'TABLE',
         60,
@@ -593,7 +593,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
     LIMIT 20
     $$,
 '{
-      "helperText": "See how much revenue each channel keeps after refunds, so you know what channels are actually contributing to your bottom line."
+      "helperText": "Shows how much revenue each channel keeps after refunds, so you know what channels are actually contributing to your bottom line."
     }',
         'PLOT',
         60,
@@ -655,7 +655,7 @@ FROM public.fact_order_refunds r
     LIMIT 20
     $$,
 '{
-      "helperText": "Compare refund rates across your sales channels, so you can spot channels with higher return or refund issues."
+      "helperText": "Compares refund rates across your sales channels, so you can spot channels with higher return or refund issues."
     }',
         'PLOT',
         60,
@@ -699,7 +699,7 @@ AND o.financialstatus != 'VOIDED'
     LIMIT 20
     $$,
 '{
-      "helperText": "Compare how much of each channel''s sales are going to discounts, so you can see where you''re giving away the most margin."
+      "helperText": "Compares how much of each channel''s sales are going to discounts, so you can see where you''re giving away the most margin."
     }',
         'PLOT',
         60,
@@ -937,7 +937,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
     LIMIT 20
     $$,
 '{
-      "helperText": "See how much revenue each marketing campaign has generated, so you can tell which campaigns are paying off."
+      "helperText": "Shows how much revenue each marketing campaign has generated, so you can tell which campaigns are paying off."
     }',
         'PLOT',
         60,
@@ -985,7 +985,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
     LIMIT 20
     $$,
 '{
-      "helperText": "Compare net sales, AOV, and order volume across your UTM source/medium combinations, so you can see which traffic sources convert best."
+      "helperText": "Compares net sales, AOV, and order volume across your UTM source/medium combinations, so you can see which traffic sources convert best."
     }',
         'PLOT',
         60,
@@ -1028,7 +1028,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
     LIMIT 20
     $$,
 '{
-      "helperText": "See how much revenue is coming from each referring website, so you can identify your most valuable external traffic sources."
+      "helperText": "Shows how much revenue is coming from each referring website, so you can identify your most valuable external traffic sources."
     }',
         'PLOT',
         60,
@@ -1097,7 +1097,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
     FROM totals t
     $$,
 '{
-      "helperText": "See what share of your revenue comes from paid, organic, referral, email, social, and direct traffic, so you can understand where your sales are really coming from."
+      "helperText": "Shows what share of your revenue comes from paid, organic, referral, email, social, and direct traffic, so you can understand where your sales are really coming from."
     }',
         'PLOT',
         60,
@@ -1314,7 +1314,7 @@ SELECT
     ORDER BY df.bucket ASC
     $$,
 '{
-      "helperText": "See how the number of orders missing channel or marketing attribution has changed over time, so you can track how well your tracking is working."
+      "helperText": "Shows how the number of orders missing channel or marketing attribution has changed over time, so you can track how well your tracking is working."
     }',
         'PLOT',
         60,
@@ -1509,7 +1509,7 @@ FROM public.fact_order_refunds r
 OFFSET COALESCE(:offset, 0)
     ',
 '{
-      "helperText": "See new vs. repeat customers, repeat rate, customer revenue, and refund-risk customers by channel, so you can judge which channels bring in the best long-term customers."
+      "helperText": "Shows new vs. repeat customers, repeat rate, customer revenue, and refund-risk customers by channel, so you can judge which channels bring in the best long-term customers."
     }',
         'TABLE',
         60,
@@ -1577,7 +1577,7 @@ FROM public.fact_order_line_items li
     LIMIT 20
     $$,
 '{
-      "helperText": "See the dollar value of unfulfilled orders sitting in each channel, so you can spot where fulfillment is falling behind."
+      "helperText": "Shows the dollar value of unfulfilled orders sitting in each channel, so you can spot where fulfillment is falling behind."
     }',
         'PLOT',
         60,
@@ -1640,7 +1640,7 @@ FROM public.fact_order_line_items li
     LIMIT 20
     $$,
 '{
-      "helperText": "See how revenue from each channel breaks down by destination country, so you can understand where your channel sales are shipping to."
+      "helperText": "Shows how revenue from each channel breaks down by destination country, so you can understand where your channel sales are shipping to."
     }',
         'PLOT',
         60,

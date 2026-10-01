@@ -30,7 +30,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See your total successful payment volume for the selected period, so you know how much money customers have paid."}',
+'{"helperText": "Shows your total successful payment volume in the selected period, so you know how much money customers have paid. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Successful payment volume for the selected period vs the prior period.',
@@ -67,7 +67,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See your payments minus refunds for the selected period, so you know how much you actually kept."}',
+'{"helperText": "Shows your payments minus refunds in the selected period, so you know how much you actually kept. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Payments less refunds for the selected period vs the prior period.',
@@ -98,7 +98,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how many transactions of any kind happened during the selected period, so you can track overall payment activity."}',
+'{"helperText": "Shows how many transactions of any kind happened in the selected period, so you can track overall payment activity. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Transactions of any kind for the selected period vs the prior period.',
@@ -135,7 +135,7 @@ VALUES (
                      ORDER BY SUM(amount) DESC NULLS LAST, method ASC
                      LIMIT 1), 0), 2) AS top_payment_method
     $$,
-'{"helperText": "See which payment method brought in the highest volume in the selected period, so you know what your customers use most."}',
+'{"helperText": "Shows which payment method brought in the highest volume in the selected period, so you know what your customers use most."}',
         'KPI',
         60,
         'Payment method with the highest tender volume in the selected period.',
@@ -176,7 +176,7 @@ VALUES (
                      ORDER BY SUM(amount) DESC NULLS LAST, gateway ASC
                      LIMIT 1), 0), 2) AS top_gateway
     $$,
-'{"helperText": "See which payment gateway processed the highest volume in the selected period, so you know your most-used gateway."}',
+'{"helperText": "Shows which payment gateway processed the highest volume in the selected period, so you know your most-used gateway."}',
         'KPI',
         60,
         'Payment gateway with the highest successful payment volume in the selected period.',
@@ -209,7 +209,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how much you paid in gateway transaction fees for the selected period, so you know the true cost of processing payments."}',
+'{"helperText": "Shows the total gateway transaction fees charged in the selected period, so you know how much payment processing is costing you. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Gateway transaction fees for the selected period vs the prior period.',
@@ -243,7 +243,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See what percentage of your payment volume goes to fees, so you can track how expensive payment processing is."}',
+'{"helperText": "Shows your transaction fees as a percentage of payment volume, so you can track how efficiently you''re processing payments. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Fees as a percentage of payment volume for the selected period vs the prior period.',
@@ -275,7 +275,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how many transactions failed during the selected period, so you can monitor payment reliability."}',
+'{"helperText": "Shows how many payment transactions failed in the selected period, so you can spot checkout or gateway issues. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Failed transaction count for the selected period vs the prior period.',
@@ -307,7 +307,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See the total value of failed transactions for the selected period, so you know how much payment volume did not go through."}',
+'{"helperText": "Shows the total dollar value of failed transactions, so you know how much revenue may have been lost to payment failures. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Value of failed transactions for the selected period vs the prior period.',
@@ -339,7 +339,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how many transactions are still pending, so you can keep an eye on payments awaiting resolution."}',
+'{"helperText": "Shows how many transactions are still pending, so you can keep an eye on payments awaiting resolution. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Pending transaction count for the selected period vs the prior period.',
@@ -371,7 +371,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See the total value of pending transactions, so you know how much money is still awaiting resolution."}',
+'{"helperText": "Shows the total value of pending transactions, so you know how much money is still awaiting resolution. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Value of pending transactions for the selected period vs the prior period.',
@@ -404,7 +404,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how many successful refunds were issued during the selected period, so you can track refund activity."}',
+'{"helperText": "Shows how many successful refunds were issued in the selected period, so you can track refund activity. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Successful refund transaction count for the selected period vs the prior period.',
@@ -437,7 +437,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See the total amount refunded to customers during the selected period, so you know how much money went back out."}',
+'{"helperText": "Shows the total amount refunded to customers in the selected period, so you know how much money went back out. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Value refunded through payment transactions for the selected period vs the prior period.',
@@ -471,7 +471,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how much refundable balance is still available on your payments, so you know your refund exposure."}',
+'{"helperText": "Shows how much refundable balance is still available on your payments, so you know your refund exposure."}',
         'KPI',
         60,
         'Refundable balance still available on payments, for the selected period vs the prior period.',
@@ -513,7 +513,7 @@ VALUES (
     SELECT ROUND(COALESCE(SUM(GREATEST(p.authorized - p.captured, 0)), 0), 2) AS uncaptured_amount
     FROM per_order p
     $$,
-'{"helperText": "See how much authorized payment value has not been captured yet, so you can follow up before authorizations expire."}',
+'{"helperText": "Shows how much authorized payment value has not been captured yet, so you can follow up before authorizations expire. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Authorized value never captured, for the selected period vs the prior period.',
@@ -547,7 +547,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how much payment volume came through manual gateways, so you know how much is being processed outside automated flows."}',
+'{"helperText": "Shows how much payment volume came through manual gateways, so you know how much is being processed outside automated flows."}',
         'KPI',
         60,
         'Payment volume taken through manual gateways, for the selected period vs the prior period.',
@@ -578,7 +578,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See the total cash rounding adjustment applied at checkout, so you can track its small impact on your totals."}',
+'{"helperText": "Shows the total cash rounding adjustment applied at checkout, so you can track its small impact on your totals."}',
         'KPI',
         60,
         'Cash rounding applied at tender, for the selected period vs the prior period.',
@@ -615,7 +615,7 @@ VALUES (
                      ORDER BY SUM(amount) DESC NULLS LAST, card_brand ASC
                      LIMIT 1), 0), 2) AS top_card_brand
     $$,
-'{"helperText": "See which credit card brand had the highest tender volume, so you know which networks your customers use most."}',
+'{"helperText": "Shows which credit card brand had the highest tender volume, so you know which networks your customers use most."}',
         'KPI',
         60,
         'Credit card brand with the highest tender volume in the selected period.',

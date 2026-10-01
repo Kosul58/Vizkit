@@ -89,7 +89,7 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-'{"helperText": "See how your gross payments, refunds, and net payments have trended over time, so you can spot patterns in cash flow."}',
+'{"helperText": "Shows how your gross payments, refunds, and net payments have trended over time, so you can spot patterns in cash flow."}',
         'PLOT',
         60,
         'Gross payments, refunds, and net payment trend grouped by dynamic date granularity.',
@@ -126,7 +126,7 @@ VALUES (
     ORDER BY 2 DESC
     LIMIT 20
     $$,
-'{"helperText": "See how your payment volume breaks down by payment method, so you know which methods your customers prefer."}',
+'{"helperText": "Shows how your payment volume breaks down by payment method, so you know which methods your customers prefer."}',
         'PLOT',
         30,
         'Distribution of transaction amounts grouped by payment method.',
@@ -166,7 +166,7 @@ VALUES (
     ORDER BY SUM(s.amount) DESC, s.gateway ASC
     LIMIT 20
     $$,
-'{"helperText": "Compare how much each payment gateway processes and what it costs you in fees, so you can spot your most efficient gateways."}',
+'{"helperText": "Compares how much each payment gateway processes and what it costs you in fees, so you can spot your most efficient gateways."}',
         'PLOT',
         60,
         'Gateway performance comparison showing total amount processed and fee rate %.',
@@ -280,7 +280,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See how each payment method performs — transaction count, amount, revenue share, refunds, and failures — so you can compare methods side by side."}',
+'{"helperText": "Shows how each payment method performs — transaction count, amount, revenue share, refunds, and failures — so you can compare methods side by side."}',
         'TABLE',
         60,
         'Payment method performance table showing transaction count, total amount, revenue share %, refund amount, and failed transactions.',
@@ -388,7 +388,7 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-'{"helperText": "See how your transaction fees and fee rate have trended over time, so you can track what payment processing is costing you."}',
+'{"helperText": "Shows how your transaction fees and fee rate have trended over time, so you can track what payment processing is costing you."}',
         'PLOT',
         60,
         'Transaction fees and fee rate % trend grouped by dynamic date granularity.',
@@ -444,7 +444,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See amount processed, transaction count, total fees, fee rate, and failed volume for each gateway, so you can find your most cost-effective option."}',
+'{"helperText": "Shows amount processed, transaction count, total fees, fee rate, and failed volume for each gateway, so you can find your most cost-effective option."}',
         'TABLE',
         60,
         'Gateway fee analysis report table listing amount processed, transaction count, total fees, fee rate %, and failed transaction volume.',
@@ -504,7 +504,7 @@ VALUES (
     GROUP BY b.ord, b.status
     ORDER BY b.ord
     $$,
-'{"helperText": "See how your transactions break down by status — successful, failed, pending, or other — so you can gauge overall payment health."}',
+'{"helperText": "Shows how your transactions break down by status — successful, failed, pending, or other — so you can gauge overall payment health."}',
         'PLOT',
         60,
         'Transaction status distribution breakdown (Success, Failed, Pending, Other).',
@@ -560,7 +560,7 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-'{"helperText": "See how failed and pending transaction volumes have trended over time, so you can catch payment issues early."}',
+'{"helperText": "Shows how failed and pending transaction volumes have trended over time, so you can catch payment issues early."}',
         'PLOT',
         60,
         'Volume trend of failed and pending transactions grouped by dynamic date granularity.',
@@ -729,7 +729,7 @@ VALUES (
     LEFT JOIN daily_captured p ON p.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-'{"helperText": "Compare your order totals against captured payments over time, so you can spot gaps between sales and money actually received."}',
+'{"helperText": "Compares your order totals against captured payments over time, so you can spot gaps between sales and money actually received."}',
         'PLOT',
         60,
         'Comparison trend of order total sales vs captured payment amounts grouped by dynamic date granularity.',
@@ -819,7 +819,7 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-'{"helperText": "See how your refund amount and refund count have trended over time, so you can track how much is going back to customers."}',
+'{"helperText": "Shows how your refund amount and refund count have trended over time, so you can track how much is going back to customers."}',
         'PLOT',
         60,
         'Refund transaction dollar amount and count trend grouped by dynamic date granularity.',
@@ -891,7 +891,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "Compare order total, net payment, captured amount, and refunds side by side, so you can spot and investigate mismatches."}',
+'{"helperText": "Compares order total, net payment, captured amount, and refunds side by side, so you can spot and investigate mismatches."}',
         'TABLE',
         60,
         'Order reconciliation report table comparing order total, net payment, transaction amount, captured amount, refunded amount, and variance difference.',
@@ -1020,7 +1020,7 @@ VALUES (
     ORDER BY gt.captured_amount DESC, gt.gateway ASC
     LIMIT 20
     $$,
-'{"helperText": "Compare authorized, captured, and uncaptured amounts per gateway, so you can see how much authorized money is still uncaptured."}',
+'{"helperText": "Compares authorized, captured, and uncaptured amounts per gateway, so you can see how much authorized money is still uncaptured."}',
         'PLOT',
         60,
         'Comparison per gateway between authorized amount, captured amount, and uncaptured amount.',
@@ -1172,7 +1172,7 @@ VALUES (
     OFFSET COALESCE(:offset, 0)
     ',
 '{
-"helperText":"See authorized amount, captured amount, and uncaptured balance for each order alongside its status and gateway, so you can find orders still awaiting capture.",
+"helperText":"Shows authorized amount, captured amount, and uncaptured balance for each order alongside its status and gateway, so you can find orders still awaiting capture.",
       "filters": [
         {
           "id": "financialStatus",
@@ -1284,7 +1284,7 @@ VALUES (
     GROUP BY b.ord, b.payment_type
     ORDER BY b.ord
     $$,
-'{"helperText": "See how much of your payment volume comes through manual gateways versus automated ones, so you know how much processing still needs manual work."}',
+'{"helperText": "Shows how much of your payment volume comes through manual gateways versus automated ones, so you know how much processing still needs manual work."}',
         'PLOT',
         60,
         'Proportional breakdown between manual vs automated gateway payment volume.',
@@ -1319,7 +1319,7 @@ VALUES (
     ORDER BY SUM(COALESCE(t.amount, 0)) DESC, 1 ASC
     LIMIT 20
     $$,
-'{"helperText": "See how much payment volume each physical store location is bringing in, so you can compare performance across locations."}',
+'{"helperText": "Shows how much payment volume each physical store location is bringing in, so you can compare performance across locations."}',
         'PLOT',
         60,
         'Point of Sale payment volume per physical store location.',
@@ -1351,7 +1351,7 @@ VALUES (
     ORDER BY SUM(COALESCE(tt.amount, 0)) DESC, 1 ASC
     LIMIT 20
     $$,
-'{"helperText": "See how your payment volume breaks down by credit card brand, so you know which networks your customers use most."}',
+'{"helperText": "Shows how your payment volume breaks down by credit card brand, so you know which networks your customers use most."}',
         'PLOT',
         60,
         'Payment volume mix per credit card network/brand.',
@@ -1435,7 +1435,7 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-'{"helperText": "See how cash rounding adjustments have trended over time, so you can track the small gains or losses from rounding at checkout."}',
+'{"helperText": "Shows how cash rounding adjustments have trended over time, so you can track the small gains or losses from rounding at checkout."}',
         'PLOT',
         60,
         'Cash rounding adjustment dollar volume trend grouped by dynamic date granularity.',
@@ -1570,7 +1570,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See payment amount, method, and refunds by location and device, so you can review how each POS terminal is performing."}',
+'{"helperText": "Shows payment amount, method, and refunds by location and device, so you can review how each POS terminal is performing."}',
         'TABLE',
         60,
         'POS terminal report table listing location, device ID, payment amount, payment method, and refund amount.',
@@ -1659,7 +1659,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See transaction count, amount, refunds, and failure rate for each card brand, so you can compare how different card networks perform."}',
+'{"helperText": "Shows transaction count, amount, refunds, and failure rate for each card brand, so you can compare how different card networks perform."}',
         'TABLE',
         60,
         'Credit card brand report table listing transaction count, total amount, refund amount, and failure rate %.',

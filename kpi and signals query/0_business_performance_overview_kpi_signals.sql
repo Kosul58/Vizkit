@@ -20,7 +20,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See your total revenue for the selected period, so you know how much money is coming in overall."}',
+'{"helperText": "Shows your total revenue in the selected period, so you know how much money is coming in overall. The % change compares this value with the previous matching period."}',
     'KPI',
     30,
     'Gross sales before discounts, including tax and shipping and excluding voided orders, for the selected period vs the prior period.',
@@ -49,7 +49,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See your total net sales for the selected period, so you know what you are actually earning from orders after tax and duties."}',
+'{"helperText": "Shows your total net sales in the selected period, so you know what you are actually earning from orders after tax and duties. The % change compares this value with the previous matching period."}',
     'KPI',
     30,
     'Net sales (order total less tax and shipping) for the selected period vs the prior period.',
@@ -79,7 +79,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how much customers spend on average per order, so you can track whether order sizes are growing or shrinking."}',
+'{"helperText": "Shows how much customers spend on average per order, so you can track whether order sizes are growing or shrinking. The % change compares this value with the previous matching period."}',
     'KPI',
     30,
     'Average order value (net sales per order) for the selected period vs the prior period.',
@@ -106,7 +106,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how many orders came in during the selected period, so you can track overall order volume."}',
+'{"helperText": "Shows how many orders came in in the selected period, so you can track overall order volume. The % change compares this value with the previous matching period."}',
     'KPI',
     30,
     'Total order volume for the selected period vs the prior period.',
@@ -130,7 +130,7 @@ VALUES (
     FROM public.dim_customers c
     WHERE c.seller_id = :shopId
     $$,
-'{"helperText": "See your total number of customers, so you know the overall size of your customer base."}',
+'{"helperText": "Shows how many customers ordered in the selected period, so you can gauge the size of your active customer base."}',
     'KPI',
     30,
     'All customer records for the shop, regardless of period.',
@@ -158,7 +158,7 @@ VALUES (
       AND ii.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-'{"helperText": "See the total value of inventory you are currently holding, so you know how much capital is tied up in stock right now."}',
+'{"helperText": "Shows the total value of inventory you are currently holding, so you know how much capital is tied up in stock now."}',
     'KPI',
     30,
     'Total capital tied up in on-hand inventory at unit cost.',

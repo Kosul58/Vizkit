@@ -43,7 +43,7 @@ VALUES (
     GROUP BY b.ord, b.status
     ORDER BY b.ord
     $$,
-'{"helperText": "A breakdown of your SKUs by stock status \u2014 In Stock, Low Stock, Out of Stock, and Overstock \u2014 so you can quickly spot items that need restocking or are piling up."}',
+'{"helperText": "A breakdown of your SKUs by stock status — In Stock, Low Stock, Out of Stock, and Overstock — so you can quickly spot items that need restocking or are piling up."}',
     'PLOT',
     60,
     'Distribution of SKUs across stock status classifications (In Stock, Low Stock, Out of Stock, Overstock).',
@@ -102,7 +102,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-'{"helperText": "See how much of each product'\''s available stock has already sold, so you can spot your best sellers and the items that are moving slowly."}',
+'{"helperText": "Shows how much of each product''s available stock has already sold, so you can spot your best sellers and the items that are moving slowly."}',
     'PLOT',
     60,
     'Products ranked by sell-through rate percentage.',
@@ -160,7 +160,7 @@ VALUES (
     OFFSET COALESCE(:offset, 0)
     ',
 '{
-"helperText":"Compare units sold against what'\''s still available, so you can see which top sellers might be running low."
+"helperText":"Compares units sold against what''s still available, so you can see which top sellers might be running low."
 }',
     'PLOT',
     60,
@@ -224,7 +224,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See available, committed, reserved, and safety stock for every SKU and location, so you can audit your inventory health down to the last detail."}',
+'{"helperText": "Shows available, committed, reserved, and safety stock for every SKU and location, so you can audit your inventory health down to the last detail."}',
     'TABLE',
     30,
     'Detailed inventory audit report per SKU and location showing available, committed, reserved, and safety stock.',
@@ -301,7 +301,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See your fastest-selling SKUs with sell-through rate and days of stock cover, so you know exactly what to reorder first."}',
+'{"helperText": "Shows your fastest-selling SKUs with sell-through rate and days of stock cover, so you know exactly what to reorder first."}',
     'TABLE',
     30,
     'Report ranking fast-moving SKUs by units sold and sell-through rate for the selected period, with days of stock cover as of today.',
@@ -403,7 +403,7 @@ VALUES (
     ORDER BY r.revenue_at_risk DESC
     LIMIT 20
     $$,
-'{"helperText": "See how much potential revenue is at risk from low-stock SKUs, ranked from highest to lowest, so you know which items to reorder first."}',
+'{"helperText": "Shows how much potential revenue is at risk from low-stock SKUs, ranked from highest to lowest, so you know which items to reorder first."}',
         'PLOT',
         60,
         'Low stock SKUs ranked by estimated potential revenue loss at risk.',
@@ -471,7 +471,7 @@ VALUES (
     ORDER BY stock_coverage_days ASC
     LIMIT 20
     $$,
-'{"helperText": "See how many days of stock are left for each SKU based on recent sales, so you can spot items that will run out soon."}',
+'{"helperText": "Shows how many days of stock are left for each SKU based on recent sales, so you can spot items that will run out soon."}',
         'PLOT',
         60,
         'SKUs ranked by remaining stock coverage days based on recent sales velocity.',
@@ -533,7 +533,7 @@ VALUES (
     CROSS JOIN current_stock cs
     ORDER BY sa.bucket ASC
     $$,
-'{"helperText": "See how units sold and available stock have trended over time, so you can spot patterns in demand and stock depletion."}',
+'{"helperText": "Shows how units sold and available stock have trended over time, so you can spot patterns in demand and stock depletion."}',
         'PLOT',
         60,
         'Movement trend of units sold vs available stock trajectory grouped by dynamic date granularity.',
@@ -631,7 +631,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See low-stock SKUs with sales velocity, days of stock left, and revenue at risk, so you know exactly what to prioritize reordering."}',
+'{"helperText": "Shows low-stock SKUs with sales velocity, days of stock left, and revenue at risk, so you know exactly what to prioritize reordering."}',
         'TABLE',
         30,
         'Audit table listing low stock SKUs with sales velocity, stockout horizon, and revenue at risk.',
@@ -718,7 +718,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See which SKUs are completely out of stock, along with their last sold date and estimated lost revenue, so you can prioritize restocking."}',
+'{"helperText": "Shows which SKUs are completely out of stock, along with their last sold date and estimated lost revenue, so you can prioritize restocking."}',
         'TABLE',
         30,
         'Out of stock SKU report showing last sold date, affected locations, and estimated lost revenue.',
@@ -764,7 +764,7 @@ VALUES (
     ORDER BY inventory_value DESC
     LIMIT 20
     $$,
-'{"helperText": "See how much capital is tied up in each product'\''s on-hand inventory, so you can spot where your stock investment is concentrated."}',
+'{"helperText": "Shows how much capital is tied up in each product''s on-hand inventory, so you can spot where your stock investment is concentrated."}',
     'PLOT',
     60,
     'Valuation of inventory on hand per product.',
@@ -817,7 +817,7 @@ VALUES (
     ORDER BY dead_stock_value DESC
     LIMIT 20
     $$,
-'{"helperText": "See how much capital is tied up in products that haven'\''t sold during the period, so you can decide what to discount or clear out."}',
+'{"helperText": "Shows how much capital is tied up in products that haven''t sold during the period, so you can decide what to discount or clear out."}',
     'PLOT',
     60,
     'Dead stock capital valuation tied up in unsold products during the period.',
@@ -860,7 +860,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See unit cost, on-hand quantity, and total value for every SKU and location, so you can audit exactly where your inventory capital sits."}',
+'{"helperText": "Shows unit cost, on-hand quantity, and total value for every SKU and location, so you can audit exactly where your inventory capital sits."}',
     'TABLE',
     30,
     'Detailed valuation audit report listing product, SKU, unit cost, on-hand quantity, and total inventory value.',
@@ -933,7 +933,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See SKUs with no recent sales, along with tied-up capital and days since last sale, so you can decide what to liquidate."}',
+'{"helperText": "Shows sKUs with no recent sales, along with tied-up capital and days since last sale, so you can decide what to liquidate."}',
     'TABLE',
     30,
     'Report listing dead stock SKUs, tied-up capital value, last sold date, and days without sale.',
@@ -990,7 +990,7 @@ VALUES (
     ORDER BY unfulfilled_quantity DESC
     LIMIT 20
     $$,
-'{"helperText": "See which products have the largest unfulfilled order backlog, so you know exactly where fulfillment is falling behind."}',
+'{"helperText": "Shows which products have the largest unfulfilled order backlog, so you know exactly where fulfillment is falling behind."}',
         'PLOT',
         60,
         'Products ranked by total unfulfilled item quantity backlog.',
@@ -1063,7 +1063,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See unfulfilled orders with backlog value, available stock, and location, so you can prioritize what to ship next."}',
+'{"helperText": "Shows unfulfilled orders with backlog value, available stock, and location, so you can prioritize what to ship next."}',
         'TABLE',
         30,
         'Audit table listing unfulfilled orders, item quantity, backlog value, available stock, and location.',
@@ -1111,7 +1111,7 @@ VALUES (
     ORDER BY available_quantity DESC
     LIMIT 20
     $$,
-'{"helperText": "See how available, committed, and reserved stock breaks down across your locations, so you know where your inventory actually sits."}',
+'{"helperText": "Shows how available, committed, and reserved stock breaks down across your locations, so you know where your inventory actually sits."}',
         'PLOT',
         60,
         'Inventory breakdown across locations showing available, committed, and reserved quantities.',
@@ -1143,7 +1143,7 @@ VALUES (
               + COALESCE(SUM(il.safety_stock_quantity), 0)) DESC
     LIMIT 20
     $$,
-'{"helperText": "See damaged, quality-control, and safety stock by location, so you can spot where non-sellable inventory is building up."}',
+'{"helperText": "Shows damaged, quality-control, and safety stock by location, so you can spot where non-sellable inventory is building up."}',
         'PLOT',
         60,
         'Non-sellable stock breakdown per location covering damaged, quality control, and safety stock.',
@@ -1177,7 +1177,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-'{"helperText": "See available, committed, reserved, and damaged stock for every location, so you can audit inventory operations site by site."}',
+'{"helperText": "Shows available, committed, reserved, and damaged stock for every location, so you can audit inventory operations site by site."}',
         'TABLE',
         60,
         'Detailed audit table per location showing active status, available stock, committed stock, reserved stock, and damaged stock.',
@@ -1227,7 +1227,7 @@ VALUES (
     ORDER BY inventory_value DESC
     LIMIT 20
     $$,
-'{"helperText": "See how much inventory capital is tied up with each vendor, so you know which suppliers make up the bulk of your stock investment."}',
+'{"helperText": "Shows how much inventory capital is tied up with each vendor, so you know which suppliers make up the bulk of your stock investment."}',
         'PLOT',
         60,
         'Inventory valuation distribution grouped by product vendor.',
@@ -1261,7 +1261,7 @@ VALUES (
     ORDER BY inventory_value DESC
     LIMIT 20
     $$,
-'{"helperText": "See how much inventory capital is tied up in each collection, so you can spot which product groupings hold the most stock value."}',
+'{"helperText": "Shows how much inventory capital is tied up in each collection, so you can spot which product groupings hold the most stock value."}',
         'PLOT',
         60,
         'Inventory valuation distribution grouped by product collection.',
@@ -1292,7 +1292,7 @@ VALUES (
     ORDER BY inventory_value DESC
     LIMIT 20
     $$,
-'{"helperText": "See stock units and inventory value broken down by country of origin, so you can understand where your inventory comes from."}',
+'{"helperText": "Shows stock units and inventory value broken down by country of origin, so you can understand where your inventory comes from."}',
         'PLOT',
         60,
         'Stock units and inventory valuation distribution grouped by country of origin.',
@@ -1351,7 +1351,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-'{"helperText": "See SKU count, inventory value, sell-through rate, and dead stock value by vendor, so you can compare supplier performance at a glance."}',
+'{"helperText": "Shows sKU count, inventory value, sell-through rate, and dead stock value by vendor, so you can compare supplier performance."}',
         'TABLE',
         60,
         'Comprehensive scorecard table per vendor listing SKUs, inventory units, inventory value, pooled sell-through %, and dead stock value.',
@@ -1433,7 +1433,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-'{"helperText": "See product count, available stock, inventory value, and stock-risk SKUs by collection, so you can spot which collections need attention."}',
+'{"helperText": "Shows product count, available stock, inventory value, and stock-risk SKUs by collection, so you can spot which collections need attention."}',
         'TABLE',
         60,
         'Comprehensive scorecard table per collection listing products count, available stock, inventory value, sales velocity, and stock risk SKUs.',

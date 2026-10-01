@@ -51,7 +51,7 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-'{"helperText": "See how your gross and net sales have moved over time, so you can spot growth, dips, or seasonal patterns."}',
+'{"helperText": "Shows how your gross and net sales have moved over time, so you can spot growth, dips, or seasonal patterns."}',
     'PLOT',
     60,
     'Order gross vs net sales trend grouped by dynamic date granularity.',
@@ -166,7 +166,7 @@ VALUES (
     FROM stages s
     ORDER BY s.bucket
     $$,
-'{"helperText": "See how your gross sales turn into net sales after discounts, refunds, tax, and shipping, so you can tell exactly where your money is going."}',
+'{"helperText": "Shows how your gross sales turn into net sales after discounts, refunds, tax, and shipping, so you can tell exactly where your money is going."}',
     'PLOT',
     60,
     'Waterfall chart reconciling Gross Sales to Net Sales via order discounts and refunds, with tax and shipping totals, grouped by dynamic date granularity.',
@@ -236,7 +236,7 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-'{"helperText": "See how much you give away in discounts, and what share of gross sales that represents over time, so you can tell whether promotions are eating into your revenue."}',
+'{"helperText": "Shows how much you give away in discounts, and what share of gross sales that represents over time, so you can tell whether promotions are eating into your revenue."}',
     'PLOT',
     60,
     'Discount dollar total and discount rate % trend grouped by dynamic date granularity.',
@@ -304,7 +304,7 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-'{"helperText": "See how many orders were refunded and how much money went back to customers over time, so you can catch rising returns early."}',
+'{"helperText": "Shows how many orders were refunded and how much money went back to customers over time, so you can catch rising returns early."}',
     'PLOT',
     60,
     'Trend of refunded order counts and total refunded value grouped by dynamic date granularity.',
@@ -371,7 +371,7 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-'{"helperText": "See how your order count and average order value move together over time, so you can tell whether growth comes from more orders or bigger baskets."}',
+'{"helperText": "Shows how your order count and average order value move together over time, so you can tell whether growth comes from more orders or bigger baskets."}',
     'PLOT',
     60,
     'Order volume and Average Order Value (AOV) trend grouped by dynamic date granularity.',
@@ -474,7 +474,7 @@ VALUES (
     OFFSET COALESCE(:offset, 0)
     $$,
     '{
-"helperText":"See every order with its customer, channel, payment and fulfillment status, and sales amounts, so you can look up or review individual orders.",
+"helperText":"Shows every order with its customer, channel, payment and fulfillment status, and sales amounts, so you can look up or review individual orders.",
         "filters": [
             {
                 "id": "financialStatus",
@@ -606,7 +606,7 @@ VALUES (
     GROUP BY f.fulfillment_status
     ORDER BY SUM(f.order_value) DESC
     $$,
-'{"helperText": "See how your order value breaks down by fulfillment stage and payment status, so you can spot where orders are getting stuck."}',
+'{"helperText": "Shows how your order value breaks down by fulfillment stage and payment status, so you can spot where orders are getting stuck."}',
     'PLOT',
     60,
     'Order value breakdown matrix across fulfillment status and financial status.',
@@ -657,7 +657,7 @@ VALUES (
     LEFT JOIN daily d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-'{"helperText": "See how much order value you lost to cancellations over time, so you can spot spikes and look into why customers or your team are cancelling."}',
+'{"helperText": "Shows how much order value you lost to cancellations over time, so you can spot spikes and look into why customers or your team are cancelling."}',
         'PLOT',
         60,
         'Dollar value trend of lost sales from cancelled orders grouped by dynamic date granularity.',
@@ -718,7 +718,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See each cancelled order with its customer, channel, and lost value, so you can review what was cancelled and where it came from."}',
+'{"helperText": "Shows each cancelled order with its customer, channel, and lost value, so you can review what was cancelled and where it came from."}',
         'TABLE',
         60,
         'Detailed audit log of cancelled orders including customer, date, lost value, and channel.',
@@ -767,7 +767,7 @@ VALUES (
     ORDER BY e.ord
     $$,
 '{
-    "helperText": "See how long unpaid orders have been outstanding, grouped from recent to overdue, so you know which ones need following up on first."
+    "helperText": "Shows how long unpaid orders have been outstanding, grouped from recent to overdue, so you know which ones need following up on first."
 }',
 'PLOT',
         60,
@@ -804,7 +804,7 @@ VALUES (
     ORDER BY 2 DESC
     LIMIT 20
     $$,
-'{"helperText": "See which payment gateways your customers pay through most, by order value, so you know which payment options matter most to your business."}',
+'{"helperText": "Shows which payment gateways your customers pay through most, by order value, so you know which payment options matter most to your business."}',
         'PLOT',
         30,
         'Distribution of paid order volume across payment gateways.',
@@ -886,7 +886,7 @@ AND UPPER(t.status) = '' SUCCESS ''
     OFFSET COALESCE(:offset, 0)
 ',
 '{
-"helperText":"See a list of unpaid orders with the customer, amount still owed, and days unpaid, longest waiting first, so you know who to follow up with.",
+"helperText":"Shows a list of unpaid orders with the customer, amount still owed, and days unpaid, longest waiting first, so you know who to follow up with.",
       "filters": [
         {
           "id": "financialStatus",
@@ -985,7 +985,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See which sales channels bring in the most net sales and orders, so you know where your revenue is really coming from."}',
+'{"helperText": "Shows which sales channels bring in the most net sales and orders, so you know where your revenue is really coming from."}',
     'PLOT',
     60,
     'Sales and order volume breakdown grouped across channel, source, and integration apps.',
@@ -1062,7 +1062,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "Compare each sales channel on orders, net sales, average order value, refund rate, and discount rate, so you can find channels that bring in quality sales, not just volume."}',
+'{"helperText": "Compares each sales channel on orders, net sales, average order value, refund rate, and discount rate, so you can find channels that bring in quality sales, not just volume."}',
     'TABLE',
     60,
     'Comparative performance report across channels evaluating orders, net sales, AOV, refund %, and discount %.',
@@ -1108,7 +1108,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-'{"helperText": "See which countries or regions your orders and net sales come from, so you can find your strongest markets."}',
+'{"helperText": "Shows which countries or regions your orders and net sales come from, so you can find your strongest markets."}',
     'PLOT',
     60,
     'Distribution of order volume and net sales grouped by customer destination country, province, or city.',
@@ -1184,7 +1184,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See orders, sales, average order value, and refund rate for each country, province, and city, so you can compare how different locations perform."}',
+'{"helperText": "Shows orders, sales, average order value, and refund rate for each country, province, and city, so you can compare how different locations perform."}',
     'TABLE',
     60,
     'Detailed geographic report breakdown per Country, Province, and City evaluating orders, sales, AOV, and refund rate %.',

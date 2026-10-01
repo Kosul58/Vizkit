@@ -56,7 +56,7 @@ VALUES (
     LEFT JOIN daily_refunds d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-'{"helperText": "See how your total refunded amount and refund count have changed over time, so you can spot spikes or trends in refund activity."}',
+'{"helperText": "Shows how your total refunded amount and refund count have changed over time, so you can spot spikes or trends in refund activity."}',
         'PLOT',
         60,
         'Trend of total refunded dollar value and refund count grouped by dynamic date granularity.',
@@ -136,7 +136,7 @@ VALUES (
     LEFT JOIN daily_refunds dr ON dr.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-'{"helperText": "See how your refund rate has moved over time relative to gross sales, so you can tell if refunds are becoming a bigger or smaller share of your business."}',
+'{"helperText": "Shows how your refund rate has moved over time relative to gross sales, so you can tell if refunds are becoming a bigger or smaller share of your business."}',
         'PLOT',
         60,
         'Refund percentage rate relative to gross sales grouped by dynamic date granularity.',
@@ -212,7 +212,7 @@ VALUES (
     LEFT JOIN daily_refunds r ON r.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-'{"helperText": "Compare net sales against total refunds over time, so you can see how refund activity tracks against your overall sales."}',
+'{"helperText": "Compares net sales against total refunds over time, so you can see how refund activity tracks against your overall sales."}',
         'PLOT',
         60,
         'Comparison trend of net sales vs total refunded amount grouped by dynamic date granularity.',
@@ -431,7 +431,7 @@ VALUES (
     LEFT JOIN daily_shipping d ON d.bucket = df.bucket
     ORDER BY df.bucket ASC
     $$,
-'{"helperText": "See how much you have refunded in shipping charges over time, so you can track shipping-related refund trends."}',
+'{"helperText": "Shows how much you have refunded in shipping charges over time, so you can track shipping-related refund trends."}',
     'PLOT',
     60,
     'Trend of refunded shipping amounts grouped by dynamic date granularity.',
@@ -489,7 +489,7 @@ VALUES (
     ORDER BY v.ord
     $$,
 '{
-    "helperText": "Compare what your refund records say against what actually went through your payment gateway, so you can catch any mismatches."
+    "helperText": "Compares what your refund records say against what actually went through your payment gateway, so you can catch any mismatches."
 }',
     'PLOT',
     60,
@@ -582,7 +582,7 @@ SELECT
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See a line-by-line match between your recorded refunds and the actual gateway transactions per order, so you can quickly spot and investigate mismatches."}',
+'{"helperText": "Shows a line-by-line match between your recorded refunds and the actual gateway transactions per order, so you can quickly spot and investigate mismatches."}',
     'TABLE',
     30,
     'Granular reconciliation report matching refund entities against gateway transactions per order.',
@@ -668,7 +668,7 @@ SELECT
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "Compare shipping paid against shipping refunded for each order, so you can audit shipping refund accuracy."}',
+'{"helperText": "Compares shipping paid against shipping refunded for each order, so you can audit shipping refund accuracy."}',
     'TABLE',
     30,
     'Audit table comparing paid shipping vs refunded shipping per order.',
@@ -751,7 +751,7 @@ SELECT
     OFFSET COALESCE(:offset, 0)
     ',
     '{
-"helperText":"See which orders were partially or fully refunded and how much value remains un-refunded, so you can track outstanding refund exposure.",
+"helperText":"Shows which orders were partially or fully refunded and how much value remains un-refunded, so you can track outstanding refund exposure.",
       "filters": [
         {
           "id": "financialStatus",
@@ -863,7 +863,7 @@ VALUES (
     GROUP BY f.financial_status
     ORDER BY refunded_value DESC
     ',
-'{"helperText": "See how much order value was refunded versus kept, broken down by financial status."}',
+'{"helperText": "Shows how much order value was refunded versus kept, broken down by financial status."}',
         'PLOT',
         60,
         'Distribution of refunded vs retained value grouped by order financial status.',
@@ -903,7 +903,7 @@ VALUES (
     GROUP BY b.ord, b.lo, b.hi
     ORDER BY b.ord
     $$,
-'{"helperText": "See how your refunds are distributed by dollar size, so you can tell whether most refunds are small or if a few large ones are driving your totals."}',
+'{"helperText": "Shows how your refunds are distributed by dollar size, so you can tell whether most refunds are small or if a few large ones are driving your totals."}',
         'PLOT',
         60,
         'Frequency distribution of refund dollar sizes grouped into severity buckets.',
@@ -959,7 +959,7 @@ VALUES (
 OFFSET COALESCE(:offset, 0)
     $$,
 '{
-    "helperText": "See which SKUs have the most units refunded or removed from orders — to spot potential product defects, sizing issues, or inaccurate listings."
+    "helperText": "Shows which SKUs have the most units refunded or removed from orders, so you can spot potential product defects, sizing issues, or inaccurate listings."
 }',
 'PLOT',
         60,
@@ -1011,7 +1011,7 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See a detailed breakdown per product of ordered, current, and refunded quantities, so you can identify which products are driving the most returns."}',
+'{"helperText": "Shows a detailed breakdown per product of ordered, current, and refunded quantities, so you can identify which products are driving the most returns."}',
         'TABLE',
         30,
         'Detailed tabular breakdown per product evaluating ordered vs current vs removed and refundable item quantities.',
@@ -1067,7 +1067,7 @@ VALUES (
     GROUP BY f.channel
     ORDER BY refunded_amount DESC
     $$,
-'{"helperText": "See how refunds break down by sales channel, so you can tell which channels have the highest refund amounts and rates."}',
+'{"helperText": "Shows how refunds break down by sales channel, so you can tell which channels have the highest refund amounts and rates."}',
     'PLOT',
     60,
     'Refund dollar amount and refund % rate breakdown grouped by sales channel.',
@@ -1123,7 +1123,7 @@ VALUES (
     GROUP BY s.ord, s.segment
     ORDER BY s.ord
     $$,
-'{"helperText": "Compare refund counts and rates between new and repeat customers, so you can see which group is driving more refunds."}',
+'{"helperText": "Compares refund counts and rates between new and repeat customers, so you can see which group is driving more refunds."}',
     'PLOT',
     60,
     'Refund count and refund rate % breakdown between New and Repeat customer segments.',
@@ -1200,7 +1200,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     ',
-'{"helperText": "See how refunds vary by region, so you can spot geographic patterns in refund amounts and rates."}',
+'{"helperText": "Shows how refunds vary by region, so you can spot geographic patterns in refund amounts and rates."}',
     'PLOT',
     60,
     'Geographic breakdown of total refunded amounts and refund rate % per region.',
@@ -1262,7 +1262,7 @@ OFFSET COALESCE(:offset, 0);
 
 $$,
 '{
-    "helperText": "See how much refunded money has gone out through each payment gateway — to track where refund outflows occur and monitor processor-specific return volumes."
+    "helperText": "Shows how much refunded money has gone out through each payment gateway, so you can track where refund outflows occur and monitor processor-specific return volumes."
 }',
     'PLOT',
     60,
@@ -1323,7 +1323,7 @@ $$,
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "Compare orders, net sales, and refund rates across sales channels, so you can see which channels perform best and which need attention."}',
+'{"helperText": "Compares orders, net sales, and refund rates across sales channels, so you can see which channels perform best and which need attention."}',
     'TABLE',
     60,
     'Comparative scorecard table per sales channel evaluating orders, net sales, refunded orders, and refund rate %.',
@@ -1393,7 +1393,7 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See which customers refund most often or for the highest amounts, so you can identify accounts that may need extra attention."}',
+'{"helperText": "Shows which customers refund most often or for the highest amounts, so you can identify accounts that may need extra attention."}',
     'TABLE',
     30,
     'Customer-level refund risk scorecard flagging high refund frequency and high refund value accounts.',
@@ -1459,7 +1459,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See the most common keywords mentioned in refund notes, so you can spot recurring reasons customers are asking for refunds."}',
+'{"helperText": "Shows which keywords come up most often in your refund notes, along with how much they''ve cost in refunds, so you can spot recurring reasons customers ask for money back."}',
         'TABLE',
         30,
         'Audit text analysis ranking recurring keywords found in refund notes.',
@@ -1500,7 +1500,7 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "Browse a detailed log of individual refunds with notes and customer info, so you can audit refund activity at a granular level."}',
+'{"helperText": "Shows a detailed log of individual refund transactions — including the customer, amount, note, and date processed — so you can audit exactly what was refunded and why."}',
         'TABLE',
         30,
         'Detailed audit log listing individual refund transactions, notes, and customer info.',
@@ -1557,7 +1557,7 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See refund notes alongside their extracted keywords, so you can review and audit the reasons behind refunds for compliance."}',
+'{"helperText": "Shows refund notes alongside extracted keywords for each transaction, so you can quickly review and audit why refunds were issued."}',
         'TABLE',
         30,
         'Tabular report of refund notes mapped to extracted search keywords for compliance audit.',

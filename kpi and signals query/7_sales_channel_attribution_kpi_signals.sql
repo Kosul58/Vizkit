@@ -20,7 +20,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
 '{
-      "helperText": "See your total gross sales across all sales channels for the selected period, so you know your overall channel revenue."
+      "helperText": "Shows your total gross sales across all sales channels in the selected period, so you know your overall channel revenue. The % change compares this value with the previous matching period."
     }',
     'KPI',
     60,
@@ -49,7 +49,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
 '{
-      "helperText": "See the total number of orders across all channels for the selected period, so you can track overall order volume."
+      "helperText": "Shows the total number of orders across all channels in the selected period, so you can track overall order volume. The % change compares this value with the previous matching period."
     }',
     'KPI',
     60,
@@ -81,7 +81,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
 '{
-      "helperText": "See the average order value across all your sales channels, so you can track whether order sizes are growing or shrinking."
+      "helperText": "Shows the average order value across all your sales channels, so you can track whether order sizes are growing or shrinking. The % change compares this value with the previous matching period."
     }',
     'KPI',
     60,
@@ -126,7 +126,7 @@ VALUES (
                      LIMIT 1), 0), 2) AS top_revenue_channel
     $$,
 '{
-      "helperText": "See which sales channel generated the most revenue in the selected period, so you know your best-performing channel."
+      "helperText": "Shows which sales channel generated the most revenue in the selected period, so you know your best-performing channel."
     }',
     'KPI',
     60,
@@ -168,7 +168,7 @@ VALUES (
                      LIMIT 1), 0), 2) AS top_aov_channel
     $$,
 '{
-      "helperText": "See which sales channel has the highest average order value, so you know where your highest-value orders are coming from."
+      "helperText": "Shows which sales channel has the highest average order value, so you know where your highest-value orders are coming from."
     }',
     'KPI',
     60,
@@ -200,7 +200,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
 '{
-      "helperText": "See your net sales after refunds across all channels, so you know what you''re actually keeping from your orders."
+      "helperText": "Shows your net sales after refunds across all channels, so you know what you''re actually keeping from your orders. The % change compares this value with the previous matching period."
     }',
     'KPI',
     60,
@@ -249,7 +249,7 @@ VALUES (
     CROSS JOIN refund_totals rt
     $$,
 '{
-      "helperText": "See what percentage of your gross sales are being refunded, so you can monitor how refunds are affecting your revenue."
+      "helperText": "Shows what percentage of your gross sales are being refunded, so you can monitor how refunds are affecting your revenue. The % change compares this value with the previous matching period."
     }',
     'KPI',
     60,
@@ -284,7 +284,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
 '{
-      "helperText": "See what percentage of your gross sales are going to discounts, so you can track how much margin you''re giving up."
+      "helperText": "Shows what percentage of your gross sales are going to discounts, so you can track how much margin you''re giving up. The % change compares this value with the previous matching period."
     }',
     'KPI',
     60,
@@ -322,7 +322,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
 '{
-      "helperText": "See how much revenue came from orders with UTM tracking, so you know how much sales your tagged marketing efforts are driving."
+      "helperText": "Shows how much revenue came from orders with UTM tracking, so you know how much sales your tagged marketing efforts are driving. The % change compares this value with the previous matching period."
     }',
     'KPI',
     60,
@@ -357,7 +357,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
 '{
-      "helperText": "See the average order value of UTM-tagged orders, so you can gauge the quality of orders from your tracked marketing campaigns."
+      "helperText": "Shows the average order value of UTM-tagged orders, so you can gauge the quality of orders from your tracked marketing campaigns. The % change compares this value with the previous matching period."
     }',
     'KPI',
     60,
@@ -393,7 +393,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
 '{
-      "helperText": "See how much revenue came from orders with a referring website, so you know how much external sites are contributing to sales."
+      "helperText": "Shows how much revenue came from orders with a referring website, so you know how much external sites are contributing to sales. The % change compares this value with the previous matching period."
     }',
     'KPI',
     60,
@@ -437,7 +437,7 @@ VALUES (
     FROM classified
     $$,
 '{
-      "helperText": "See what percentage of your revenue comes from paid marketing channels, so you can gauge how reliant your sales are on paid traffic."
+      "helperText": "Shows what percentage of your revenue comes from paid marketing channels, so you can gauge how reliant your sales are on paid traffic."
     }',
     'KPI',
     60,
@@ -473,7 +473,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
 '{
-      "helperText": "See how many orders are missing UTM, referrer, or channel data, so you know how big your attribution blind spot is."
+      "helperText": "Shows how many orders are missing UTM, referrer, or channel data, so you know how big your attribution blind spot is. The % change compares this value with the previous matching period."
     }',
     'KPI',
     60,
@@ -502,7 +502,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
 '{
-      "helperText": "See the total tax collected across all channels, so you have visibility into your tax obligations."
+      "helperText": "Shows the total tax collected across all channels, so you have visibility into your tax obligations."
     }',
     'KPI',
     60,
@@ -533,7 +533,7 @@ VALUES (
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
 '{
-      "helperText": "See the total dollar value of unfulfilled orders across all channels, so you know how much order value is still at risk of delayed fulfillment."
+      "helperText": "Shows the total dollar value of unfulfilled orders across all channels, so you know how much order value is still at risk of delayed fulfillment. The % change compares this value with the previous matching period."
     }',
     'KPI',
     60,

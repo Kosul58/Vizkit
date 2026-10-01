@@ -32,7 +32,7 @@ VALUES (
 OFFSET COALESCE(:offset, 0)
     ',
 '{
-    "helperText": "See which products are selling the most units, so you know what is flying off the shelves."
+    "helperText": "Shows which products are selling the most units, so you know what is flying off the shelves."
 }',
     'PLOT',
     60,
@@ -122,7 +122,7 @@ OFFSET COALESCE(:offset, 0)
     ORDER BY df.bucket ASC
     $$,
 '{
-    "helperText": "See how your net sales and units sold move over time, so you can spot growth, dips, or seasonal patterns."
+    "helperText": "Shows how your net sales and units sold move over time, so you can spot growth, dips, or seasonal patterns."
 }',
         'PLOT',
         60,
@@ -164,7 +164,7 @@ OFFSET COALESCE(:offset, 0)
 OFFSET COALESCE(:offset, 0)
     ',
 '{
-    "helperText": "See which SKUs are generating the most revenue, ranked from highest to lowest — so you can identify your primary revenue drivers."
+    "helperText": "Shows which SKUs are generating the most revenue, ranked from highest to lowest, so you can identify your primary revenue drivers."
 }',
     'PLOT',
     60,
@@ -219,7 +219,7 @@ OFFSET COALESCE(:offset, 0)
 OFFSET COALESCE(:offset, 0)
     $$,
 '{
-    "helperText": "See units sold, gross and net sales, discounts, average price, and unfulfilled units for each SKU, so you can compare how every SKU performs."
+    "helperText": "Shows units sold, gross and net sales, discounts, average price, and unfulfilled units for each SKU, so you can compare how every SKU performs."
 }',
         'TABLE',
         30,
@@ -286,7 +286,7 @@ OFFSET COALESCE(:offset, 0)
 OFFSET COALESCE(:offset, 0)
     $$,
 '{
-    "helperText": "See how each product performs across orders, units sold, sales, and discount rate, along with its vendor and category, so you can find your best and weakest products."
+    "helperText": "Shows how each product performs across orders, units sold, sales, and discount rate, along with its vendor and category, so you can find your best and weakest products."
 }',
         'TABLE',
         30,
@@ -332,7 +332,7 @@ VALUES (
     LIMIT 20
     ',
 '{
-    "helperText": "See which SKUs have the most money given away in discounts, so you can spot where promotions are costing you the most."
+    "helperText": "Shows which SKUs have the most money given away in discounts, so you can spot where promotions are costing you the most."
 }',
         'PLOT',
         60,
@@ -383,7 +383,7 @@ VALUES (
 OFFSET COALESCE(:offset, 0)
     $$,
 '{
-    "helperText": "See each discounted order line with its original price, final price, and discount rate, so you can review where discounts are being applied."
+    "helperText": "Shows each discounted order line with its original price, final price, and discount rate, so you can review where discounts are being applied."
 }',
         'TABLE',
         30,
@@ -430,7 +430,7 @@ VALUES (
 OFFSET COALESCE(:offset, 0)
     ',
 '{
-    "helperText": "See which SKUs have the biggest fulfillment backlog, so you can prioritize what to ship next."
+    "helperText": "Shows which SKUs have the biggest fulfillment backlog, so you can prioritize what to ship next."
 }',
     'PLOT',
     60,
@@ -484,7 +484,7 @@ OFFSET COALESCE(:offset, 0)
 OFFSET COALESCE(:offset, 0)
     $$,
 '{
-    "helperText": "See every order line that still has items waiting to ship, with the quantity and value at stake, so you can work through your backlog."
+    "helperText": "Shows every order line that still has items waiting to ship, with the quantity and value at stake, so you can work through your backlog."
 }',
         'TABLE',
         60,
@@ -531,7 +531,7 @@ VALUES (
 OFFSET COALESCE(:offset, 0)
     ',
 '{
-    "helperText": "See which SKUs have the most units refunded or removed from orders, to spot potential quality or fit issues."
+    "helperText": "Shows which SKUs have the most units refunded or removed from orders, to spot potential quality or fit issues."
 }',
     'PLOT',
     60,
@@ -583,7 +583,7 @@ OFFSET COALESCE(:offset, 0)
 OFFSET COALESCE(:offset, 0)
     $$,
 '{
-    "helperText": "See how many units were ordered, how many remain, and how many were refunded or removed for each SKU, so you can spot products with high return activity."
+    "helperText": "Shows how many units were ordered, how many remain, and how many were refunded or removed for each SKU, so you can spot products with high return activity."
 }',
         'TABLE',
         30,
@@ -637,7 +637,7 @@ VALUES (
     LIMIT 20
     $$,
 '{
-    "helperText": "See how much each top product contributes to your revenue and how quickly the total builds up, so you can tell how dependent your sales are on a few products."
+    "helperText": "Shows how much each top product contributes to your revenue and how quickly the total builds up, so you can tell how dependent your sales are on a few products."
 }',
         'PLOT',
         60,
@@ -723,7 +723,7 @@ VALUES (
     ORDER BY df.bucket ASC
     $$,
 '{
-    "helperText": "See how the average price customers pay per unit changes over time, so you can spot the effects of pricing, discounts, or product mix."
+    "helperText": "Shows how the average price customers pay per unit changes over time, so you can spot the effects of pricing, discounts, or product mix."
 }',
         'PLOT',
         60,
@@ -766,7 +766,7 @@ VALUES (
 OFFSET COALESCE(:offset, 0)
     $$,
 '{
-    "helperText": "See which product categories bring in the most net sales, ranked from highest to lowest, so you can identify your top-performing product groups."
+    "helperText": "Shows which product categories bring in the most net sales, ranked from highest to lowest, so you can identify your top-performing product groups."
 }',
         'PLOT',
         60,
@@ -812,7 +812,7 @@ OFFSET COALESCE(:offset, 0)
     LIMIT 20
     $$,
 '{
-    "helperText": "See sales before and after discounts for your top products, so you can tell which ones lose the most revenue to discounting."
+    "helperText": "Shows sales before and after discounts for your top products, so you can tell which ones lose the most revenue to discounting."
 }',
         'PLOT',
         60,
@@ -876,7 +876,7 @@ OFFSET COALESCE(:offset, 0)
 OFFSET COALESCE(:offset, 0)
     ',
 '{
-    "helperText": "See how each of your collections is performing — products, units sold, sales, share of total revenue, and discount rate."
+    "helperText": "Shows how each of your collections is performing across products, units sold, sales, share of total revenue, and discount rate."
 }',
     'TABLE',
     60,
@@ -927,7 +927,7 @@ VALUES (
 OFFSET COALESCE(:offset, 0)
     ',
 '{
-    "helperText": "See which vendors are driving the most sales and units sold, so you know who your top suppliers are."
+    "helperText": "Shows which vendors are driving the most sales and units sold, so you know who your top suppliers are."
 }',
     'PLOT',
     60,
@@ -975,7 +975,7 @@ OFFSET COALESCE(:offset, 0)
 OFFSET COALESCE(:offset, 0)
     ',
 '{
-    "helperText": "See which of your collections are generating the most sales and units sold — to understand which curated groups resonate most with buyers."
+    "helperText": "Shows which of your collections are generating the most sales and units sold, so you can understand which curated groups resonate most with buyers."
 }',
     'PLOT',
     60,
@@ -1018,7 +1018,7 @@ OFFSET COALESCE(:offset, 0)
          json_each_text(row_to_json(s)) WITH ORDINALITY AS e(segment, amount, ord)
     ORDER BY e.ord
     ',
-'{"helperText": "See how your revenue splits between gift cards and regular merchandise — useful for tracking prepaid revenue versus immediate product sales."}',
+'{"helperText": "Shows how your revenue splits between gift cards and regular merchandise, useful for tracking prepaid revenue versus immediate product sales."}',
     'PLOT',
     60,
     'Comparison of net sales between gift card items and standard merchandise.',
@@ -1067,7 +1067,7 @@ OFFSET COALESCE(:offset, 0)
 OFFSET COALESCE(:offset, 0)
     ',
 '{
-    "helperText": "See products, SKUs, units sold, refunded units, sales, and discount rate for each vendor, so you can compare how your suppliers perform."
+    "helperText": "Shows products, SKUs, units sold, refunded units, sales, and discount rate for each vendor, so you can compare how your suppliers perform."
 }',
         'TABLE',
         60,

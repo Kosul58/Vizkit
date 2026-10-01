@@ -32,7 +32,7 @@ VALUES (
              ls.location_name, ls.location_id
     LIMIT 20
     $$,
-'{"helperText": "See how your available, committed, and reserved stock breaks down across each location, so you can quickly compare where your inventory sits."}',
+'{"helperText": "Shows how your available, committed, and reserved stock breaks down across each location, so you can quickly compare where your inventory sits."}',
     'PLOT',
     60,
     'Stock breakdown by location showing available, committed, and reserved quantities.',
@@ -68,7 +68,7 @@ VALUES (
     ORDER BY ls.available_quantity DESC, ls.location_name, ls.location_id
     LIMIT 20
     $$,
-'{"helperText": "See how much sellable stock you have available at each location, ranked from highest to lowest, so you know where your stock is concentrated."}',
+'{"helperText": "Shows how much sellable stock you have available at each location, ranked from highest to lowest, so you know where your stock is concentrated."}',
     'PLOT',
     60,
     'Available sellable stock quantity per store/warehouse location.',
@@ -126,7 +126,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See a full inventory snapshot for each location — including status, address, and available, on-hand, committed, reserved, damaged, and incoming counts — so you can review overall location health in one place."}',
+'{"helperText": "Shows a full inventory snapshot for each location — including status, address, and available, on-hand, committed, reserved, damaged, and incoming counts — so you can review overall location health in one place."}',
     'TABLE',
     60,
     'Summary table per location showing active status, full address, available, on hand, committed, reserved, damaged, and incoming inventory counts.',
@@ -189,7 +189,7 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See a detailed breakdown of every SKU''s stock levels at each location, along with its stock health status, so you can drill into individual product availability."}',
+'{"helperText": "Shows a detailed breakdown of every SKU''s stock levels at each location, along with its stock health status, so you can drill into individual product availability."}',
     'TABLE',
     30,
     'Detailed SKU breakdown table per location showing available, on hand, committed, reserved, safety stock, and stock health status.',
@@ -253,7 +253,7 @@ VALUES (
              ls.location_name, ls.location_id
     LIMIT 20
     $$,
-'{"helperText": "See how your stock is split across available, committed, reserved, damaged, and quality-control states at each location, so you can understand what''s really usable versus tied up."}',
+'{"helperText": "Shows how your stock is split across available, committed, reserved, damaged, and quality-control states at each location, so you can understand what''s really usable versus tied up."}',
         'PLOT',
         60,
         'Stock state composition across location sites (available, committed, reserved, damaged, QC).',
@@ -296,7 +296,7 @@ VALUES (
     GROUP BY lr.location_id, lr.location_name
     ORDER BY lr.location_name, lr.location_id
     ',
-'{"helperText": "See how many SKUs are low stock, out of stock, damaged, or reserved at each location, so you can spot which sites need the most attention."}',
+'{"helperText": "Shows how many SKUs are low stock, out of stock, damaged, or reserved at each location, so you can spot which sites need the most attention."}',
         'PLOT',
         60,
         'Health condition count matrix across locations showing low stock, out of stock, damaged, and reserved items.',
@@ -336,7 +336,7 @@ VALUES (
     ORDER BY ld.damaged_value DESC, ld.location_name, ld.location_id
     LIMIT 20
     $$,
-'{"helperText": "See how much damaged stock — in units and dollar value — you have at each location, so you can identify where losses are adding up."}',
+'{"helperText": "Shows how much damaged stock — in units and dollar value — you have at each location, so you can identify where losses are adding up."}',
         'PLOT',
         60,
         'Damaged stock quantity and loss dollar value per location.',
@@ -390,7 +390,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See which SKUs are sitting in damaged or quality-control status at each location, along with their blocked dollar value, so you can prioritize resolving them."}',
+'{"helperText": "Shows which SKUs are sitting in damaged or quality-control status at each location, along with their blocked dollar value, so you can prioritize resolving them."}',
         'TABLE',
         30,
         'Report table listing damaged and quality-control held stock SKUs with unit cost and blocked dollar value.',
@@ -445,7 +445,7 @@ VALUES (
     ORDER BY lr.low_stock_skus DESC, lr.location_name, lr.location_id
     LIMIT 20
     $$,
-'{"helperText": "See how many SKUs are running low at each location, so you know where replenishment is needed most."}',
+'{"helperText": "Shows how many SKUs are running low at each location, so you know where replenishment is needed most."}',
         'PLOT',
         60,
         'Low-stock SKU count per location site.',
@@ -482,7 +482,7 @@ VALUES (
     ORDER BY lr.out_of_stock_skus DESC, lr.location_name, lr.location_id
     LIMIT 20
     $$,
-'{"helperText": "See how many SKUs are completely out of stock at each location, so you can identify sites at the highest risk of missed sales."}',
+'{"helperText": "Shows how many SKUs are completely out of stock at each location, so you can identify sites at the highest risk of missed sales."}',
         'PLOT',
         60,
         'Out-of-stock SKU count per location site.',
@@ -520,7 +520,7 @@ VALUES (
     ORDER BY ls.available_quantity DESC, ls.location_name, ls.location_id
     LIMIT 20
     $$,
-'{"helperText": "Compare incoming replenishment stock against current available stock at each location, so you can see where restocking is on the way and where it''s still needed."}',
+'{"helperText": "Compares incoming replenishment stock against current available stock at each location, so you can see where restocking is on the way and where it''s still needed."}',
         'PLOT',
         60,
         'Comparison per location between incoming replenishment stock and current available stock.',
@@ -577,7 +577,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See which SKUs are at or below their safety stock threshold at each location, along with incoming stock and a calculated reorder priority, so you know what to reorder first."}',
+'{"helperText": "Shows which SKUs are at or below their safety stock threshold at each location, along with incoming stock and a calculated reorder priority, so you know what to reorder first."}',
         'TABLE',
         60,
         'Low stock alert report table listing location, SKU, product, available quantity, safety threshold, incoming stock, and calculated reorder priority.',
@@ -639,7 +639,7 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See which SKUs are out of stock at each location, along with when they last sold and any incoming stock, so you can prioritize restocking the ones customers still want."}',
+'{"helperText": "Shows which SKUs are out of stock at each location, along with when they last sold and any incoming stock, so you can prioritize restocking the ones customers still want."}',
         'TABLE',
         60,
         'Out-of-stock report table listing out-of-stock SKUs per location with last sold date and incoming quantity.',
@@ -698,7 +698,7 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See all SKUs with stock currently inbound to each location, along with available quantity and stock status, so you can track upcoming replenishment."}',
+'{"helperText": "Shows all SKUs with stock currently inbound to each location, along with available quantity and stock status, so you can track upcoming replenishment."}',
         'TABLE',
         60,
         'Incoming stock shipment tracking report table per location listing SKU, product, incoming quantity, available quantity, and current stock status.',
@@ -752,7 +752,7 @@ VALUES (
     ORDER BY ls.committed_quantity DESC, ls.location_name, ls.location_id
     LIMIT 20
     $$,
-'{"helperText": "See how much stock is committed to unfulfilled orders at each location, so you can spot where fulfillment delays are most likely."}',
+'{"helperText": "Shows how much stock is committed to unfulfilled orders at each location, so you can spot where fulfillment delays are most likely."}',
         'PLOT',
         60,
         'Committed unfulfilled order stock quantity per location.',
@@ -811,7 +811,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See which SKUs have committed stock and unfulfilled orders at each location, along with an evaluated risk level, so you know where to step in first."}',
+'{"helperText": "Shows which SKUs have committed stock and unfulfilled orders at each location, along with an evaluated risk level, so you know where to step in first."}',
         'TABLE',
         60,
         'Fulfillment risk report table listing location, SKU, product, committed quantity, unfulfilled orders flag, available stock, and evaluated risk level.',
@@ -856,7 +856,7 @@ VALUES (
     ORDER BY lv.inventory_value DESC, lv.location_name, lv.location_id
     LIMIT 20
     $$,
-'{"helperText": "See the total dollar value of inventory held at each location, so you know where your capital is tied up."}',
+'{"helperText": "Shows the total dollar value of inventory held at each location, so you know where your capital is tied up."}',
     'PLOT',
     60,
     'Inventory dollar valuation per store/warehouse location.',
@@ -897,7 +897,7 @@ VALUES (
     ORDER BY gv.inventory_value DESC, gv.city, gv.province, gv.country
     LIMIT 20
     $$,
-'{"helperText": "See how your inventory value is distributed by city and region, so you can understand your stock footprint geographically."}',
+'{"helperText": "Shows how your inventory value is distributed by city and region, so you can understand your stock footprint geographically."}',
     'PLOT',
     60,
     'Inventory valuation grouped by geographic region / city.',
@@ -947,7 +947,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See the dollar value of every SKU held at each location, along with vendor and unit cost, so you can review asset value in detail."}',
+'{"helperText": "Shows the dollar value of every SKU held at each location, along with vendor and unit cost, so you can review asset value in detail."}',
     'TABLE',
     60,
     'Asset valuation report table per SKU and location listing vendor, on-hand quantity, unit cost, and total inventory value.',
@@ -1003,7 +1003,7 @@ VALUES (
     ORDER BY i.inventory_value DESC, i.location_name, i.location_id
     LIMIT 20
     $$,
-'{"helperText": "See how much inventory value is still sitting at inactive locations, so you can spot capital that''s stranded and unavailable to sell."}',
+'{"helperText": "Shows how much inventory value is still sitting at inactive locations, so you can spot capital that''s stranded and unavailable to sell."}',
         'PLOT',
         60,
         'Stock valuation exposure trapped at inactive locations.',
@@ -1056,7 +1056,7 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See which SKUs are stranded at inactive locations, along with when they were deactivated and their dollar value, so you can plan to recover or write off that stock."}',
+'{"helperText": "Shows which SKUs are stranded at inactive locations, along with when they were deactivated and their dollar value, so you can plan to recover or write off that stock."}',
         'TABLE',
         60,
         'Audit table listing stranded inventory at inactive locations with deactivated date, SKU, quantity, and dollar value.',
@@ -1108,7 +1108,7 @@ OFFSET COALESCE(:offset, 0)
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "See which locations are fulfillment services, fulfill online orders, or hold active inventory, along with their total stock value, so you can review your fulfillment network setup."}',
+'{"helperText": "Shows which locations are fulfillment services, fulfill online orders, or hold active inventory, along with their total stock value, so you can review your fulfillment network setup."}',
         'TABLE',
         60,
         'Fulfillment service location governance report showing fulfillment service flag, online fulfillment flag, active inventory flag, and total stock value.',

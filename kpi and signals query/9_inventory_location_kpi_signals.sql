@@ -21,7 +21,7 @@ VALUES (
     FROM public.dim_inventory_locations loc
     WHERE loc.seller_id = :shopId
     $$,
-'{"helperText": "See how many of your locations are currently active, so you know the size of your live location network."}',
+'{"helperText": "Shows how many of your locations are currently active, so you know the size of your live location network."}',
         'KPI',
         60,
         'Count of active inventory locations.',
@@ -45,7 +45,7 @@ VALUES (
     FROM public.dim_inventory_locations loc
     WHERE loc.seller_id = :shopId
     $$,
-'{"helperText": "See how many locations are currently holding active inventory, so you know how many sites are actually stocked."}',
+'{"helperText": "Shows how many locations are currently holding active inventory, so you know how many sites are actually stocked."}',
         'KPI',
         60,
         'Count of locations currently holding active inventory.',
@@ -70,7 +70,7 @@ VALUES (
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-'{"helperText": "See the total on-hand units held across all your locations, so you know your overall stock volume."}',
+'{"helperText": "Shows the total on-hand units held across all your locations, so you know your overall stock volume."}',
         'KPI',
         60,
         'Total on-hand units held across all locations.',
@@ -95,7 +95,7 @@ VALUES (
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-'{"helperText": "See how many units are available to sell across all locations, so you know what''s ready for customers right now."}',
+'{"helperText": "Shows how many units are available to sell across all locations, so you know what''s ready for customers now."}',
         'KPI',
         60,
         'Units available to sell across all locations.',
@@ -120,7 +120,7 @@ VALUES (
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-'{"helperText": "See how many units are committed to open orders across all locations, so you know how much stock is already spoken for."}',
+'{"helperText": "Shows how many units are committed to open orders across all locations, so you know how much stock is already spoken for."}',
         'KPI',
         60,
         'Units committed to open orders across all locations.',
@@ -145,7 +145,7 @@ VALUES (
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-'{"helperText": "See how many units are reserved and unavailable to sell across all locations, so you understand what''s set aside."}',
+'{"helperText": "Shows how many units are reserved and unavailable to sell across all locations, so you understand what''s set aside."}',
         'KPI',
         60,
         'Units reserved and unavailable to sell across all locations.',
@@ -170,7 +170,7 @@ VALUES (
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-'{"helperText": "See how many units are marked damaged across all locations, so you can track losses from damaged inventory."}',
+'{"helperText": "Shows how many units are marked damaged across all locations, so you can track losses from damaged inventory."}',
         'KPI',
         60,
         'Damaged units held across all locations.',
@@ -196,7 +196,7 @@ VALUES (
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-'{"helperText": "See how many SKUs are at or below their safety stock threshold, so you know how many items need reordering soon."}',
+'{"helperText": "Shows how many SKUs are at or below their safety stock threshold, so you know how many items need reordering soon."}',
         'KPI',
         60,
         'Inventory levels at or below their safety stock threshold.',
@@ -221,7 +221,7 @@ VALUES (
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-'{"helperText": "See how many SKUs currently have zero available stock, so you know how many items risk missed sales."}',
+'{"helperText": "Shows how many SKUs currently have zero available stock, so you know how many items risk missed sales."}',
         'KPI',
         60,
         'Inventory levels with no available stock remaining.',
@@ -246,7 +246,7 @@ VALUES (
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-'{"helperText": "See how many units are currently inbound across all locations, so you know what replenishment is on the way."}',
+'{"helperText": "Shows how many units are currently inbound across all locations, so you know what replenishment is on the way."}',
         'KPI',
         60,
         'Units currently inbound across all locations.',
@@ -270,7 +270,7 @@ VALUES (
     FROM public.dim_inventory_locations loc
     WHERE loc.seller_id = :shopId
     $$,
-'{"helperText": "See how many locations have pending unfulfilled orders, so you know where fulfillment delays might be building up."}',
+'{"helperText": "Shows how many locations have pending unfulfilled orders, so you know where fulfillment delays might be building up."}',
         'KPI',
         60,
         'Locations with pending unfulfilled orders.',
@@ -298,7 +298,7 @@ VALUES (
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-'{"helperText": "See the total value of your on-hand inventory at cost, so you know how much capital is tied up in stock."}',
+'{"helperText": "Shows the total value of your on-hand inventory at cost, so you know how much capital is tied up in stock."}',
         'KPI',
         60,
         'Total on-hand inventory valuation at unit cost.',
@@ -325,7 +325,7 @@ VALUES (
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
     $$,
-'{"helperText": "See how many units are damaged, in quality control, or reserved — and therefore not sellable — so you understand how much stock isn''t contributing to revenue."}',
+'{"helperText": "Shows how many units are damaged, in quality control, or reserved — and therefore not sellable — so you understand how much stock isn''t contributing to revenue."}',
         'KPI',
         60,
         'Units held as damaged, in quality control, or reserved.',
@@ -360,7 +360,7 @@ VALUES (
            AS inactive_locations_with_stock
     FROM location_stock ls
     $$,
-'{"helperText": "See how many deactivated locations are still holding on-hand stock, so you can spot inventory that needs to be moved or written off."}',
+'{"helperText": "Shows how many deactivated locations are still holding on-hand stock, so you can spot inventory that needs to be moved or written off."}',
         'KPI',
         60,
         'Deactivated locations still holding on-hand stock.',
@@ -385,7 +385,7 @@ VALUES (
     FROM public.dim_inventory_locations loc
     WHERE loc.seller_id = :shopId
     $$,
-'{"helperText": "See how many of your locations operate as third-party fulfillment services, so you understand your fulfillment network setup."}',
+'{"helperText": "Shows how many of your locations operate as third-party fulfillment services, so you understand your fulfillment network setup."}',
         'KPI',
         60,
         'Locations operated as a third-party fulfillment service.',

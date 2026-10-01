@@ -73,7 +73,7 @@ VALUES (
     ORDER BY df.bucket ASC
     $$,
 '{
-    "helperText": "See how your gross sales, net sales, and refunds have moved over time, so you can spot growth, dips, or seasonal patterns."
+    "helperText": "Shows how your gross sales, net sales, and refunds have moved over time, so you can spot growth, dips, or seasonal patterns."
 }',
         'PLOT',
         60,
@@ -182,7 +182,7 @@ VALUES (
     ORDER BY s.bucket
     $$,
 '{
-    "helperText": "See how your gross sales turn into net sales after discounts, refunds, tax, and shipping, so you can tell exactly where your money is going."
+    "helperText": "Shows how your gross sales turn into net sales after discounts, refunds, tax, and shipping, so you can tell exactly where your money is going."
 }',
         'PLOT',
         60,
@@ -244,7 +244,7 @@ VALUES (
     ORDER BY df.bucket ASC
     $$,
 '{
-    "helperText": "See how your order count and average order value move together over time, so you can tell whether growth comes from more orders or bigger baskets."
+    "helperText": "Shows how your order count and average order value move together over time, so you can tell whether growth comes from more orders or bigger baskets."
 }',
         'PLOT',
         60,
@@ -313,7 +313,7 @@ VALUES (
     ORDER BY df.bucket ASC
     $$,
 '{
-    "helperText": "See how much you give away in discounts, and what share of gross sales that represents over time, so you can tell whether promotions are eating into your revenue."
+    "helperText": "Shows how much you give away in discounts, and what share of gross sales that represents over time, so you can tell whether promotions are eating into your revenue."
 }',
         'PLOT',
         60,
@@ -374,7 +374,7 @@ VALUES (
     ORDER BY df.bucket ASC
     $$,
 '{
-    "helperText": "See how much money you refund and how many refunds happen over time, so you can catch rising returns early."
+    "helperText": "Shows how much money you refund and how many refunds happen over time, so you can catch rising returns early."
 }',
         'PLOT',
         60,
@@ -453,7 +453,7 @@ VALUES (
 OFFSET COALESCE(:offset, 0)
     $$,
 '{
-    "helperText": "See which products get returned or refunded the most, so you can dig into quality, fit, or listing issues."
+    "helperText": "Shows which products get returned or refunded the most, so you can dig into quality, fit, or listing issues."
 }',
     'PLOT',
     60,
@@ -496,7 +496,7 @@ VALUES (
 OFFSET COALESCE(:offset, 0)
     $$,
 '{
-"helperText":"See how much inventory value you're holding at each location — useful for spotting imbalances or overstocked warehouses."
+"helperText":"Shows how much inventory value you''re holding at each location — useful for spotting imbalances or overstocked warehouses."
 }',
     'PLOT',
     60,
@@ -542,7 +542,7 @@ OFFSET COALESCE(:offset, 0)
     ORDER BY e.ord
     $$,
 '{
-    "helperText": "See how much order value is still waiting to ship, grouped by how long it's been waiting, so you know what needs attention first."
+    "helperText": "Shows how much order value is still waiting to ship, grouped by how long it''s been waiting, so you know what needs attention first."
 }',
     'PLOT',
     60,
@@ -602,7 +602,7 @@ OFFSET COALESCE(:offset, 0)
     ORDER BY df.bucket ASC
     $$,
 '{
-    "helperText": "See how much order value is fulfilled, partially fulfilled, or still unfulfilled over time, so you can spot shipping backlogs early."
+    "helperText": "Shows how much order value is fulfilled, partially fulfilled, or still unfulfilled over time, so you can spot shipping backlogs early."
 }',
         'PLOT',
         60,
@@ -678,7 +678,7 @@ OFFSET COALESCE(:offset, 0)
     OFFSET COALESCE(:offset, 0)
     $$,
 '{
-"helperText":"See which products are at risk of running out soon based on current stock and how fast they''re selling, so you can restock in time."
+"helperText":"Shows which products are at risk of running out soon based on current stock and how fast they''re selling, so you can restock in time."
 }',
     'PLOT',
     60,
@@ -753,7 +753,7 @@ OFFSET COALESCE(:offset, 0)
     ORDER BY df.bucket ASC
     $$,
 '{
-    "helperText": "See how much of your net revenue comes from first-time versus returning customers over time, so you can judge how well you keep customers coming back."
+    "helperText": "Shows how much of your net revenue comes from first-time versus returning customers over time, so you can judge how well you keep customers coming back."
 }',
         'PLOT',
         60,
@@ -813,7 +813,7 @@ OFFSET COALESCE(:offset, 0)
     OFFSET COALESCE(:offset, 0)
     $$,
 '{
-    "helperText": "See which countries or regions bring in the most net sales, orders, and average order value, so you can find your strongest markets."
+    "helperText": "Shows which countries or regions bring in the most net sales, orders, and average order value, so you can find your strongest markets."
 }',
         'PLOT',
         60,
@@ -857,7 +857,7 @@ LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
 '{
-    "helperText": "See which sales channels bring in the most net sales and orders, so you know where your revenue is really coming from."
+    "helperText": "Shows which sales channels bring in the most net sales and orders, so you know where your revenue is really coming from."
 }',
         'PLOT',
         60,
@@ -930,7 +930,7 @@ OFFSET COALESCE(:offset, 0)
     OFFSET COALESCE(:offset, 0)
     $$,
 '{
-    "helperText": "Compare each sales channel on order value, refund rate, and discount rate, so you can find channels that bring in quality sales, not just volume."
+    "helperText": "Compares each sales channel on order value, refund rate, and discount rate, so you can find channels that bring in quality sales, not just volume."
 }',
         'TABLE',
         60,
@@ -975,7 +975,7 @@ VALUES (
     LIMIT 20
     $$,
 '{
-    "helperText": "See which payment methods your customers use most, by order value, so you know which payment options matter most to your business."
+    "helperText": "Shows which payment methods your customers use most, by order value, so you know which payment options matter most to your business."
 }',
         'PLOT',
         60,
@@ -1018,7 +1018,7 @@ VALUES (
     OFFSET COALESCE(:offset, 0)
     $$,
 '{
-"helperText":"See how much you''re paying in transaction fees by payment gateway, in dollars and as a rate, so you can spot the costliest option."
+"helperText":"Shows how much you''re paying in transaction fees by payment gateway, in dollars and as a rate, so you can spot the costliest option."
 }',
 'PLOT',
         60,

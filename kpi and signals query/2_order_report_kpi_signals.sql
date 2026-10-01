@@ -15,7 +15,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See your total net sales for the selected period, so you know what you are actually earning from orders after tax and duties."}',
+'{"helperText": "Shows your total net sales in the selected period, so you know what you are actually earning from orders after tax and duties. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Net sales (order total less tax and shipping) for the selected period vs the prior period.',
@@ -48,7 +48,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See your gross sales for the selected period, before discounts are taken off, so you know the full value of what customers ordered."}',
+'{"helperText": "Shows your gross sales in the selected period, before discounts are taken off, so you know the full value of what customers ordered. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Gross sales (subtotal before discounts) for the selected period vs the prior period.',
@@ -78,7 +78,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how much customers spend on average per order, so you can track whether order sizes are growing or shrinking."}',
+'{"helperText": "Shows how much customers spend on average per order, so you can track whether order sizes are growing or shrinking. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Average order value (net sales per order) for the selected period vs the prior period.',
@@ -106,7 +106,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See the total value of discounts applied to orders in the selected period, so you know how much revenue promotions are costing you."}',
+'{"helperText": "Shows the total value of discounts applied to orders in the selected period, so you know how much revenue promotions are costing you. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Total discounts applied for the selected period vs the prior period.',
@@ -134,7 +134,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how much money has been refunded on orders placed in the selected period, so you know how much of your sales is going back to customers."}',
+'{"helperText": "Shows how much money has been refunded on orders placed in the selected period, so you know how much of your sales is going back to customers. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Refunded value on orders placed in the selected period vs the prior period.',
@@ -161,7 +161,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how much tax you collected on orders in the selected period, so you know how much to set aside for tax reporting."}',
+'{"helperText": "Shows how much tax you collected on orders in the selected period, so you know how much to set aside for tax reporting."}',
         'KPI',
         60,
         'Total tax collected for the selected period vs the prior period.',
@@ -188,7 +188,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how many orders came in during the selected period, so you can track overall order volume."}',
+'{"helperText": "Shows how many orders came in in the selected period, so you can track overall order volume. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Total order volume for the selected period vs the prior period.',
@@ -217,7 +217,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how many orders have been fully fulfilled in the selected period, so you know how much of your order volume has been delivered on."}',
+'{"helperText": "Shows how many orders have been fully fulfilled in the selected period, so you know how much of your order volume has been delivered on. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Orders fulfilled for the selected period vs the prior period.',
@@ -246,7 +246,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how many orders are still waiting to be fully fulfilled, so you know how much is left to ship."}',
+'{"helperText": "Shows how many orders are still waiting to be fully fulfilled, so you know how much is left to ship. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Orders not yet fulfilled for the selected period vs the prior period.',
@@ -274,7 +274,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.cancelled_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.cancelled_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how many orders were cancelled in the selected period, so you can tell whether cancellations are becoming a problem."}',
+'{"helperText": "Shows how many orders were cancelled in the selected period, so you can tell whether cancellations are becoming a problem. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Orders cancelled in the selected period vs the prior period.',
@@ -301,7 +301,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how much money is still unpaid on orders in the selected period, so you can follow up on payments you are still waiting for."}',
+'{"helperText": "Shows how much money is still unpaid on orders in the selected period, so you can follow up on payments you are still waiting for. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Total unpaid outstanding order balance for the selected period vs the prior period.',
@@ -329,7 +329,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See what share of your orders have been fully paid, so you can tell how well you are collecting payment."}',
+'{"helperText": "Shows what share of your orders have been fully paid, so you can tell how well you are collecting payment. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Share of orders marked paid for the selected period vs the prior period.',
@@ -357,7 +357,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how much money is tied up in orders that are still awaiting payment, so you know what to chase or wait on."}',
+'{"helperText": "Shows how much money is tied up in orders that are still awaiting payment, so you know what to chase or wait on. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Value of orders still awaiting payment for the selected period vs the prior period.',
@@ -385,7 +385,7 @@ VALUES (
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
     $$,
-'{"helperText": "See how much money you have refunded on fully or partially refunded orders, so you know how much payment has gone back to customers."}',
+'{"helperText": "Shows how much money you have refunded on fully or partially refunded orders, so you know how much payment has gone back to customers. The % change compares this value with the previous matching period."}',
         'KPI',
         60,
         'Amount refunded on refunded and partially refunded orders for the selected period vs the prior period.',
