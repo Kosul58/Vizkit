@@ -782,8 +782,7 @@ OFFSET COALESCE(:offset, 0)
         SELECT o.id,
                COALESCE(
                    o.shipping_address #>> '{country}',
-                   o.shipping_address #>> '{province}',
-                   o.shipping_address #>> '{city}'
+                   o.billing_address #>> '{country}'
                ) AS segment,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
@@ -797,23 +796,20 @@ OFFSET COALESCE(:offset, 0)
     ),
     segments AS (
         SELECT f.segment AS segment,
-               SUM(f.net_sales) AS revenue,
-               COUNT(*) AS orders
+               SUM(f.net_sales) AS revenue
         FROM filtered_orders f
         WHERE f.segment IS NOT NULL
         GROUP BY f.segment
     )
-    SELECT s.segment AS segment,
-           ROUND(s.revenue, 2) AS revenue,
-           s.orders AS orders,
-           ROUND(s.revenue / NULLIF(s.orders, 0), 2) AS aov
+    SELECT s.segment AS country,
+           ROUND(s.revenue, 2) AS revenue
     FROM segments s
     ORDER BY s.revenue DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
 '{
-    "helperText": "Shows which countries or regions bring in the most net sales, orders, and average order value, so you can find your strongest markets."
+    "helperText": "Shows which countries or regions bring in the most net sales, so you can find your strongest markets."
 }',
         'PLOT',
         60,
