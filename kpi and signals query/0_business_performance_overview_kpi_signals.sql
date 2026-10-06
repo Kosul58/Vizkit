@@ -130,7 +130,7 @@ VALUES (
     FROM public.dim_customers c
     WHERE c.seller_id = :shopId
     $$,
-'{"helperText": "Shows how many customers ordered in the selected period, so you can gauge the size of your active customer base."}',
+'{"helperText": "Shows your total number of customers, so you know the overall size of your customer base."}',
     'KPI',
     30,
     'All customer records for the shop, regardless of period.',
