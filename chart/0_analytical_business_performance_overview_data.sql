@@ -99,7 +99,7 @@ VALUES (
     $$,
 '{"helperText": "Shows which categories are generating the most net sales, ranked from highest to lowest, so you can identify your top-performing product groups."}',
         'PLOT',
-        30,
+        60,
         'Horizontal bar chart of net sales by category.',
         '{
       "filterMappings": {

@@ -129,7 +129,7 @@ VALUES (
       "helperText": "Shows which sales channel generated the most revenue in the selected period, so you know your best-performing channel."
     }',
     'KPI',
-    60,
+    360,
     'Sales channel with the highest gross sales in the selected period.',
     '{
       "filterMappings": {
@@ -171,7 +171,7 @@ VALUES (
       "helperText": "Shows which sales channel has the highest average order value, so you know where your highest-value orders are coming from."
     }',
     'KPI',
-    60,
+    360,
     'Sales channel with the highest average order value in the selected period.',
     '{
       "filterMappings": {
@@ -252,7 +252,7 @@ VALUES (
       "helperText": "Shows what percentage of your gross sales are being refunded, so you can monitor how refunds are affecting your revenue. The % change compares this value with the previous matching period."
     }',
     'KPI',
-    60,
+    180,
     'Refunds as a percentage of gross sales for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -287,7 +287,7 @@ VALUES (
       "helperText": "Shows what percentage of your gross sales are going to discounts, so you can track how much margin you''re giving up. The % change compares this value with the previous matching period."
     }',
     'KPI',
-    60,
+    120,
     'Discounts as a percentage of gross sales for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -325,7 +325,7 @@ VALUES (
       "helperText": "Shows how much revenue came from orders with UTM tracking, so you know how much sales your tagged marketing efforts are driving. The % change compares this value with the previous matching period."
     }',
     'KPI',
-    60,
+    120,
     'Gross sales from UTM-tagged orders for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -360,7 +360,7 @@ VALUES (
       "helperText": "Shows the average order value of UTM-tagged orders, so you can gauge the quality of orders from your tracked marketing campaigns. The % change compares this value with the previous matching period."
     }',
     'KPI',
-    60,
+    120,
     'Average order value of UTM-tagged orders for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -396,7 +396,7 @@ VALUES (
       "helperText": "Shows how much revenue came from orders with a referring website, so you know how much external sites are contributing to sales. The % change compares this value with the previous matching period."
     }',
     'KPI',
-    60,
+    120,
     'Gross sales from orders with a referring site for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -440,7 +440,7 @@ VALUES (
       "helperText": "Shows what percentage of your revenue comes from paid marketing channels, so you can gauge how reliant your sales are on paid traffic."
     }',
     'KPI',
-    60,
+    120,
     'Paid media gross sales as a percentage of total gross sales, for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -476,7 +476,7 @@ VALUES (
       "helperText": "Shows how many orders are missing UTM, referrer, or channel data, so you know how big your attribution blind spot is. The % change compares this value with the previous matching period."
     }',
     'KPI',
-    60,
+    360,
     'Orders missing UTM, referrer, or channel attribution for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -536,7 +536,7 @@ VALUES (
       "helperText": "Shows the total dollar value of unfulfilled orders across all channels, so you know how much order value is still at risk of delayed fulfillment. The % change compares this value with the previous matching period."
     }',
     'KPI',
-    60,
+    30,
     'Unfulfilled order value at risk for the selected period vs the prior period.',
     '{
       "filterMappings": {

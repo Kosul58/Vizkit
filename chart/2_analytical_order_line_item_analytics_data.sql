@@ -222,7 +222,7 @@ OFFSET COALESCE(:offset, 0)
     "helperText": "Shows units sold, gross and net sales, discounts, average price, and unfulfilled units for each SKU, so you can compare how every SKU performs."
 }',
         'TABLE',
-        30,
+        60,
         'Detailed tabular breakdown of performance per SKU evaluating units sold, gross/net sales, discounts, and AUP.',
         '{
       "filterMappings": {
@@ -289,7 +289,7 @@ OFFSET COALESCE(:offset, 0)
     "helperText": "Shows how each product performs across orders, units sold, sales, and discount rate, along with its vendor and category, so you can find your best and weakest products."
 }',
         'TABLE',
-        30,
+        60,
         'Detailed tabular breakdown of product-level sales performance, vendor, category, and discount rates.',
         '{
       "filterMappings": {
@@ -386,7 +386,7 @@ OFFSET COALESCE(:offset, 0)
     "helperText": "Shows each discounted order line with its original price, final price, and discount rate, so you can review where discounts are being applied."
 }',
         'TABLE',
-        30,
+        120,
         'Granular tabular audit of individual line item discount leakage per order.',
         '{
       "filterMappings": {
@@ -487,7 +487,7 @@ OFFSET COALESCE(:offset, 0)
     "helperText": "Shows every order line that still has items waiting to ship, with the quantity and value at stake, so you can work through your backlog."
 }',
         'TABLE',
-        60,
+        30,
         'Granular tabular audit of individual unfulfilled line items per order.',
         '{
       "filterMappings": {
@@ -586,7 +586,7 @@ OFFSET COALESCE(:offset, 0)
     "helperText": "Shows how many units were ordered, how many remain, and how many were refunded or removed for each SKU, so you can spot products with high return activity."
 }',
         'TABLE',
-        30,
+        180,
         'Detailed tabular breakdown of ordered vs current vs removed and refundable item quantities per SKU.',
         '{
       "filterMappings": {

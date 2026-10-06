@@ -17,7 +17,7 @@ VALUES (
     $$,
 '{"helperText": "Shows your total net sales in the selected period, so you know what you are actually earning from orders after tax and duties. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Net sales (order total less tax and shipping) for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -50,7 +50,7 @@ VALUES (
     $$,
 '{"helperText": "Shows your gross sales in the selected period, before discounts are taken off, so you know the full value of what customers ordered. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Gross sales (subtotal before discounts) for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -80,7 +80,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much customers spend on average per order, so you can track whether order sizes are growing or shrinking. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Average order value (net sales per order) for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -108,7 +108,7 @@ VALUES (
     $$,
 '{"helperText": "Shows the total value of discounts applied to orders in the selected period, so you know how much revenue promotions are costing you. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        120,
         'Total discounts applied for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -136,7 +136,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much money has been refunded on orders placed in the selected period, so you know how much of your sales is going back to customers. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        180,
         'Refunded value on orders placed in the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -190,7 +190,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many orders came in in the selected period, so you can track overall order volume. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Total order volume for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -219,7 +219,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many orders have been fully fulfilled in the selected period, so you know how much of your order volume has been delivered on. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Orders fulfilled for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -248,7 +248,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many orders are still waiting to be fully fulfilled, so you know how much is left to ship. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Orders not yet fulfilled for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -276,7 +276,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many orders were cancelled in the selected period, so you can tell whether cancellations are becoming a problem. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        180,
         'Orders cancelled in the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -303,7 +303,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much money is still unpaid on orders in the selected period, so you can follow up on payments you are still waiting for. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Total unpaid outstanding order balance for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -359,7 +359,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much money is tied up in orders that are still awaiting payment, so you know what to chase or wait on. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Value of orders still awaiting payment for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -387,7 +387,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much money you have refunded on fully or partially refunded orders, so you know how much payment has gone back to customers. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        180,
         'Amount refunded on refunded and partially refunded orders for the selected period vs the prior period.',
         '{
       "filterMappings": {

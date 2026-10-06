@@ -132,7 +132,7 @@ VALUES (
     $$,
 '{"helperText": "Shows your total number of customers, so you know the overall size of your customer base."}',
     'KPI',
-    30,
+    60,
     'All customer records for the shop, regardless of period.',
     '{
       "filterMappings": {
@@ -160,7 +160,7 @@ VALUES (
     $$,
 '{"helperText": "Shows the total value of inventory you are currently holding, so you know how much capital is tied up in stock now."}',
     'KPI',
-    30,
+    60,
     'Total capital tied up in on-hand inventory at unit cost.',
     '{
       "filterMappings": {

@@ -658,7 +658,7 @@ FROM public.fact_order_refunds r
       "helperText": "Compares refund rates across your sales channels, so you can spot channels with higher return or refund issues."
     }',
         'PLOT',
-        60,
+        180,
         'Refund rate percentage comparison per channel.',
         '{
       "filterMappings": {
@@ -702,7 +702,7 @@ AND o.financialstatus != 'VOIDED'
       "helperText": "Compares how much of each channel''s sales are going to discounts, so you can see where you''re giving away the most margin."
     }',
         'PLOT',
-        60,
+        120,
         'Discount rate percentage comparison per channel.',
         '{
       "filterMappings": {
@@ -940,7 +940,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
       "helperText": "Shows how much revenue each marketing campaign has generated, so you can tell which campaigns are paying off."
     }',
         'PLOT',
-        60,
+        120,
         'Net revenue contribution per marketing campaign name.',
         '{
       "filterMappings": {
@@ -988,7 +988,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
       "helperText": "Compares net sales, AOV, and order volume across your UTM source/medium combinations, so you can see which traffic sources convert best."
     }',
         'PLOT',
-        60,
+        120,
         'Performance breakdown across combined UTM source / medium pairs evaluating net sales, AOV, and orders.',
         '{
       "filterMappings": {
@@ -1031,7 +1031,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
       "helperText": "Shows how much revenue is coming from each referring website, so you can identify your most valuable external traffic sources."
     }',
         'PLOT',
-        60,
+        120,
         'Revenue contribution per referring website URL/domain.',
         '{
       "filterMappings": {
@@ -1100,7 +1100,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
       "helperText": "Shows what share of your revenue comes from paid, organic, referral, email, social, and direct traffic, so you can understand where your sales are really coming from."
     }',
         'PLOT',
-        60,
+        120,
         'Proportional revenue mix percentage across traffic acquisition mediums (Paid, Organic, Referral, Email, Social, Direct).',
         '{
       "filterMappings": {
@@ -1317,7 +1317,7 @@ SELECT
       "helperText": "Shows how the number of orders missing channel or marketing attribution has changed over time, so you can track how well your tracking is working."
     }',
         'PLOT',
-        60,
+        360,
         'Volume trend of unattributed orders grouped by dynamic date granularity.',
         '{
       "filterMappings": {
@@ -1380,7 +1380,7 @@ OFFSET COALESCE(:offset, 0)
       "helperText": "A list of individual orders missing UTM, referral, or channel data along with their value, so you can find and fix gaps in your attribution tracking."
     }',
         'TABLE',
-        60,
+        360,
         'Audit table listing individual unattributed orders with flags for missing UTM, missing referral site, and net order value.',
         '{
       "filterMappings": {
@@ -1580,7 +1580,7 @@ FROM public.fact_order_line_items li
       "helperText": "Shows the dollar value of unfulfilled orders sitting in each channel, so you can spot where fulfillment is falling behind."
     }',
         'PLOT',
-        60,
+        30,
         'Unfulfilled order backlog dollar value per channel.',
         '{
       "filterMappings": {
@@ -1643,7 +1643,7 @@ FROM public.fact_order_line_items li
       "helperText": "Shows how revenue from each channel breaks down by destination country, so you can understand where your channel sales are shipping to."
     }',
         'PLOT',
-        60,
+        360,
         'Revenue breakdown per destination country across sales channels, taken from the order attribution display name. Other Channels holds any named channel outside the first three, and Unattributed holds orders carrying no channel information at all.',
         '{
       "filterMappings": {
@@ -1711,7 +1711,7 @@ OFFSET COALESCE(:offset, 0)
       "helperText": "A detailed report per channel showing unfulfilled orders, unfulfilled value, fulfillment status breakdown, and aging days, so you can prioritize which channels need fulfillment attention first."
     }',
         'TABLE',
-        60,
+        30,
         'Fulfillment backlog report table per channel showing unfulfilled orders count, unfulfilled value, fully/partially unfulfilled breakdown, and average/max aging days.',
         '{
       "filterMappings": {

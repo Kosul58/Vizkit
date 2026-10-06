@@ -23,7 +23,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many of your locations are currently active, so you know the size of your live location network."}',
         'KPI',
-        60,
+        360,
         'Count of active inventory locations.',
         '{
       "filterMappings": {
@@ -47,7 +47,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many locations are currently holding active inventory, so you know how many sites are actually stocked."}',
         'KPI',
-        60,
+        360,
         'Count of locations currently holding active inventory.',
         '{
       "filterMappings": {
@@ -97,7 +97,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many units are available to sell across all locations, so you know what''s ready for customers now."}',
         'KPI',
-        60,
+        30,
         'Units available to sell across all locations.',
         '{
       "filterMappings": {
@@ -122,7 +122,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many units are committed to open orders across all locations, so you know how much stock is already spoken for."}',
         'KPI',
-        60,
+        30,
         'Units committed to open orders across all locations.',
         '{
       "filterMappings": {
@@ -147,7 +147,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many units are reserved and unavailable to sell across all locations, so you understand what''s set aside."}',
         'KPI',
-        60,
+        120,
         'Units reserved and unavailable to sell across all locations.',
         '{
       "filterMappings": {
@@ -172,7 +172,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many units are marked damaged across all locations, so you can track losses from damaged inventory."}',
         'KPI',
-        60,
+        360,
         'Damaged units held across all locations.',
         '{
       "filterMappings": {
@@ -198,7 +198,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many SKUs are at or below their safety stock threshold, so you know how many items need reordering soon."}',
         'KPI',
-        60,
+        30,
         'Inventory levels at or below their safety stock threshold.',
         '{
       "filterMappings": {
@@ -223,7 +223,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many SKUs currently have zero available stock, so you know how many items risk missed sales."}',
         'KPI',
-        60,
+        30,
         'Inventory levels with no available stock remaining.',
         '{
       "filterMappings": {
@@ -248,7 +248,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many units are currently inbound across all locations, so you know what replenishment is on the way."}',
         'KPI',
-        60,
+        120,
         'Units currently inbound across all locations.',
         '{
       "filterMappings": {
@@ -272,7 +272,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many locations have pending unfulfilled orders, so you know where fulfillment delays might be building up."}',
         'KPI',
-        60,
+        30,
         'Locations with pending unfulfilled orders.',
         '{
       "filterMappings": {
@@ -327,7 +327,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many units are damaged, in quality control, or reserved — and therefore not sellable — so you understand how much stock isn''t contributing to revenue."}',
         'KPI',
-        60,
+        360,
         'Units held as damaged, in quality control, or reserved.',
         '{
       "filterMappings": {
@@ -362,7 +362,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many deactivated locations are still holding on-hand stock, so you can spot inventory that needs to be moved or written off."}',
         'KPI',
-        60,
+        360,
         'Deactivated locations still holding on-hand stock.',
         '{
       "filterMappings": {
@@ -387,7 +387,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many of your locations operate as third-party fulfillment services, so you understand your fulfillment network setup."}',
         'KPI',
-        60,
+        360,
         'Locations operated as a third-party fulfillment service.',
         '{
       "filterMappings": {

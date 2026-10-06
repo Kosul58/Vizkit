@@ -76,7 +76,7 @@ VALUES (
     "helperText": "Shows how your gross sales, net sales, and refunds have moved over time, so you can spot growth, dips, or seasonal patterns."
 }',
         'PLOT',
-        60,
+        30,
         'Breakdown of gross sales, net sales, and total refunds grouped by dynamic date granularity.',
         '{
       "filterMappings": {
@@ -247,7 +247,7 @@ VALUES (
     "helperText": "Shows how your order count and average order value move together over time, so you can tell whether growth comes from more orders or bigger baskets."
 }',
         'PLOT',
-        60,
+        30,
         'Correlation between total order count and Average Order Value (AOV) grouped by dynamic date granularity.',
         '{
       "filterMappings": {
@@ -316,7 +316,7 @@ VALUES (
     "helperText": "Shows how much you give away in discounts, and what share of gross sales that represents over time, so you can tell whether promotions are eating into your revenue."
 }',
         'PLOT',
-        60,
+        120,
         'Tracking of discount totals and discount rate % relative to gross sales grouped by dynamic date granularity.',
         '{
       "filterMappings": {
@@ -377,7 +377,7 @@ VALUES (
     "helperText": "Shows how much money you refund and how many refunds happen over time, so you can catch rising returns early."
 }',
         'PLOT',
-        60,
+        180,
         'Trend of total refunded dollar value and refund count grouped by dynamic date granularity.',
         '{
       "filterMappings": {
@@ -456,7 +456,7 @@ OFFSET COALESCE(:offset, 0)
     "helperText": "Shows which products get returned or refunded the most, so you can dig into quality, fit, or listing issues."
 }',
     'PLOT',
-    60,
+    180,
     'Top products by refund dollar value and returned units.',
     '{
       "filterMappings": {
@@ -545,7 +545,7 @@ OFFSET COALESCE(:offset, 0)
     "helperText": "Shows how much order value is still waiting to ship, grouped by how long it''s been waiting, so you know what needs attention first."
 }',
     'PLOT',
-    60,
+    30,
     'Unfulfilled order revenue grouped into aging buckets (0-3 days to 31+ days).',
     '{
       "filterMappings": {
@@ -605,7 +605,7 @@ OFFSET COALESCE(:offset, 0)
     "helperText": "Shows how much order value is fulfilled, partially fulfilled, or still unfulfilled over time, so you can spot shipping backlogs early."
 }',
         'PLOT',
-        60,
+        30,
         'Order revenue split by status (Fulfilled, Partially Fulfilled, Unfulfilled) grouped by dynamic date granularity.',
         '{
       "filterMappings": {
@@ -812,7 +812,7 @@ OFFSET COALESCE(:offset, 0)
     "helperText": "Shows which countries or regions bring in the most net sales, so you can find your strongest markets."
 }',
         'PLOT',
-        60,
+        360,
         'Top geographic customer segments ranked by net sales, order volume, and AOV.',
         '{
       "filterMappings": {

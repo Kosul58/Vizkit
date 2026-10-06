@@ -46,7 +46,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much stock you currently have available to sell, so you know what is ready to fulfill new orders."}',
     'KPI',
-    60,
+    30,
     'Total stock currently available to sell.',
     '{
       "filterMappings": {
@@ -81,7 +81,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many SKUs are still in stock but running low, so you know what needs reordering soon."}',
     'KPI',
-    60,
+    30,
     'SKUs still in stock but at or below safety stock in at least one location.',
     '{
       "filterMappings": {
@@ -114,7 +114,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many SKUs have completely run out of stock, so you know where you might be missing out on sales now."}',
     'KPI',
-    60,
+    30,
     'SKUs with no available stock remaining.',
     '{
       "filterMappings": {
@@ -324,7 +324,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many units are currently inbound across your inventory, so you know what replenishment is on the way."}',
     'KPI',
-    60,
+    120,
     'Units currently inbound to inventory locations.',
     '{
       "filterMappings": {
@@ -401,7 +401,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much capital is tied up in stock that has not sold in the selected period, so you know how much money is sitting idle."}',
     'KPI',
-    60,
+    360,
     'Capital held in SKUs with no sales in the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -430,7 +430,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much capital is tied up in damaged inventory, so you know how much value you are losing to damage."}',
     'KPI',
-    60,
+    360,
     'Capital held in damaged inventory at unit cost.',
     '{
       "filterMappings": {
@@ -455,7 +455,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much stock is committed to open orders, so you know how much of your inventory is already spoken for."}',
     'KPI',
-    60,
+    30,
     'Stock committed to open orders.',
     '{
       "filterMappings": {
@@ -480,7 +480,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much stock is reserved and unavailable to sell, so you understand what is being held back from your sellable inventory."}',
     'KPI',
-    60,
+    120,
     'Stock reserved and not available to sell.',
     '{
       "filterMappings": {
@@ -508,7 +508,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many ordered units are still waiting to be fulfilled, so you know how much demand has not shipped yet. The % change compares this value with the previous matching period."}',
     'KPI',
-    60,
+    30,
     'Units ordered but not yet fulfilled for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -542,7 +542,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many of your locations are actively holding stock, so you know how spread out your inventory operations are."}',
     'KPI',
-    60,
+    360,
     'Count of active fulfillment locations holding active inventory stock.',
     '{
       "filterMappings": {

@@ -53,7 +53,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how your gross and net sales have moved over time, so you can spot growth, dips, or seasonal patterns."}',
     'PLOT',
-    60,
+    30,
     'Order gross vs net sales trend grouped by dynamic date granularity.',
     '{
       "filterMappings": {
@@ -238,7 +238,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much you give away in discounts, and what share of gross sales that represents over time, so you can tell whether promotions are eating into your revenue."}',
     'PLOT',
-    60,
+    120,
     'Discount dollar total and discount rate % trend grouped by dynamic date granularity.',
     '{
       "filterMappings": {
@@ -306,7 +306,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many orders were refunded and how much money went back to customers over time, so you can catch rising returns early."}',
     'PLOT',
-    60,
+    180,
     'Trend of refunded order counts and total refunded value grouped by dynamic date granularity.',
     '{
       "filterMappings": {
@@ -373,7 +373,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how your order count and average order value move together over time, so you can tell whether growth comes from more orders or bigger baskets."}',
     'PLOT',
-    60,
+    30,
     'Order volume and Average Order Value (AOV) trend grouped by dynamic date granularity.',
     '{
       "filterMappings": {
@@ -515,7 +515,7 @@ VALUES (
         ]
     }',
     'TABLE',
-    60,
+    30,
     'Comprehensive tabular report of all order transactions including financial status, sales totals, taxes, and shipping.',
     '{
         "filterMappings": {
@@ -608,7 +608,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how your order value breaks down by fulfillment stage and payment status, so you can spot where orders are getting stuck."}',
     'PLOT',
-    60,
+    30,
     'Order value breakdown matrix across fulfillment status and financial status.',
     '{
       "filterMappings": {
@@ -659,7 +659,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much order value you lost to cancellations over time, so you can spot spikes and look into why customers or your team are cancelling."}',
         'PLOT',
-        60,
+        180,
         'Dollar value trend of lost sales from cancelled orders grouped by dynamic date granularity.',
         '{
       "filterMappings": {
@@ -720,7 +720,7 @@ VALUES (
     $$,
 '{"helperText": "Shows each cancelled order with its customer, channel, and lost value, so you can review what was cancelled and where it came from."}',
         'TABLE',
-        60,
+        180,
         'Detailed audit log of cancelled orders including customer, date, lost value, and channel.',
         '{
       "filterMappings": {
@@ -806,7 +806,7 @@ VALUES (
     $$,
 '{"helperText": "Shows which payment gateways your customers pay through most, by order value, so you know which payment options matter most to your business."}',
         'PLOT',
-        30,
+        60,
         'Distribution of paid order volume across payment gateways.',
         '{
       "filterMappings": {
@@ -1186,7 +1186,7 @@ VALUES (
     $$,
 '{"helperText": "Shows orders, sales, average order value, and refund rate for each country, province, and city, so you can compare how different locations perform."}',
     'TABLE',
-    60,
+    360,
     'Detailed geographic report breakdown per Country, Province, and City evaluating orders, sales, AOV, and refund rate %.',
     '{
       "filterMappings": {

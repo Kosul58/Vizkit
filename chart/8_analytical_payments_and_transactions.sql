@@ -91,7 +91,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how your gross payments, refunds, and net payments have trended over time, so you can spot patterns in cash flow."}',
         'PLOT',
-        60,
+        30,
         'Gross payments, refunds, and net payment trend grouped by dynamic date granularity.',
         '{
       "filterMappings": {
@@ -128,7 +128,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how your payment volume breaks down by payment method, so you know which methods your customers prefer."}',
         'PLOT',
-        30,
+        60,
         'Distribution of transaction amounts grouped by payment method.',
         '{
       "filterMappings": {
@@ -506,7 +506,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how your transactions break down by status — successful, failed, pending, or other — so you can gauge overall payment health."}',
         'PLOT',
-        60,
+        30,
         'Transaction status distribution breakdown (Success, Failed, Pending, Other).',
         '{
       "filterMappings": {
@@ -562,7 +562,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how failed and pending transaction volumes have trended over time, so you can catch payment issues early."}',
         'PLOT',
-        60,
+        30,
         'Volume trend of failed and pending transactions grouped by dynamic date granularity.',
         '{
       "filterMappings": {
@@ -619,7 +619,7 @@ VALUES (
     $$,
 '{"helperText": "Review every failed or pending transaction — gateway, amount, status, date, and customer — so you can follow up on payment issues."}',
         'TABLE',
-        60,
+        30,
         'Audit table listing failed and pending payment transactions with gateway, amount, status, date, and customer details.',
         '{
       "filterMappings": {
@@ -821,7 +821,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how your refund amount and refund count have trended over time, so you can track how much is going back to customers."}',
         'PLOT',
-        60,
+        180,
         'Refund transaction dollar amount and count trend grouped by dynamic date granularity.',
         '{
       "filterMappings": {
@@ -944,7 +944,7 @@ VALUES (
     $$,
 '{"helperText": "Browse a detailed audit of refunds — transaction ID, order, amount, gateway, parent transaction, status, and date — so you can track every refund issued."}',
         'TABLE',
-        60,
+        180,
         'Detailed refund audit report listing transaction ID, order ID, refund amount, gateway, parent transaction ID, status, and date.',
         '{
       "filterMappings": {
@@ -1022,7 +1022,7 @@ VALUES (
     $$,
 '{"helperText": "Compares authorized, captured, and uncaptured amounts per gateway, so you can see how much authorized money is still uncaptured."}',
         'PLOT',
-        60,
+        30,
         'Comparison per gateway between authorized amount, captured amount, and uncaptured amount.',
         '{
       "filterMappings": {
@@ -1286,7 +1286,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much of your payment volume comes through manual gateways versus automated ones, so you know how much processing still needs manual work."}',
         'PLOT',
-        60,
+        120,
         'Proportional breakdown between manual vs automated gateway payment volume.',
         '{
       "filterMappings": {
@@ -1353,7 +1353,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how your payment volume breaks down by credit card brand, so you know which networks your customers use most."}',
         'PLOT',
-        60,
+        360,
         'Payment volume mix per credit card network/brand.',
         '{
       "filterMappings": {
@@ -1437,7 +1437,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how cash rounding adjustments have trended over time, so you can track the small gains or losses from rounding at checkout."}',
         'PLOT',
-        60,
+        360,
         'Cash rounding adjustment dollar volume trend grouped by dynamic date granularity.',
         '{
       "filterMappings": {
@@ -1484,7 +1484,7 @@ VALUES (
     $$,
 '{"helperText": "Review every manual payment transaction — order, gateway, amount, date, and status — so you can audit payments taken outside automated gateways."}',
         'TABLE',
-        60,
+        120,
         'Detailed audit log table of manual payment transactions listing order ID, gateway name, amount, date, and status.',
         '{
       "filterMappings": {
@@ -1661,7 +1661,7 @@ VALUES (
     $$,
 '{"helperText": "Shows transaction count, amount, refunds, and failure rate for each card brand, so you can compare how different card networks perform."}',
         'TABLE',
-        60,
+        360,
         'Credit card brand report table listing transaction count, total amount, refund amount, and failure rate %.',
         '{
       "filterMappings": {

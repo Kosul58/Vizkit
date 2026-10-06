@@ -70,7 +70,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much sellable stock you have available at each location, ranked from highest to lowest, so you know where your stock is concentrated."}',
     'PLOT',
-    60,
+    30,
     'Available sellable stock quantity per store/warehouse location.',
     '{
       "filterMappings": {
@@ -338,7 +338,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much damaged stock — in units and dollar value — you have at each location, so you can identify where losses are adding up."}',
         'PLOT',
-        60,
+        360,
         'Damaged stock quantity and loss dollar value per location.',
         '{
       "filterMappings": {
@@ -392,7 +392,7 @@ OFFSET COALESCE(:offset, 0)
     $$,
 '{"helperText": "Shows which SKUs are sitting in damaged or quality-control status at each location, along with their blocked dollar value, so you can prioritize resolving them."}',
         'TABLE',
-        30,
+        360,
         'Report table listing damaged and quality-control held stock SKUs with unit cost and blocked dollar value.',
         '{
       "filterMappings": {
@@ -447,7 +447,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many SKUs are running low at each location, so you know where replenishment is needed most."}',
         'PLOT',
-        60,
+        30,
         'Low-stock SKU count per location site.',
         '{
       "filterMappings": {
@@ -484,7 +484,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many SKUs are completely out of stock at each location, so you can identify sites at the highest risk of missed sales."}',
         'PLOT',
-        60,
+        30,
         'Out-of-stock SKU count per location site.',
         '{
       "filterMappings": {
@@ -522,7 +522,7 @@ VALUES (
     $$,
 '{"helperText": "Compares incoming replenishment stock against current available stock at each location, so you can see where restocking is on the way and where it''s still needed."}',
         'PLOT',
-        60,
+        120,
         'Comparison per location between incoming replenishment stock and current available stock.',
         '{
       "filterMappings": {
@@ -579,7 +579,7 @@ OFFSET COALESCE(:offset, 0)
     $$,
 '{"helperText": "Shows which SKUs are at or below their safety stock threshold at each location, along with incoming stock and a calculated reorder priority, so you know what to reorder first."}',
         'TABLE',
-        60,
+        30,
         'Low stock alert report table listing location, SKU, product, available quantity, safety threshold, incoming stock, and calculated reorder priority.',
         '{
       "filterMappings": {
@@ -641,7 +641,7 @@ OFFSET COALESCE(:offset, 0)
     $$,
 '{"helperText": "Shows which SKUs are out of stock at each location, along with when they last sold and any incoming stock, so you can prioritize restocking the ones customers still want."}',
         'TABLE',
-        60,
+        30,
         'Out-of-stock report table listing out-of-stock SKUs per location with last sold date and incoming quantity.',
         '{
       "filterMappings": {
@@ -700,7 +700,7 @@ OFFSET COALESCE(:offset, 0)
     $$,
 '{"helperText": "Shows all SKUs with stock currently inbound to each location, along with available quantity and stock status, so you can track upcoming replenishment."}',
         'TABLE',
-        60,
+        120,
         'Incoming stock shipment tracking report table per location listing SKU, product, incoming quantity, available quantity, and current stock status.',
         '{
       "filterMappings": {
@@ -754,7 +754,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much stock is committed to unfulfilled orders at each location, so you can spot where fulfillment delays are most likely."}',
         'PLOT',
-        60,
+        30,
         'Committed unfulfilled order stock quantity per location.',
         '{
       "filterMappings": {
@@ -813,7 +813,7 @@ OFFSET COALESCE(:offset, 0)
     $$,
 '{"helperText": "Shows which SKUs have committed stock and unfulfilled orders at each location, along with an evaluated risk level, so you know where to step in first."}',
         'TABLE',
-        60,
+        30,
         'Fulfillment risk report table listing location, SKU, product, committed quantity, unfulfilled orders flag, available stock, and evaluated risk level.',
         '{
       "filterMappings": {
@@ -899,7 +899,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how your inventory value is distributed by city and region, so you can understand your stock footprint geographically."}',
     'PLOT',
-    60,
+    360,
     'Inventory valuation grouped by geographic region / city.',
     '{
       "filterMappings": {
@@ -1005,7 +1005,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much inventory value is still sitting at inactive locations, so you can spot capital that''s stranded and unavailable to sell."}',
         'PLOT',
-        60,
+        360,
         'Stock valuation exposure trapped at inactive locations.',
         '{
       "filterMappings": {
@@ -1058,7 +1058,7 @@ OFFSET COALESCE(:offset, 0)
     $$,
 '{"helperText": "Shows which SKUs are stranded at inactive locations, along with when they were deactivated and their dollar value, so you can plan to recover or write off that stock."}',
         'TABLE',
-        60,
+        360,
         'Audit table listing stranded inventory at inactive locations with deactivated date, SKU, quantity, and dollar value.',
         '{
       "filterMappings": {
@@ -1110,7 +1110,7 @@ OFFSET COALESCE(:offset, 0)
     $$,
 '{"helperText": "Shows which locations are fulfillment services, fulfill online orders, or hold active inventory, along with their total stock value, so you can review your fulfillment network setup."}',
         'TABLE',
-        60,
+        360,
         'Fulfillment service location governance report showing fulfillment service flag, online fulfillment flag, active inventory flag, and total stock value.',
         '{
       "filterMappings": {

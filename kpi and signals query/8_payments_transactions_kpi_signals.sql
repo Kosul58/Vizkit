@@ -32,7 +32,7 @@ VALUES (
     $$,
 '{"helperText": "Shows your total successful payment volume in the selected period, so you know how much money customers have paid. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Successful payment volume for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -69,7 +69,7 @@ VALUES (
     $$,
 '{"helperText": "Shows your payments minus refunds in the selected period, so you know how much you actually kept. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Payments less refunds for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -100,7 +100,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many transactions of any kind happened in the selected period, so you can track overall payment activity. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Transactions of any kind for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -137,7 +137,7 @@ VALUES (
     $$,
 '{"helperText": "Shows which payment method brought in the highest volume in the selected period, so you know what your customers use most."}',
         'KPI',
-        60,
+        360,
         'Payment method with the highest tender volume in the selected period.',
         '{
       "filterMappings": {
@@ -178,7 +178,7 @@ VALUES (
     $$,
 '{"helperText": "Shows which payment gateway processed the highest volume in the selected period, so you know your most-used gateway."}',
         'KPI',
-        60,
+        360,
         'Payment gateway with the highest successful payment volume in the selected period.',
         '{
       "filterMappings": {
@@ -277,7 +277,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many payment transactions failed in the selected period, so you can spot checkout or gateway issues. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Failed transaction count for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -309,7 +309,7 @@ VALUES (
     $$,
 '{"helperText": "Shows the total dollar value of failed transactions, so you know how much revenue may have been lost to payment failures. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Value of failed transactions for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -341,7 +341,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many transactions are still pending, so you can keep an eye on payments awaiting resolution. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Pending transaction count for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -373,7 +373,7 @@ VALUES (
     $$,
 '{"helperText": "Shows the total value of pending transactions, so you know how much money is still awaiting resolution. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Value of pending transactions for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -406,7 +406,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many successful refunds were issued in the selected period, so you can track refund activity. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        180,
         'Successful refund transaction count for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -439,7 +439,7 @@ VALUES (
     $$,
 '{"helperText": "Shows the total amount refunded to customers in the selected period, so you know how much money went back out. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        180,
         'Value refunded through payment transactions for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -515,7 +515,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much authorized payment value has not been captured yet, so you can follow up before authorizations expire. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Authorized value never captured, for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -549,7 +549,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much payment volume came through manual gateways, so you know how much is being processed outside automated flows."}',
         'KPI',
-        60,
+        120,
         'Payment volume taken through manual gateways, for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -580,7 +580,7 @@ VALUES (
     $$,
 '{"helperText": "Shows the total cash rounding adjustment applied at checkout, so you can track its small impact on your totals."}',
         'KPI',
-        60,
+        360,
         'Cash rounding applied at tender, for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -617,7 +617,7 @@ VALUES (
     $$,
 '{"helperText": "Shows which credit card brand had the highest tender volume, so you know which networks your customers use most."}',
         'KPI',
-        60,
+        360,
         'Credit card brand with the highest tender volume in the selected period.',
         '{
       "filterMappings": {

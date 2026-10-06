@@ -498,7 +498,7 @@ ORDER BY df.bucket ASC
     $$,
 '{"helperText": "Shows how revenue breaks down across New, At-risk, VIP, and Repeat customers, so you know which segments drive the most value."}',
         'PLOT',
-        60,
+        360,
         'Revenue contribution breakdown across customer segments (New, At-risk, VIP, Repeat).',
         '{
       "filterMappings": {
@@ -539,7 +539,7 @@ ORDER BY df.bucket ASC
     $$,
 '{"helperText": "Shows your highest-spending customers ranked by total revenue, so you know who your most valuable customers are."}',
         'PLOT',
-        60,
+        360,
         'Top individual customers ranked by total net spend revenue.',
         '{
       "filterMappings": {
@@ -798,7 +798,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much repeat revenue each monthly cohort of customers generates over time, so you can track how customer value evolves after their first purchase."}',
         'PLOT',
-        60,
+        360,
         'Monthly cohort revenue matrix tracking repeat revenue over 0 to 5+ months. Cells a cohort has not yet aged into are left empty rather than shown as zero.',
         '{
       "filterMappings": {
@@ -870,7 +870,7 @@ OFFSET COALESCE(:offset, 0)
     $$,
 '{"helperText": "Shows active customers, repeat orders, repeat revenue, and retention rate for each monthly cohort, so you can track retention trends over time."}',
         'TABLE',
-        60,
+        360,
         'Detailed monthly cohort analysis report evaluating active customers, repeat orders, repeat revenue, and retention rate %.',
         '{
       "filterMappings": {
@@ -946,7 +946,7 @@ VALUES (
     "helperText": "Shows which customer segments have the highest refund amounts and refund rates."
 }',
 'PLOT',
-        60,
+        360,
         'Refund dollar volume and refund rate % breakdown across customer segments.',
         '{
       "filterMappings": {
@@ -1020,7 +1020,7 @@ OFFSET COALESCE(:offset, 0)
     $$,
 '{"helperText": "Shows which customers have the highest refund amounts and refund rates, so you can identify and address recurring refund risk."}',
         'TABLE',
-        60,
+        360,
         'Detailed audit log table of high refund-risk customers listing orders, refunded count, refunded amount, refund rate %, and last refund date.',
         '{
       "filterMappings": {
@@ -1067,7 +1067,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many customers, orders, and how much revenue come from each country, so you know where your customer base is concentrated."}',
     'PLOT',
-    60,
+    360,
     'Geographic breakdown of customer count, orders, and revenue per country.',
     '{
       "filterMappings": {
@@ -1107,7 +1107,7 @@ VALUES (
     $$,
 '{"helperText": "Shows which cities and regions generate the most revenue and the highest average order value, so you can spot your strongest markets."}',
     'PLOT',
-    60,
+    360,
     'Ranking of top cities/regions by total customer revenue and AOV.',
     '{
       "filterMappings": {
@@ -1154,7 +1154,7 @@ VALUES (
     $$,
 '{"helperText": "Shows customers, orders, revenue, and AOV broken down by country, province, and city, so you can audit performance by location."}',
     'TABLE',
-    60,
+    360,
     'Audit table breaking down customers, orders, revenue, and AOV per Country, Province, and City.',
     '{
       "filterMappings": {
@@ -1208,7 +1208,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how revenue splits between tax-exempt and taxable customers, so you understand how much of your business is tax-exempt."}',
     'PLOT',
-    60,
+    360,
     'Revenue split comparison between tax-exempt vs taxable customer orders.',
     '{
       "filterMappings": {
@@ -1262,7 +1262,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many customers are inactive and for how long, so you can prioritize win-back efforts for the most at-risk groups."}',
     'PLOT',
-    30,
+    360,
     'Distribution of inactive customers across inactivity aging brackets (16-30 days to 181+ days).',
     '{
       "filterMappings": {
@@ -1435,7 +1435,7 @@ VALUES (
     $$,
 '{"helperText": "Shows which customer addresses have missing or unvalidated details, so you can clean up your data and avoid shipping issues."}',
     'TABLE',
-    60,
+    360,
     'Audit table highlighting customer address quality issues (unvalidated coordinates, missing geolocation, incomplete address fields).',
     '{
       "filterMappings": {

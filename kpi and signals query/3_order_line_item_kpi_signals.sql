@@ -16,7 +16,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many units were sold in the selected period, so you can track overall sales volume. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Total line item units sold for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -44,7 +44,7 @@ VALUES (
     $$,
 '{"helperText": "Shows your total line item sales after discounts in the selected period, so you know what your products actually earned. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Line item net sales (after discounts) for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -72,7 +72,7 @@ VALUES (
     $$,
 '{"helperText": "Shows your total line item sales before discounts in the selected period, so you know the full value of what customers ordered. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Line item gross sales (before discounts) for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -129,7 +129,7 @@ VALUES (
     $$,
 '{"helperText": "Shows the total value of discounts given on line items in the selected period, so you know how much revenue promotions are costing you. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        120,
         'Total line item discount amount for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -158,7 +158,7 @@ VALUES (
     $$,
 '{"helperText": "Shows what share of your original item value was given away as discounts, so you can check whether promotions are too generous. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        120,
         'Discounts as a percentage of original line item value for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -187,7 +187,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many units are still waiting to be shipped on active orders, so you know how big your fulfillment backlog is. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Unfulfilled item backlog volume for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -215,7 +215,7 @@ VALUES (
     $$,
 '{"helperText": "Shows the sales value of items still waiting to be shipped, so you know how much revenue is tied up in your backlog. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        30,
         'Total unfulfilled revenue value for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -243,7 +243,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many units were refunded or removed from orders, so you can tell whether returns are on the rise. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        180,
         'Line item units removed by refunds for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -334,7 +334,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much revenue came from gift card sales, so you can track prepaid revenue separately from product sales. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        180,
         'Total net sales generated from gift card line items vs prior period.',
         '{
       "filterMappings": {
@@ -369,7 +369,7 @@ VALUES (
     $$,
 '{"helperText": "Shows the net sales of your top-performing vendor, so you know how much of your revenue comes from your biggest supplier."}',
         'KPI',
-        60,
+        360,
         'Net sales of the single top-performing vendor for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -399,7 +399,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many different vendors had sales in the selected period, so you can gauge the breadth of your supplier base. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        360,
         'Number of vendors with sales in the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -436,7 +436,7 @@ VALUES (
     $$,
 '{"helperText": "Shows the net sales of your best-performing collection, so you know which curated group of products sells the most."}',
         'KPI',
-        60,
+        360,
         'Net sales of the single top-performing collection for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -468,7 +468,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many collections had sales in the selected period, so you can gauge how widely your collections are selling. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        360,
         'Number of collections with sales in the selected period vs the prior period.',
         '{
       "filterMappings": {

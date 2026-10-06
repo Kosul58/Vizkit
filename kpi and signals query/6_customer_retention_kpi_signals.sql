@@ -74,7 +74,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many customers made a repeat purchase in the selected period, so you know how many are coming back. The % change compares this value with the previous matching period."}',
     'KPI',
-    60,
+    120,
     'Customers who ordered in the selected period and had ordered before, vs the prior period.',
     '{
       "filterMappings": {
@@ -120,7 +120,7 @@ VALUES (
     $$,
 '{"helperText": "Shows what percentage of your customer base has made a repeat purchase, so you can gauge overall customer loyalty. The % change compares this value with the previous matching period."}',
     'KPI',
-    60,
+    120,
     'Repeat customers as a percentage of the total customer base, for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -186,7 +186,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much revenue each active customer generates on average, so you can gauge overall customer value. The % change compares this value with the previous matching period."}',
     'KPI',
-    60,
+    360,
     'Net sales per active customer for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -221,7 +221,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many orders your active customers place on average, so you can gauge purchase frequency. The % change compares this value with the previous matching period."}',
     'KPI',
-    60,
+    360,
     'Orders per active customer for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -264,7 +264,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many customers fall into your top revenue tier, so you know the size of your most valuable customer group. The % change compares this value with the previous matching period."}',
     'KPI',
-    60,
+    360,
     'Customers in the top revenue quintile for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -313,7 +313,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many customers fall into your highest refund-risk tier, so you know how many need closer attention. The % change compares this value with the previous matching period."}',
     'KPI',
-    60,
+    360,
     'Customers in the top refund quintile with non-zero refunds, for the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -437,7 +437,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many of your active customers are tax-exempt, so you can keep track of your tax-exempt customer base."}',
     'KPI',
-    60,
+    360,
     'Tax exempt customers active in the selected period vs the prior period.',
     '{
       "filterMappings": {
@@ -479,7 +479,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many customers have not ordered in the last 90 days, so you know how many are at risk of churning. The % change compares this value with the previous matching period."}',
     'KPI',
-    60,
+    360,
     'Customers with no order in the 90 days before the period end, vs the prior period.',
     '{
       "filterMappings": {
@@ -519,7 +519,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many active customers have incomplete or unvalidated addresses, so you can catch shipping issues before they happen. The % change compares this value with the previous matching period."}',
     'KPI',
-    60,
+    360,
     'Active customers with incomplete or unvalidated addresses, vs the prior period.',
     '{
       "filterMappings": {

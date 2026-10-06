@@ -29,7 +29,7 @@ VALUES (
     $$,
 '{"helperText": "Shows the total amount you have refunded in the selected period, so you know how much money is going back out. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        180,
         'Total amount refunded for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -75,7 +75,7 @@ VALUES (
     $$,
 '{"helperText": "Shows what percentage of your gross sales value is being refunded, so you can track how much revenue you are losing to refunds. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        180,
         'Refunded amount as a percentage of gross line item value for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -106,7 +106,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many distinct orders had at least one refund, so you can track how widespread refund activity is. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        180,
         'Distinct orders with at least one refund for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -150,7 +150,7 @@ VALUES (
     $$,
 '{"helperText": "Shows what percentage of your orders ended up refunded, so you can track refund frequency relative to overall order volume. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        180,
         'Refunded orders as a percentage of all orders for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -182,7 +182,7 @@ VALUES (
     $$,
 '{"helperText": "Shows the average dollar amount per refund, so you can gauge the typical size of a refund. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        180,
         'Average value per refund record for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -210,7 +210,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much you have refunded in shipping charges, so you can track shipping-related refund costs. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        240,
         'Shipping charges refunded for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -241,7 +241,7 @@ VALUES (
     $$,
 '{"helperText": "Shows the total value of successful refund transactions processed through your payment gateway, so you know how much has actually gone back to customers. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        180,
         'Successful refund transaction amounts for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -271,7 +271,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much discount value is tied to refunded units, so you can understand the discount impact of your refunds. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        240,
         'Discount value attributable to refunded units for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -299,7 +299,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many orders were partially refunded, so you can track orders with only some items or amounts returned. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        180,
         'Orders partially refunded for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -327,7 +327,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many orders were fully refunded, so you can track complete order returns. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        180,
         'Orders fully refunded for the selected period vs the prior period.',
         '{
       "filterMappings": {
@@ -356,7 +356,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how many units were removed from orders due to refunds, so you can track return volume at the item level. The % change compares this value with the previous matching period."}',
         'KPI',
-        60,
+        180,
         'Line item units removed by refunds for the selected period vs the prior period.',
         '{
       "filterMappings": {

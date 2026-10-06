@@ -819,7 +819,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much capital is tied up in products that haven''t sold during the period, so you can decide what to discount or clear out."}',
     'PLOT',
-    60,
+    360,
     'Dead stock capital valuation tied up in unsold products during the period.',
     '{
       "filterMappings": {
@@ -862,7 +862,7 @@ VALUES (
     $$,
 '{"helperText": "Shows unit cost, on-hand quantity, and total value for every SKU and location, so you can audit exactly where your inventory capital sits."}',
     'TABLE',
-    30,
+    60,
     'Detailed valuation audit report listing product, SKU, unit cost, on-hand quantity, and total inventory value.',
     '{
       "filterMappings": {
@@ -935,7 +935,7 @@ VALUES (
     $$,
 '{"helperText": "Shows sKUs with no recent sales, along with tied-up capital and days since last sale, so you can decide what to liquidate."}',
     'TABLE',
-    30,
+    360,
     'Report listing dead stock SKUs, tied-up capital value, last sold date, and days without sale.',
     '{
       "filterMappings": {
@@ -992,7 +992,7 @@ VALUES (
     $$,
 '{"helperText": "Shows which products have the largest unfulfilled order backlog, so you know exactly where fulfillment is falling behind."}',
         'PLOT',
-        60,
+        30,
         'Products ranked by total unfulfilled item quantity backlog.',
         '{
       "filterMappings": {
@@ -1145,7 +1145,7 @@ VALUES (
     $$,
 '{"helperText": "Shows damaged, quality-control, and safety stock by location, so you can spot where non-sellable inventory is building up."}',
         'PLOT',
-        60,
+        360,
         'Non-sellable stock breakdown per location covering damaged, quality control, and safety stock.',
         '{
       "filterMappings": {
@@ -1229,7 +1229,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much inventory capital is tied up with each vendor, so you know which suppliers make up the bulk of your stock investment."}',
         'PLOT',
-        60,
+        360,
         'Inventory valuation distribution grouped by product vendor.',
         '{
       "filterMappings": {
@@ -1263,7 +1263,7 @@ VALUES (
     $$,
 '{"helperText": "Shows how much inventory capital is tied up in each collection, so you can spot which product groupings hold the most stock value."}',
         'PLOT',
-        60,
+        360,
         'Inventory valuation distribution grouped by product collection.',
         '{
       "filterMappings": {
@@ -1294,7 +1294,7 @@ VALUES (
     $$,
 '{"helperText": "Shows stock units and inventory value broken down by country of origin, so you can understand where your inventory comes from."}',
         'PLOT',
-        60,
+        360,
         'Stock units and inventory valuation distribution grouped by country of origin.',
         '{
       "filterMappings": {
