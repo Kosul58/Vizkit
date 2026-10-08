@@ -811,7 +811,7 @@ SELECT s.country,
 FROM segments s
 ORDER BY s.revenue DESC
 LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE( : offset , 0 );
+OFFSET COALESCE(:offset , 0);
     $$,
 '{
     "helperText": "Shows which countries or regions bring in the most net sales, so you can find your strongest markets."
