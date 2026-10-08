@@ -778,35 +778,40 @@ OFFSET COALESCE(:offset, 0)
     'Executive Store Health/Customer & Channel/PLOT/Top Country Segments',
     $$
     WITH
-    filtered_orders AS (
-        SELECT o.id,
-               COALESCE(
-                   o.shipping_address #>> '{country}',
-                   o.billing_address #>> '{country}'
-               ) AS segment,
-               COALESCE(o.current_subtotal_price, 0)
-                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
-                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
-        FROM public.fact_order_headers o
-        WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-          
-          AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
-          AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
-    ),
-    segments AS (
-        SELECT f.segment AS segment,
-               SUM(f.net_sales) AS revenue
-        FROM filtered_orders f
-        WHERE f.segment IS NOT NULL
-        GROUP BY f.segment
-    )
-    SELECT s.segment AS country,
-           ROUND(s.revenue, 2) AS revenue
-    FROM segments s
-    ORDER BY s.revenue DESC
-    LIMIT COALESCE(:limit, 10)
-    OFFSET COALESCE(:offset, 0)
+filtered_orders AS (
+    SELECT o.id,
+           COALESCE(
+               o.shipping_address #>> '{country}',
+               o.billing_address #>> '{country}'
+) AS country,
+           COALESCE(
+               o.shipping_address #>> '{province}',
+               o.billing_address #>> '{province}'
+           ) AS province,
+           COALESCE(o.current_subtotal_price, 0)
+             - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
+             - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
+    FROM public.fact_order_headers o
+    WHERE o.seller_id = :shopId
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+      
+      AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
+      AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+),
+segments AS (
+SELECT f.country, f.province, SUM(f.net_sales) AS revenue
+FROM filtered_orders f
+WHERE f.country IS NOT NULL
+      AND f.province IS NOT NULL  
+    GROUP BY f.country, f.province
+)
+SELECT s.country,
+       s.province AS state_province,
+       ROUND(s.revenue, 2) AS revenue
+FROM segments s
+ORDER BY s.revenue DESC
+LIMIT COALESCE(:limit, 10)
+OFFSET COALESCE( : offset , 0 );
     $$,
 '{
     "helperText": "Shows which countries or regions bring in the most net sales, so you can find your strongest markets."
