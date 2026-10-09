@@ -28,6 +28,7 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
+          AND o.record_status = 'ACTIVE'
     ),
     daily AS (
         SELECT f.bucket,
@@ -106,6 +107,7 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
+          AND o.record_status = 'ACTIVE'
     ),
     order_totals AS (
         SELECT f.bucket,
@@ -121,12 +123,13 @@ VALUES (
         SELECT date_trunc(LOWER(dp.g), r.created_at) AS bucket,
                COALESCE(r.total_refunded_amount, 0) AS amount
         FROM public.fact_order_refunds r
-        JOIN public.fact_order_headers o ON o.id = r.order_id
+        JOIN public.fact_order_headers o ON o.id = r.order_id AND o.record_status = 'ACTIVE'
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND r.created_at >= dp.start_bucket
           AND r.created_at < dp.end_bucket + dp.step
+          AND r.record_status = 'ACTIVE'
     ),
     refund_totals AS (
         SELECT s.bucket,
@@ -213,6 +216,7 @@ VALUES (
           AND o.financialstatus != 'VOIDED'
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
+          AND o.record_status = 'ACTIVE'
     ),
     daily AS (
         SELECT f.bucket,
@@ -274,13 +278,14 @@ VALUES (
                date_trunc(LOWER(dp.g), r.created_at) AS bucket,
                COALESCE(r.total_refunded_amount, 0) AS refunded_value
         FROM public.fact_order_refunds r
-        JOIN public.fact_order_headers o ON o.id = r.order_id
+        JOIN public.fact_order_headers o ON o.id = r.order_id AND o.record_status = 'ACTIVE'
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.financialstatus != 'VOIDED'
           AND r.created_at >= dp.start_bucket
           AND r.created_at < dp.end_bucket + dp.step
+          AND r.record_status = 'ACTIVE'
     ),
     daily AS (
         SELECT f.bucket,
@@ -348,6 +353,7 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
+          AND o.record_status = 'ACTIVE'
     ),
     daily AS (
         SELECT f.bucket,
@@ -436,6 +442,7 @@ VALUES (
                 :currentEndDate IS NULL
                 OR o.created_at::date <= :currentEndDate::date
             )
+          AND o.record_status = 'ACTIVE'
 
             /*financial_status_filter*/
             /*fulfillment_status_filter*/
@@ -468,7 +475,7 @@ VALUES (
         COUNT(*) OVER() AS total_records
     FROM filtered_orders f
     LEFT JOIN public.dim_customers c
-        ON c.id = f.customer_id
+        ON c.id = f.customer_id AND c.record_status = 'ACTIVE'
     ORDER BY f.created_at DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
@@ -592,6 +599,7 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT f.fulfillment_status AS status,
            ROUND(COALESCE(SUM(f.order_value) FILTER (WHERE f.financial_status = 'PAID'), 0), 2)               AS paid,
@@ -636,6 +644,7 @@ VALUES (
           AND o.cancelled_at IS NOT NULL
           AND o.cancelled_at >= dp.start_bucket
           AND o.cancelled_at < dp.end_bucket + dp.step
+          AND o.record_status = 'ACTIVE'
     ),
     daily AS (
         SELECT f.bucket,
@@ -702,6 +711,7 @@ VALUES (
           AND o.cancelled_at IS NOT NULL
           AND (:currentStartDate IS NULL OR o.cancelled_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.cancelled_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT f.order_id,
            f.cancelled_at::date::text AS cancelled_date,
@@ -713,7 +723,7 @@ VALUES (
            COALESCE(f.attribution_displayname,f.source_name, 'unknown') AS channel,
            COUNT(*) OVER() AS total_records
     FROM filtered_orders f
-    LEFT JOIN public.dim_customers c ON c.id = f.customer_id
+    LEFT JOIN public.dim_customers c ON c.id = f.customer_id AND c.record_status = 'ACTIVE'
     ORDER BY f.cancelled_at DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
@@ -752,6 +762,7 @@ VALUES (
           AND o.total_outstanding_amount > 0
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     buckets AS (
         SELECT ROUND(COALESCE(SUM(outstanding_amount) FILTER (WHERE age_days <= 1), 0), 2)             AS "0-1 days",
@@ -793,6 +804,7 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT COALESCE(t.gateway, 'unknown') AS gateway,
            ROUND(COALESCE(SUM(t.amount), 0), 2) AS "Order Value"
@@ -800,6 +812,7 @@ VALUES (
     JOIN filtered_orders f ON f.id = t.order_id
     WHERE t.kind = 'SALE'
       AND t.status = 'SUCCESS'
+      AND t.record_status = 'ACTIVE'
     GROUP BY 1
     ORDER BY 2 DESC
     LIMIT 20
@@ -820,7 +833,7 @@ VALUES (
     '019fff82-e31d-772e-a943-97b7591e0ecd',
     'Unpaid Orders Queue',
     'Order Reports/Payments & Collections/TABLE/Unpaid Orders Queue',
-'
+$$
     WITH filtered_orders AS (
 SELECT
     o.id,
@@ -832,7 +845,7 @@ SELECT
 COALESCE(o.total_outstanding_amount, 0) AS outstanding_amount
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.total_outstanding_amount > 0
 AND (
 :currentStartDate IS NULL
@@ -842,6 +855,7 @@ AND (
               :currentEndDate IS NULL
               OR o.created_at::date <= :currentEndDate::date
           )
+          AND o.record_status = 'ACTIVE'
           /*financial_status_filter*/
     )
     SELECT
@@ -859,7 +873,7 @@ AND (
                     c.first_name,
                     c.last_name
                 )
-            ELSE COALESCE(c.email, ''Guest'')
+            ELSE COALESCE(c.email, 'Guest')
         END AS customer,
         f.created_at::date::text AS order_date,
 ROUND(f.outstanding_amount, 2) AS outstanding_amount,
@@ -867,7 +881,7 @@ f.financial_status,
 COALESCE(
     t.gateway,
     f.payment_gateway_names ->> 0,
-    '' unknown ''
+    ' unknown '
 ) AS payment_gateway,
 (
     COALESCE(
@@ -877,14 +891,15 @@ COALESCE(
 ) AS days_unpaid,
 COUNT(*) OVER () AS total_records
     FROM filtered_orders f
-LEFT JOIN public.dim_customers c ON c.id = f.customer_id
+LEFT JOIN public.dim_customers c ON c.id = f.customer_id AND c.record_status = 'ACTIVE'
 LEFT JOIN public.fact_order_transactions t ON t.order_id = f.id
-AND UPPER(t.kind) = '' SALE ''
-AND UPPER(t.status) = '' SUCCESS ''
+AND UPPER(t.kind) = ' SALE '
+AND UPPER(t.status) = ' SUCCESS '
+AND t.record_status = 'ACTIVE'
     ORDER BY days_unpaid DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-',
+$$,
 '{
 "helperText":"Shows a list of unpaid orders with the customer, amount still owed, and days unpaid, longest waiting first, so you know who to follow up with.",
       "filters": [
@@ -974,6 +989,7 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT
         COALESCE(f.attribution_displayname, f.source_name, 'unknown') AS name,
@@ -1017,6 +1033,7 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     channel_totals AS (
         SELECT source,
@@ -1033,6 +1050,7 @@ VALUES (
                SUM(li.discounted_total_amount) AS discounted
         FROM public.fact_order_line_items li
         JOIN filtered_orders f ON f.id = li.order_id
+        WHERE li.record_status = 'ACTIVE'
         GROUP BY f.channel, f.source
     ),
     channel_refunds AS (
@@ -1041,6 +1059,7 @@ VALUES (
                SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
         FROM public.fact_order_refunds r
         JOIN filtered_orders f ON f.id = r.order_id
+        WHERE r.record_status = 'ACTIVE'
         GROUP BY f.channel, f.source
     )
     SELECT ct.channel AS channel,
@@ -1081,23 +1100,24 @@ VALUES (
     '019fff82-e31d-7eca-b184-91c61334d67c',
     'Orders by Geography',
     'Order Reports/Channels & Geography/PLOT/Orders by Geography',
-    '
+    $$
     WITH filtered_orders AS (
         SELECT o.id,
                COALESCE(
-                   o.shipping_address #>> ''{country}'',
-                   o.shipping_address #>> ''{province}'',
-                   o.shipping_address #>> ''{city}'',
-                   ''Unknown''
+                   o.shipping_address #>> '{country}',
+                   o.shipping_address #>> '{province}',
+                   o.shipping_address #>> '{city}',
+                   'Unknown'
                ) AS geography,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT f.geography AS name,
            ROUND(SUM(f.net_sales), 2) AS net_sales,
@@ -1107,7 +1127,7 @@ VALUES (
     ORDER BY net_sales DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{"helperText": "Shows which countries or regions your orders and net sales come from, so you can find your strongest markets."}',
     'PLOT',
     60,
@@ -1141,6 +1161,7 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     geo_totals AS (
         SELECT country, province, city,
@@ -1154,6 +1175,7 @@ VALUES (
                SUM(li.original_unit_price * li.quantity) AS gross_sales
         FROM public.fact_order_line_items li
         JOIN filtered_orders fo ON fo.id = li.order_id
+        WHERE li.record_status = 'ACTIVE'
         GROUP BY fo.country, fo.province, fo.city
     ),
     geo_refunds AS (
@@ -1161,6 +1183,7 @@ VALUES (
                SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
         FROM public.fact_order_refunds r
         JOIN filtered_orders fo ON fo.id = r.order_id
+        WHERE r.record_status = 'ACTIVE'
         GROUP BY fo.country, fo.province, fo.city
     )
     SELECT gt.country AS country,

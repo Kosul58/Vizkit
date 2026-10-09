@@ -36,6 +36,7 @@ FROM public.fact_order_headers o
 AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT f.channel AS channel,
            ROUND(SUM(f.gross_sales), 2) AS revenue
@@ -73,6 +74,7 @@ FROM public.fact_order_headers o
 AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT f.channel AS channel,
            COUNT(*) AS orders
@@ -113,6 +115,7 @@ FROM public.fact_order_headers o
 AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT f.channel AS channel,
            ROUND(SUM(f.net_sales) / NULLIF(COUNT(*), 0), 2) AS aov
@@ -169,6 +172,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.created_at >= dp.start_bucket
               AND o.created_at < dp.end_bucket + dp.step
+              AND o.record_status = 'ACTIVE'
         ) t
     ),
     daily AS (
@@ -230,33 +234,34 @@ SELECT
 '019fffa2-0f80-7889-9761-5bc951290334',
         'Channel Performance Report',
         'Sales Channel Attribution/Channel Performance/TABLE/Channel Performance Report',
-        '
+        $$
     WITH filtered_orders AS (
         SELECT o.id,
 COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    ''Unattributed''
+    'Unattributed'
 ) AS channel,
                o.source_name AS source_name,
 o.order_app_name AS app_name,
                CASE
-                    WHEN o.financialstatus = ''VOIDED'' THEN 0
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
                     ELSE COALESCE(o.subtotal_price, 0)
                        + COALESCE(o.total_discounts_amount, 0)
                        + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
                        + COALESCE(o.total_shipping_price, 0)
                END AS gross_sales,
-               CASE WHEN o.financialstatus = ''VOIDED'' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
+               CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     channel_totals AS (
         SELECT f.channel,
@@ -274,11 +279,12 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
                SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
 FROM public.fact_order_refunds r
         JOIN filtered_orders f ON f.id = r.order_id
+WHERE r.record_status = 'ACTIVE'
         GROUP BY f.channel
     )
     SELECT ct.channel AS channel,
-           COALESCE(ct.source, ''Unknown'') AS source,
-           COALESCE(ct.app, ''Unknown'') AS app,
+           COALESCE(ct.source, 'Unknown') AS source,
+           COALESCE(ct.app, 'Unknown') AS app,
            ct.orders AS orders,
            ROUND(ct.gross_sales, 2) AS gross_sales,
            ROUND(ct.discounts, 2) AS discounts,
@@ -291,7 +297,7 @@ FROM public.fact_order_refunds r
     ORDER BY ct.net_sales DESC, ct.channel ASC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{
       "helperText": "A detailed scorecard for each sales channel showing orders, gross sales, discounts, net sales, AOV, and refund rate, so you can compare channel performance side by side."
     }',
@@ -313,7 +319,7 @@ OFFSET COALESCE(:offset, 0)
         '019fffa2-0f80-7a6c-a7fa-d1b9b8e71fd8',
         'Channel Order Detail Report',
         'Sales Channel Attribution/Channel Performance/TABLE/Channel Order Detail Report',
-        '
+        $$
     WITH filtered_orders AS (
         SELECT
             o.id,
@@ -325,7 +331,7 @@ OFFSET COALESCE(:offset, 0)
                 o.attribution_displayname,
                 o.order_app_name,
                 o.source_name,
-                ''Unattributed''
+                'Unattributed'
             ) AS channel,
             o.order_app_name AS app_name,
             COALESCE(
@@ -333,13 +339,13 @@ OFFSET COALESCE(:offset, 0)
                 o.current_total_price,
                 0
             ) AS order_total,
-            CASE WHEN o.financialstatus = ''VOIDED'' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
+            CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
             COALESCE(o.current_subtotal_price, 0)
                 - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                 - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (
               :currentStartDate IS NULL
               OR o.created_at::date >= :currentStartDate::date
@@ -348,6 +354,7 @@ OFFSET COALESCE(:offset, 0)
               :currentEndDate IS NULL
               OR o.created_at::date <= :currentEndDate::date
           )
+          AND o.record_status = 'ACTIVE'
           /*financial_status_filter*/
     ),
 
@@ -359,7 +366,7 @@ OFFSET COALESCE(:offset, 0)
             ) AS refunded
         FROM filtered_orders f
         LEFT JOIN public.fact_order_refunds r
-            ON r.order_id = f.id
+            ON r.order_id = f.id AND r.record_status = 'ACTIVE'
         GROUP BY f.id
     )
 
@@ -379,11 +386,11 @@ OFFSET COALESCE(:offset, 0)
                     c.first_name,
                     c.last_name
                 )
-            ELSE COALESCE(c.email, ''Guest'')
+            ELSE COALESCE(c.email, 'Guest')
         END AS customer,
         f.channel AS channel,
-        COALESCE(f.source_name, ''Unknown'') AS source,
-        COALESCE(f.app_name, ''Unknown'') AS app,
+        COALESCE(f.source_name, 'Unknown') AS source,
+        COALESCE(f.app_name, 'Unknown') AS app,
         ROUND(
             f.net_sales,
             2
@@ -394,10 +401,10 @@ OFFSET COALESCE(:offset, 0)
         ) AS discounts,
         CASE
             WHEN COALESCE(orf.refunded, 0) <= 0
-                THEN ''None''
+                THEN 'None'
             WHEN orf.refunded >= f.order_total - 0.01
-                THEN ''Full''
-            ELSE ''Partial''
+                THEN 'Full'
+            ELSE 'Partial'
         END AS refund_status,
         f.financial_status AS financial_status,
         COUNT(*) OVER() AS total_records
@@ -405,13 +412,13 @@ OFFSET COALESCE(:offset, 0)
     LEFT JOIN order_refunds orf
         ON orf.id = f.id
     LEFT JOIN public.dim_customers c
-        ON c.id = f.customer_id
+        ON c.id = f.customer_id AND c.record_status = 'ACTIVE'
     ORDER BY
         f.created_at DESC,
         f.id
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{
 "helperText":"A line-by-line list of individual orders with their channel, source, sales, discounts, and refund status, so you can dig into the details behind your channel numbers.",
       "filters": [
@@ -520,6 +527,7 @@ VALUES (
           
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     channel_totals AS (
         SELECT co.channel,
@@ -535,6 +543,7 @@ VALUES (
                SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
         FROM public.fact_order_refunds r
         JOIN channel_orders co ON co.id = r.order_id
+        WHERE r.record_status = 'ACTIVE'
         GROUP BY co.channel
     )
     SELECT ct.channel AS channel,
@@ -584,6 +593,7 @@ FROM public.fact_order_headers o
 AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT f.channel AS channel,
            ROUND(SUM(f.net_sales), 2) AS net_revenue
@@ -632,12 +642,14 @@ FROM public.fact_order_headers o
 AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     channel_refunds AS (
         SELECT f.channel,
                SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
 FROM public.fact_order_refunds r
         JOIN filtered_orders f ON f.id = r.order_id
+WHERE r.record_status = 'ACTIVE'
         GROUP BY f.channel
     ),
     channel_gross AS (
@@ -689,6 +701,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
 AND o.financialstatus != 'VOIDED'
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT f.channel AS channel,
            ROUND(100 * SUM(f.discounts) / NULLIF(SUM(f.gross_sales), 0), 2) AS discount_rate
@@ -717,39 +730,41 @@ AND o.financialstatus != 'VOIDED'
 '019fffa2-0f80-7da9-bd88-43e4b7c25702',
         'Channel Quality Report',
         'Sales Channel Attribution/Channel Quality & Profitability/TABLE/Channel Quality Report',
-        '
+        $$
     WITH filtered_orders AS (
         SELECT o.id,
 COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    ''Unattributed''
+    'Unattributed'
 ) AS channel,
 o.fulfillmentStatus AS fulfillment_status,
                CASE
-                    WHEN o.financialstatus = ''VOIDED'' THEN 0
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
                     ELSE COALESCE(o.subtotal_price, 0)
                        + COALESCE(o.total_discounts_amount, 0)
                        + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
                        + COALESCE(o.total_shipping_price, 0)
                END AS gross_sales,
-               CASE WHEN o.financialstatus = ''VOIDED'' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
+               CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
                COALESCE(o.total_outstanding_amount, 0) AS outstanding,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     channel_refunds AS (
         SELECT f.channel,
                SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
 FROM public.fact_order_refunds r
         JOIN filtered_orders f ON f.id = r.order_id
+WHERE r.record_status = 'ACTIVE'
         GROUP BY f.channel
     ),
     channel_totals AS (
@@ -760,7 +775,7 @@ FROM public.fact_order_refunds r
                SUM(f.discounts) AS discounts,
                SUM(f.outstanding) AS unpaid_amount,
                COUNT(*) FILTER (
-                   WHERE UPPER(f.fulfillment_status) IS DISTINCT FROM ''FULFILLED'') AS fulfillment_pending
+                   WHERE UPPER(f.fulfillment_status) IS DISTINCT FROM 'FULFILLED') AS fulfillment_pending
         FROM filtered_orders f
         GROUP BY f.channel
     )
@@ -778,7 +793,7 @@ FROM public.fact_order_refunds r
     ORDER BY ct.net_sales DESC, ct.channel ASC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{
       "helperText": "A detailed report of orders, net sales, AOV, discount rate, refund rate, unpaid balances, and unfulfilled orders per channel, so you can assess channel quality beyond just revenue."
     }',
@@ -800,17 +815,17 @@ OFFSET COALESCE(:offset, 0)
 '019fffa2-0f80-770e-8d37-2f7fa9a51a10',
         'Channel Refund Report',
         'Sales Channel Attribution/Channel Quality & Profitability/TABLE/Channel Refund Report',
-        '
+        $$
     WITH channel_orders AS (
         SELECT o.id,
 COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    ''Unattributed''
+    'Unattributed'
 ) AS channel,
                CASE
-                    WHEN o.financialstatus = ''VOIDED'' THEN 0
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
                     ELSE COALESCE(o.subtotal_price, 0)
                        + COALESCE(o.total_discounts_amount, 0)
                        + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
@@ -818,14 +833,16 @@ COALESCE(
                END AS gross_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     order_refunds AS (
         SELECT r.order_id,
                SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
 FROM public.fact_order_refunds r
+WHERE r.record_status = 'ACTIVE'
         GROUP BY r.order_id
     ),
     channel_refunds AS (
@@ -845,6 +862,7 @@ COALESCE(pv.sku, pv.id) AS sku,
 FROM public.fact_order_line_items li
         JOIN channel_orders co ON co.id = li.order_id
 JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id
+WHERE li.record_status = 'ACTIVE' AND pv.record_status = 'ACTIVE'
 GROUP BY
     co.channel,
     COALESCE(pv.sku, pv.id)
@@ -867,14 +885,14 @@ GROUP BY
            cr.refunded_orders AS refunded_orders,
            ROUND(cr.refunded_amount, 2) AS refunded_amount,
            ROUND(100 * cr.refunded_amount / NULLIF(cr.gross_sales, 0), 2) AS refund_rate,
-           COALESCE(ts.top_refunded_skus, ''None'') AS top_refunded_skus,
+           COALESCE(ts.top_refunded_skus, 'None') AS top_refunded_skus,
            COUNT(*) OVER() AS total_records
     FROM channel_refunds cr
     LEFT JOIN top_skus ts ON ts.channel IS NOT DISTINCT FROM cr.channel
     ORDER BY cr.refunded_amount DESC, cr.channel ASC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{
       "helperText": "A breakdown of refunded orders, refund amounts, refund rate, and the most-refunded products per channel, so you can pinpoint where returns are hurting you most."
     }',
@@ -927,6 +945,7 @@ FROM public.fact_order_headers o
 AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT f.utm_campaign AS campaign,
            ROUND(SUM(f.gross_sales), 2) AS revenue
@@ -967,6 +986,7 @@ FROM public.fact_order_headers o
 AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     labelled AS (
         SELECT COALESCE(f.utm_source, 'unknown') || CHR(32) || CHR(47) || CHR(32)
@@ -1018,6 +1038,7 @@ FROM public.fact_order_headers o
 AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT f.referring_site AS referring_site,
            ROUND(SUM(f.gross_sales), 2) AS revenue
@@ -1061,6 +1082,7 @@ FROM public.fact_order_headers o
 AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     classified AS (
         SELECT CASE WHEN f.utm_medium IN ('cpc', 'ppc', 'paid', 'paidsearch', 'paid_search',
@@ -1115,28 +1137,29 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
 '019fffa2-0f80-7510-8c97-1bd21c12e627',
         'UTM Campaign Report',
         'Sales Channel Attribution/Marketing Attribution/TABLE/UTM Campaign Report',
-        '
+        $$
     WITH filtered_orders AS (
         SELECT o.id,
-LOWER(NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,source}''), '''')) AS utm_source,
-               LOWER(NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,medium}''), '''')) AS utm_medium,
-               NULLIF(TRIM(o.customer_journey_summary #>> ''{lastVisit,utmParameters,campaign}''), '''') AS utm_campaign,
+LOWER(NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,source}'), '')) AS utm_source,
+               LOWER(NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,medium}'), '')) AS utm_medium,
+               NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,campaign}'), '') AS utm_campaign,
                CASE
-                    WHEN o.financialstatus = ''VOIDED'' THEN 0
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
                     ELSE COALESCE(o.subtotal_price, 0)
                        + COALESCE(o.total_discounts_amount, 0)
                        + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
                        + COALESCE(o.total_shipping_price, 0)
                END AS gross_sales,
-               CASE WHEN o.financialstatus = ''VOIDED'' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
+               CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     attributed AS (
         SELECT f.id, f.utm_source, f.utm_medium, f.utm_campaign,
@@ -1160,11 +1183,12 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
                SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
 FROM public.fact_order_refunds r
         JOIN attributed a ON a.id = r.order_id
+WHERE r.record_status = 'ACTIVE'
         GROUP BY a.utm_source, a.utm_medium, a.utm_campaign
     )
-    SELECT COALESCE(ct.utm_source, ''Unknown'') AS utm_source,
-           COALESCE(ct.utm_medium, ''Unknown'') AS utm_medium,
-           COALESCE(ct.utm_campaign, ''Unknown'') AS utm_campaign,
+    SELECT COALESCE(ct.utm_source, 'Unknown') AS utm_source,
+           COALESCE(ct.utm_medium, 'Unknown') AS utm_medium,
+           COALESCE(ct.utm_campaign, 'Unknown') AS utm_campaign,
            ct.orders AS orders,
            ROUND(ct.net_sales, 2) AS net_sales,
            ROUND(ct.net_sales / NULLIF(ct.orders, 0), 2) AS aov,
@@ -1179,7 +1203,7 @@ FROM public.fact_order_refunds r
     ORDER BY ct.net_sales DESC, ct.utm_campaign ASC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{
       "helperText": "A detailed report per campaign showing source, medium, orders, net sales, AOV, refund rate, and discount rate, so you can evaluate campaign performance in depth."
     }',
@@ -1201,19 +1225,20 @@ OFFSET COALESCE(:offset, 0)
 '019fffa2-0f80-71e2-b91c-c916a676dd3e',
         'Referral Site Report',
         'Sales Channel Attribution/Marketing Attribution/TABLE/Referral Site Report',
-        '
+        $$
     WITH filtered_orders AS (
         SELECT o.created_at,
                o.customer_id,
-o.customer_journey_summary #>> ''{lastVisit,referrerUrl}'' AS referring_site,
+o.customer_journey_summary #>> '{lastVisit,referrerUrl}' AS referring_site,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT f.referring_site AS referring_site,
            MIN(f.created_at)::date::text AS first_order,
@@ -1229,7 +1254,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
     ORDER BY SUM(f.net_sales) DESC, f.referring_site ASC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{
       "helperText": "A detailed report per referring site showing first and last order dates, orders, net sales, AOV, and customer count, so you can see how each referral source performs over time."
     }',
@@ -1285,6 +1310,7 @@ FROM public.fact_order_headers o
 AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
+          AND o.record_status = 'ACTIVE'
     ),
     daily AS (
         SELECT f.bucket, COUNT(*) AS unattributed_orders
@@ -1362,6 +1388,7 @@ FROM public.fact_order_headers o
 AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
 SELECT f.id AS order_id,
            f.source_name AS source_name,
@@ -1413,7 +1440,7 @@ VALUES (
 '019fffa2-0f80-7c9f-a6df-cc1624af3cd2',
         'Channel Customer Quality Report',
         'Sales Channel Attribution/Customer Quality/TABLE/Channel Customer Quality Report',
-        '
+        $$
     WITH all_orders AS (
         SELECT o.id,
                o.customer_id,
@@ -1422,15 +1449,16 @@ COALESCE(
     o.attribution_displayname,
     o.order_app_name,
     o.source_name,
-    ''Unattributed''
+    'Unattributed'
 ) AS channel,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
 FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     ),
     channel_ranked AS (
         SELECT ao.*,
@@ -1466,6 +1494,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id =
         SELECT r.order_id,
                SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
 FROM public.fact_order_refunds r
+WHERE r.record_status = 'ACTIVE'
         GROUP BY r.order_id
     ),
     customer_refunds AS (
@@ -1507,7 +1536,7 @@ FROM public.fact_order_refunds r
     ORDER BY cch.customer_revenue DESC, cch.channel ASC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{
       "helperText": "Shows new vs. repeat customers, repeat rate, customer revenue, and refund-risk customers by channel, so you can judge which channels bring in the best long-term customers."
     }',
@@ -1559,12 +1588,14 @@ FROM public.fact_order_headers o
 AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     order_unfulfilled AS (
         SELECT li.order_id,
                SUM(COALESCE(li.unfulfilled_discounted_total_amount, 0)) AS unfulfilled_value
 FROM public.fact_order_line_items li
         JOIN filtered_orders f ON f.id = li.order_id
+WHERE li.record_status = 'ACTIVE'
         GROUP BY li.order_id
     )
     SELECT f.channel AS channel,
@@ -1626,6 +1657,7 @@ FROM public.fact_order_line_items li
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
               AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+              AND o.record_status = 'ACTIVE'
         ) t
     )
     SELECT f.country AS country,
@@ -1674,12 +1706,14 @@ FROM public.fact_order_headers o
 AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     order_unfulfilled AS (
         SELECT li.order_id,
                SUM(COALESCE(li.unfulfilled_discounted_total_amount, 0)) AS unfulfilled_value
 FROM public.fact_order_line_items li
         JOIN filtered_orders f ON f.id = li.order_id
+WHERE li.record_status = 'ACTIVE'
         GROUP BY li.order_id
     ),
     backlog AS (

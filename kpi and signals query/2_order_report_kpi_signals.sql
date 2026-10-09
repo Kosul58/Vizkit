@@ -14,6 +14,7 @@ VALUES (
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows your total net sales in the selected period, so you know what you are actually earning from orders after tax and duties. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -47,6 +48,7 @@ VALUES (
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows your gross sales in the selected period, before discounts are taken off, so you know the full value of what customers ordered. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -77,6 +79,7 @@ VALUES (
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how much customers spend on average per order, so you can track whether order sizes are growing or shrinking. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -105,6 +108,7 @@ VALUES (
       AND o.financialstatus != 'VOIDED'
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows the total value of discounts applied to orders in the selected period, so you know how much revenue promotions are costing you. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -128,11 +132,12 @@ VALUES (
     $$
     SELECT ROUND(COALESCE(SUM(r.total_refunded_amount), 0), 2) AS refunded_order_value
     FROM public.fact_order_refunds r
-    JOIN public.fact_order_headers o ON o.id = r.order_id
+    JOIN public.fact_order_headers o ON o.id = r.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND r.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how much money has been refunded on orders placed in the selected period, so you know how much of your sales is going back to customers. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -160,6 +165,7 @@ VALUES (
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how much tax you collected on orders in the selected period, so you know how much to set aside for tax reporting."}',
         'KPI',
@@ -187,6 +193,7 @@ VALUES (
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many orders came in in the selected period, so you can track overall order volume. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -216,6 +223,7 @@ VALUES (
       AND o.fulfillmentStatus = 'FULFILLED'
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many orders have been fully fulfilled in the selected period, so you know how much of your order volume has been delivered on. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -245,6 +253,7 @@ VALUES (
       AND o.fulfillmentStatus != 'FULFILLED'
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many orders are still waiting to be fully fulfilled, so you know how much is left to ship. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -273,6 +282,7 @@ VALUES (
       AND o.cancelled_at IS NOT NULL
       AND (:currentStartDate::date IS NULL OR o.cancelled_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.cancelled_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many orders were cancelled in the selected period, so you can tell whether cancellations are becoming a problem. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -300,6 +310,7 @@ VALUES (
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how much money is still unpaid on orders in the selected period, so you can follow up on payments you are still waiting for. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -328,6 +339,7 @@ VALUES (
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows what share of your orders have been fully paid, so you can tell how well you are collecting payment. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -356,6 +368,7 @@ VALUES (
       AND o.financialstatus = 'PENDING'
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how much money is tied up in orders that are still awaiting payment, so you know what to chase or wait on. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -384,6 +397,7 @@ VALUES (
       AND o.financialstatus IN ('REFUNDED', 'PARTIALLY_REFUNDED')
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how much money you have refunded on fully or partially refunded orders, so you know how much payment has gone back to customers. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -423,6 +437,7 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -455,6 +470,7 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -485,6 +501,7 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -517,6 +534,7 @@ VALUES (
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus != 'VOIDED'
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -543,8 +561,9 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND o.record_status = 'ACTIVE'
         ) t
-        JOIN public.fact_order_refunds r ON r.order_id = t.id
+        JOIN public.fact_order_refunds r ON r.order_id = t.id AND r.record_status = 'ACTIVE'
         WHERE t.is_current OR t.is_prior
     )
     SELECT ROUND(rt.prv_value, 2) AS previous_value,
@@ -569,6 +588,7 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -596,6 +616,7 @@ VALUES (
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.cancelled_at IS NULL
               AND o.fulfillmentStatus = 'FULFILLED'
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -623,6 +644,7 @@ VALUES (
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.cancelled_at IS NULL
               AND o.fulfillmentStatus != 'FULFILLED'
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -649,6 +671,7 @@ VALUES (
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.cancelled_at IS NOT NULL
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -675,6 +698,7 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -703,6 +727,7 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -730,6 +755,7 @@ VALUES (
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus = 'PENDING'
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -757,6 +783,7 @@ VALUES (
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus IN ('REFUNDED', 'PARTIALLY_REFUNDED')
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )

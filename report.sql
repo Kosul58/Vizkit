@@ -98,22 +98,27 @@ FROM public.dim_products dp
 INNER JOIN public.dim_product_variants dpv
     ON dpv.product_id = dp.id
     AND dpv.seller_id = dp.seller_id
+    AND dpv.record_status = 'ACTIVE'
 
 inner JOIN public.dim_inventory_items dii
     ON dii.id = dpv.inventory_item_id
     AND dii.seller_id = dpv.seller_id
+    AND dii.record_status = 'ACTIVE'
 
 LEFT JOIN public.dim_inventory_levels dilv
     ON dilv.inventory_item_id = dii.id
     AND dilv.seller_id = dii.seller_id
+    AND dilv.record_status = 'ACTIVE'
 
 LEFT JOIN public.dim_inventory_locations dil
     ON dil.id = dilv.inventory_location_id
     AND dil.seller_id = dilv.seller_id
+    AND dil.record_status = 'ACTIVE'
 
 WHERE
     dpv.seller_id = :shopId
     AND (dpv.created_at::date between :createdAtStart::date AND :createdAtEnd::date)
+    AND dp.record_status = 'ACTIVE'
 )
 SELECT
     /*projection_fields*/
@@ -195,20 +200,23 @@ WITH base AS (
     FROM public.fact_order_headers foh
 
     INNER JOIN public.dim_customers dc
-        ON dc.id = foh.customer_id
+        ON dc.id = foh.customer_id AND dc.record_status = 'ACTIVE'
 
     LEFT JOIN public.fact_order_transactions fot
         ON fot.order_id = foh.id
         AND fot.seller_id = foh.seller_id
+        AND fot.record_status = 'ACTIVE'
 
     LEFT JOIN public.fact_tender_transactions dtt
         ON dtt.order_id = foh.id
         AND dtt.seller_id = foh.seller_id
+        AND dtt.record_status = 'ACTIVE'
 
     WHERE foh.seller_id = :shopId
       AND foh.created_at::date BETWEEN :createdAtStart::date
                                    AND :createdAtEnd::date
       AND (foh.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+      AND foh.record_status = 'ACTIVE'
 )
 SELECT
     /*projection_fields*/
@@ -297,11 +305,12 @@ SELECT
     END AS tax_status
 
 FROM public.fact_order_headers foh
-inner join  public.fact_order_line_items foli on foh.id = foli.order_id and foli.seller_id = foh.seller_id
+inner join  public.fact_order_line_items foli on foh.id = foli.order_id and foli.seller_id = foh.seller_id AND foli.record_status = 'ACTIVE'
 WHERE
     foh.seller_id = :shopId
     AND (foh.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
     and (foh.created_at::date between :createdAtStart::date and :createdAtEnd::date)
+    AND foh.record_status = 'ACTIVE'
 )
 SELECT
     /*projection_fields*/
@@ -366,9 +375,10 @@ Select
     dc.last_ordered_date,
     dc.last_order_financial_status
 from public.dim_customers dc
-inner join public.dim_customer_addresses dca on dca.customer_id = dc.id and dc.seller_id = dca.seller_id  and dc.default_address_id = dca.id
+inner join public.dim_customer_addresses dca on dca.customer_id = dc.id and dc.seller_id = dca.seller_id  and dc.default_address_id = dca.id AND dca.record_status = 'ACTIVE'
 where dc.seller_id = :shopId
 and (dc.created_at::date between :createdAtStart::date and :createdAtEnd::date)
+AND dc.record_status = 'ACTIVE'
 )
 SELECT
     /*projection_fields*/
@@ -502,10 +512,11 @@ SELECT
 
 FROM public.fact_order_headers foh
 LEFT JOIN public.dim_customers dc
-ON dc.id = foh.customer_id
+ON dc.id = foh.customer_id AND dc.record_status = 'ACTIVE'
 WHERE (foh.created_at::date between :createdAtStart::date and :createdAtEnd::date)
   AND foh.seller_id = :shopId
   AND (foh.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+  AND foh.record_status = 'ACTIVE'
 )
 SELECT
     /*projection_fields*/
@@ -565,6 +576,7 @@ from public.fact_order_headers foh
 where foh.seller_id = :shopId
 and (foh.created_at::date between :createdAtStart::date and :createdAtEnd::date)
 and (foh.test = false OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+AND foh.record_status = 'ACTIVE'
 )
 SELECT
     /*projection_fields*/
@@ -638,16 +650,20 @@ from public.fact_order_refunds fr
 inner join public.fact_order_headers foh
     on foh.id = fr.order_id
     and foh.seller_id = fr.seller_id
+    AND foh.record_status = 'ACTIVE'
 left join public.fact_order_refund_line_items frli
     on frli.refund_id = fr.id
     and frli.seller_id = fr.seller_id
+    AND frli.record_status = 'ACTIVE'
 left join public.fact_order_line_items foli
     on foli.id = frli.order_line_item_id
     and foli.seller_id = fr.seller_id
+    AND foli.record_status = 'ACTIVE'
 
 where fr.seller_id = :shopId
     and (fr.created_at::date between :createdAtStart::date and :createdAtEnd::date)
     and (foh.test = false OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+    AND fr.record_status = 'ACTIVE'
 )
 SELECT
 /*projection_fields*/
@@ -731,15 +747,19 @@ FROM public.dim_inventory_locations dil
 INNER JOIN public.dim_inventory_levels dilv
     ON dil.id = dilv.inventory_location_id
    AND dil.seller_id = dilv.seller_id
+   AND dilv.record_status = 'ACTIVE'
 left JOIN public.dim_product_variants dpv
     ON dpv.inventory_item_id = dilv.inventory_item_id
    AND dpv.seller_id = dilv.seller_id
+   AND dpv.record_status = 'ACTIVE'
 left JOIN public.dim_products dp
     ON dp.id = dpv.product_id
    AND dp.seller_id = dpv.seller_id
+   AND dp.record_status = 'ACTIVE'
 
 WHERE dil.seller_id = :shopId
   AND (dil.created_at::date between :createdAtStart::date and :createdAtEnd::date)
+  AND dil.record_status = 'ACTIVE'
 )
 SELECT
     /*projection_fields*/

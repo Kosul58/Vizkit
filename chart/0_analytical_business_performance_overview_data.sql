@@ -29,6 +29,7 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
+          AND o.record_status = 'ACTIVE'
     ),
     daily AS (
         SELECT f.bucket,
@@ -80,18 +81,19 @@ VALUES (
         SELECT li.product_variant_id,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT COALESCE(tc.name, p.product_type, 'Uncategorized') AS category,
            ROUND(SUM(f.net_sales), 2) AS net_sales
     FROM filtered_lines f
-    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
-    LEFT JOIN public.dim_products p ON p.id = pv.product_id
-    LEFT JOIN public.dim_taxonomy_categories tc ON tc.id = p.category_id AND tc.seller_id = p.seller_id
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
+    LEFT JOIN public.dim_taxonomy_categories tc ON tc.id = p.category_id AND tc.seller_id = p.seller_id AND tc.record_status = 'ACTIVE'
     GROUP BY COALESCE(tc.name, p.product_type, 'Uncategorized')
     HAVING SUM(f.net_sales) > 0
     ORDER BY net_sales DESC
@@ -120,12 +122,13 @@ VALUES (
                SUM(COALESCE(il.available_quantity, 0)) AS available_quantity,
                SUM(COALESCE(il.safety_stock_quantity, 0)) AS safety_total
         FROM public.dim_product_variants pv
-        JOIN public.dim_inventory_items ii ON ii.id = pv.inventory_item_id
-        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
+        JOIN public.dim_inventory_items ii ON ii.id = pv.inventory_item_id AND ii.record_status = 'ACTIVE'
+        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id AND il.record_status = 'ACTIVE'
         WHERE pv.seller_id = :shopId
           AND ii.seller_id = :shopId
           AND il.seller_id = :shopId
           AND il.is_active = TRUE
+          AND pv.record_status = 'ACTIVE'
         GROUP BY pv.id
     ),
     classified AS (
@@ -173,17 +176,18 @@ VALUES (
         SELECT li.product_variant_id,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT COALESCE(p.title, pv.sku, pv.id) AS product,
            ROUND(SUM(f.net_sales), 2) AS net_sales
     FROM filtered_lines f
-    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
-    LEFT JOIN public.dim_products p ON p.id = pv.product_id
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
     GROUP BY COALESCE(p.title, pv.sku, pv.id)
     HAVING SUM(f.net_sales) > 0
     ORDER BY net_sales DESC

@@ -8,11 +8,12 @@ VALUES (
     $$
     SELECT COALESCE(SUM(li.quantity), 0) AS units_sold
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many units were sold in the selected period, so you can track overall sales volume. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -36,11 +37,12 @@ VALUES (
     $$
     SELECT ROUND(COALESCE(SUM(COALESCE(li.discounted_total_amount, 0)), 0), 2) AS line_item_net_sales
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows your total line item sales after discounts in the selected period, so you know what your products actually earned. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -64,11 +66,12 @@ VALUES (
     $$
     SELECT ROUND(COALESCE(SUM(COALESCE(li.original_total_amount, 0)), 0), 2) AS line_item_gross_sales
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows your total line item sales before discounts in the selected period, so you know the full value of what customers ordered. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -93,11 +96,12 @@ VALUES (
     SELECT ROUND(COALESCE(SUM(COALESCE(li.discounted_total_amount, 0)), 0)
                  / NULLIF(COALESCE(SUM(li.quantity), 0), 0), 2) AS average_unit_price
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows the average price customers paid per unit after discounts, so you can track whether pricing is rising or falling. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -121,11 +125,12 @@ VALUES (
     $$
     SELECT ROUND(COALESCE(SUM(COALESCE(li.total_discount_amount, 0)), 0), 2) AS total_line_discounts
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows the total value of discounts given on line items in the selected period, so you know how much revenue promotions are costing you. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -150,11 +155,12 @@ VALUES (
     SELECT ROUND(100 * COALESCE(SUM(COALESCE(li.total_discount_amount, 0)), 0)
                  / NULLIF(COALESCE(SUM(COALESCE(li.original_total_amount, 0)), 0), 0), 2) AS discount_rate
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows what share of your original item value was given away as discounts, so you can check whether promotions are too generous. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -178,12 +184,13 @@ VALUES (
     $$
     SELECT COALESCE(SUM(COALESCE(li.unfulfilled_quantity, 0)), 0) AS unfulfilled_quantity
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND o.cancelled_at IS NULL
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many units are still waiting to be shipped on active orders, so you know how big your fulfillment backlog is. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -207,11 +214,12 @@ VALUES (
     $$
     SELECT ROUND(COALESCE(SUM(COALESCE(li.unfulfilled_discounted_total_amount, 0)), 0), 2) AS unfulfilled_value
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows the sales value of items still waiting to be shipped, so you know how much revenue is tied up in your backlog. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -235,11 +243,12 @@ VALUES (
     $$
     SELECT COALESCE(SUM(li.quantity - li.current_quantity), 0) AS refund_removed_quantity
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many units were refunded or removed from orders, so you can tell whether returns are on the rise. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -263,11 +272,12 @@ VALUES (
     $$
     SELECT COALESCE(SUM(COALESCE(li.refundable_quantity, 0)), 0) AS refundable_quantity
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many units are still eligible for a refund, so you know how much of your sales could still come back. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -292,12 +302,13 @@ VALUES (
     WITH sku_sales AS (
         SELECT COALESCE(SUM(COALESCE(li.discounted_total_amount, 0)), 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
-        JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
+        JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id AND pv.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
         GROUP BY COALESCE(pv.sku, pv.id)
     )
     SELECT ROUND(COALESCE(MAX(net_sales), 0), 2) AS top_sku_contribution
@@ -326,11 +337,12 @@ VALUES (
     SELECT ROUND(COALESCE(SUM(COALESCE(li.discounted_total_amount, 0))
                           FILTER (WHERE COALESCE(li.is_giftcard, FALSE)), 0), 2) AS gift_card_line_sales
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how much revenue came from gift card sales, so you can track prepaid revenue separately from product sales. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -355,13 +367,14 @@ VALUES (
     WITH vendor_sales AS (
         SELECT COALESCE(SUM(COALESCE(li.discounted_total_amount, 0)), 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
-        JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id
-        LEFT JOIN public.dim_products p ON p.id = pv.product_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
+        JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id AND pv.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
         GROUP BY COALESCE(p.vendor, pv.sku, pv.id)
     )
     SELECT ROUND(COALESCE(MAX(net_sales), 0), 2) AS top_vendor
@@ -389,13 +402,14 @@ VALUES (
     $$
     SELECT COUNT(DISTINCT p.vendor) AS total_vendor
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
-    JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id
-    LEFT JOIN public.dim_products p ON p.id = pv.product_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
+    JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id AND pv.record_status = 'ACTIVE'
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many different vendors had sales in the selected period, so you can gauge the breadth of your supplier base. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -420,15 +434,16 @@ VALUES (
     WITH collection_sales AS (
         SELECT COALESCE(SUM(COALESCE(li.discounted_total_amount, 0)), 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
-        JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id
-        JOIN public.dim_collection_products cp ON cp.product_id = pv.product_id
-        JOIN public.dim_collections c ON c.id = cp.collection_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
+        JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id AND pv.record_status = 'ACTIVE'
+        JOIN public.dim_collection_products cp ON cp.product_id = pv.product_id AND cp.record_status = 'ACTIVE'
+        JOIN public.dim_collections c ON c.id = cp.collection_id AND c.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND c.seller_id = :shopId
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
         GROUP BY c.title
     )
     SELECT ROUND(COALESCE(MAX(net_sales), 0), 2) AS top_collection
@@ -456,15 +471,16 @@ VALUES (
     $$
     SELECT COUNT(DISTINCT c.id) AS total_collection
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
-    JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id
-    JOIN public.dim_collection_products cp ON cp.product_id = pv.product_id
-    JOIN public.dim_collections c ON c.id = cp.collection_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
+    JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id AND pv.record_status = 'ACTIVE'
+    JOIN public.dim_collection_products cp ON cp.product_id = pv.product_id AND cp.record_status = 'ACTIVE'
+    JOIN public.dim_collections c ON c.id = cp.collection_id AND c.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND c.seller_id = :shopId
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many collections had sales in the selected period, so you can gauge how widely your collections are selling. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -500,9 +516,10 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
                    li.quantity AS units
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -527,9 +544,10 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
                    COALESCE(li.discounted_total_amount, 0) AS net_sales
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -554,9 +572,10 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
                    COALESCE(li.original_total_amount, 0) AS gross_sales
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -584,9 +603,10 @@ VALUES (
                    li.quantity AS units,
                    COALESCE(li.discounted_total_amount, 0) AS net_sales
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -616,9 +636,10 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
                    COALESCE(li.total_discount_amount, 0) AS discounts
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -646,9 +667,10 @@ VALUES (
                    COALESCE(li.total_discount_amount, 0) AS discounts,
                    COALESCE(li.original_total_amount, 0) AS original_amount
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -678,10 +700,11 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
                    COALESCE(li.unfulfilled_quantity, 0) AS unfulfilled_units
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.cancelled_at IS NULL
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -706,9 +729,10 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
                    COALESCE(li.unfulfilled_discounted_total_amount, 0) AS unfulfilled_value
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -733,9 +757,10 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
                    li.quantity - li.current_quantity AS removed_units
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -760,9 +785,10 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
                    COALESCE(li.refundable_quantity, 0) AS refundable_units
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -788,9 +814,10 @@ VALUES (
                    COALESCE(li.is_giftcard, FALSE) AS is_gift_card,
                    COALESCE(li.discounted_total_amount, 0) AS net_sales
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -815,11 +842,12 @@ VALUES (
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
-            JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id
-            LEFT JOIN public.dim_products p ON p.id = pv.product_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
+            JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id AND pv.record_status = 'ACTIVE'
+            LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -844,13 +872,14 @@ VALUES (
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
-            JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id
-            JOIN public.dim_collection_products cp ON cp.product_id = pv.product_id
-            JOIN public.dim_collections c ON c.id = cp.collection_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
+            JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id AND pv.record_status = 'ACTIVE'
+            JOIN public.dim_collection_products cp ON cp.product_id = pv.product_id AND cp.record_status = 'ACTIVE'
+            JOIN public.dim_collections c ON c.id = cp.collection_id AND c.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND c.seller_id = :shopId
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )

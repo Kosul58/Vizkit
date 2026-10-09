@@ -9,6 +9,7 @@ VALUES (
     SELECT COUNT(*) AS total_customers
     FROM public.dim_customers c
     WHERE c.seller_id = :shopId
+      AND c.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows your total number of customers, so you know the overall size of your customer base."}',
     'KPI',
@@ -36,6 +37,7 @@ VALUES (
       AND c.created_at IS NOT NULL
       AND (:currentStartDate::date IS NULL OR c.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR c.created_at::date <= :currentEndDate::date)
+      AND c.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many new customers you gained in the selected period, so you can track your customer acquisition pace. The % change compares this value with the previous matching period."}',
     'KPI',
@@ -65,6 +67,7 @@ VALUES (
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     )
     SELECT COUNT(DISTINCT r.customer_id) AS repeat_customers
     FROM customer_order_ranks r
@@ -100,6 +103,7 @@ VALUES (
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     ),
     repeats AS (
         SELECT COUNT(DISTINCT r.customer_id) AS repeat_customers
@@ -112,6 +116,7 @@ VALUES (
         SELECT COUNT(*) AS total_customers
         FROM public.dim_customers c
         WHERE c.seller_id = :shopId
+          AND c.record_status = 'ACTIVE'
     )
     SELECT ROUND(100.0 * rp.repeat_customers
                  / NULLIF(b.total_customers, 0), 2) AS repeat_customer_rate
@@ -147,6 +152,7 @@ VALUES (
       AND o.customer_id IS NOT NULL
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows total revenue from identified customers in the selected period, so you know how much of your sales come from known customers. The % change compares this value with the previous matching period."}',
     'KPI',
@@ -179,6 +185,7 @@ VALUES (
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
         GROUP BY o.customer_id
     )
     SELECT ROUND(COALESCE(SUM(rev), 0) / NULLIF(COUNT(*), 0), 2) AS average_customer_value
@@ -213,6 +220,7 @@ VALUES (
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
         GROUP BY o.customer_id
     )
     SELECT ROUND(COALESCE(SUM(orders), 0)::numeric / NULLIF(COUNT(*), 0), 2)
@@ -250,6 +258,7 @@ VALUES (
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
         GROUP BY o.customer_id
     ),
     cut AS (
@@ -287,12 +296,13 @@ VALUES (
                o.customer_id,
                COALESCE(SUM(r.total_refunded_amount), 0) AS refunded
         FROM public.fact_order_headers o
-        LEFT JOIN public.fact_order_refunds r ON r.order_id = o.id
+        LEFT JOIN public.fact_order_refunds r ON r.order_id = o.id AND r.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
         GROUP BY o.id, o.customer_id
     ),
     per_customer AS (
@@ -341,6 +351,7 @@ VALUES (
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     ),
     known AS (
         SELECT COALESCE(SUM(r.net_sales), 0) AS rev
@@ -359,6 +370,7 @@ VALUES (
           AND o.customer_id IS NULL
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT ROUND(k.rev + g.rev, 2) AS new_customer_revenue
     FROM known k
@@ -394,6 +406,7 @@ VALUES (
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     )
     SELECT ROUND(COALESCE(SUM(r.net_sales), 0), 2) AS repeat_customer_revenue
     FROM customer_order_ranks r
@@ -429,11 +442,13 @@ VALUES (
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT COUNT(*) FILTER (WHERE c.taxExempt) AS tax_exempt_customers
     FROM public.dim_customers c
     JOIN cur_window w ON w.customer_id = c.id
     WHERE c.seller_id = :shopId
+      AND c.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many of your active customers are tax-exempt, so you can keep track of your tax-exempt customer base."}',
     'KPI',
@@ -461,6 +476,7 @@ VALUES (
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     ),
     anchor AS (
         SELECT COALESCE(:currentEndDate::date, (SELECT MAX(day) FROM valid_orders)) AS anchor
@@ -505,6 +521,7 @@ VALUES (
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT COUNT(DISTINCT ca.customer_id) AS weak_address_customers
     FROM public.dim_customer_addresses ca
@@ -516,6 +533,7 @@ VALUES (
        OR COALESCE(LENGTH(TRIM(ca.province)), 0) = 0
        OR COALESCE(LENGTH(TRIM(ca.country)), 0) = 0
        OR COALESCE(LENGTH(TRIM(ca.zip)), 0) = 0)
+      AND ca.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many active customers have incomplete or unvalidated addresses, so you can catch shipping issues before they happen. The % change compares this value with the previous matching period."}',
     'KPI',
@@ -552,6 +570,7 @@ VALUES (
             FROM public.dim_customers c
             WHERE c.seller_id = :shopId
               AND c.created_at IS NOT NULL
+              AND c.record_status = 'ACTIVE'
         ) n
         WHERE n.is_current OR n.is_prior
     )
@@ -574,6 +593,7 @@ VALUES (
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     ),
     repeats AS (
         SELECT COUNT(DISTINCT customer_id) FILTER (WHERE is_current) AS cur_value,
@@ -608,6 +628,7 @@ VALUES (
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     ),
     repeats AS (
         SELECT COUNT(DISTINCT customer_id) FILTER (WHERE is_current) AS cur_repeat,
@@ -627,6 +648,7 @@ VALUES (
         SELECT COUNT(*) AS total_customers
         FROM public.dim_customers c
         WHERE c.seller_id = :shopId
+          AND c.record_status = 'ACTIVE'
     ),
     computed AS (
         SELECT ROUND(100.0 * rp.cur_repeat / NULLIF(b.total_customers, 0), 2) AS cur_rate,
@@ -660,6 +682,7 @@ VALUES (
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.customer_id IS NOT NULL
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -688,6 +711,7 @@ VALUES (
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.customer_id IS NOT NULL
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -729,6 +753,7 @@ VALUES (
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.customer_id IS NOT NULL
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -773,6 +798,7 @@ VALUES (
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.customer_id IS NOT NULL
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -826,6 +852,7 @@ VALUES (
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.customer_id IS NOT NULL
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -835,7 +862,7 @@ VALUES (
                s.is_prior,
                COALESCE(SUM(r.total_refunded_amount), 0) AS refunded
         FROM scoped_orders s
-        LEFT JOIN public.fact_order_refunds r ON r.order_id = s.id
+        LEFT JOIN public.fact_order_refunds r ON r.order_id = s.id AND r.record_status = 'ACTIVE'
         GROUP BY s.id, s.customer_id, s.is_current, s.is_prior
     ),
     cur_customers AS (
@@ -886,6 +913,7 @@ VALUES (
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     ),
     known AS (
         SELECT COALESCE(SUM(net_sales) FILTER (WHERE is_current AND order_rank = 1), 0) AS cur_new,
@@ -916,6 +944,7 @@ VALUES (
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.customer_id IS NULL
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -946,6 +975,7 @@ VALUES (
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     ),
     known AS (
         SELECT COALESCE(SUM(net_sales) FILTER (WHERE is_current AND order_rank > 1), 0) AS cur_value,
@@ -978,6 +1008,7 @@ VALUES (
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     ),
     anchors AS (
         SELECT COALESCE(:currentEndDate::date, (SELECT MAX(day) FROM valid_orders)) AS cur_anchor,
@@ -1018,6 +1049,7 @@ VALUES (
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     ),
     cur_window AS (
         SELECT DISTINCT customer_id FROM valid_orders
@@ -1040,6 +1072,7 @@ VALUES (
            OR COALESCE(LENGTH(TRIM(ca.province)), 0) = 0
            OR COALESCE(LENGTH(TRIM(ca.country)), 0) = 0
            OR COALESCE(LENGTH(TRIM(ca.zip)), 0) = 0)
+          AND ca.record_status = 'ACTIVE'
     ),
     weak_addr_prv AS (
         SELECT COUNT(DISTINCT ca.customer_id) AS n
@@ -1052,6 +1085,7 @@ VALUES (
            OR COALESCE(LENGTH(TRIM(ca.province)), 0) = 0
            OR COALESCE(LENGTH(TRIM(ca.country)), 0) = 0
            OR COALESCE(LENGTH(TRIM(ca.zip)), 0) = 0)
+          AND ca.record_status = 'ACTIVE'
     )
     SELECT wap.n AS previous_value,
            ROUND(100.0 * (wa.n - wap.n)

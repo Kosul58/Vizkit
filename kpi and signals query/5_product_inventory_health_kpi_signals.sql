@@ -10,11 +10,12 @@ VALUES (
                       + COALESCE(il.committed_quantity, 0)
                       + COALESCE(il.reserved_quantity, 0)), 0) AS total_inventory_units
     FROM public.dim_inventory_items ii
-    JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-    JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
+    JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+    JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id AND il.record_status = 'ACTIVE'
     WHERE ii.seller_id = :shopId
       AND il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND ii.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows your total inventory units across available, committed, and reserved stock, so you know your overall stock levels."}',
     'KPI',
@@ -38,11 +39,12 @@ VALUES (
     $$
     SELECT COALESCE(SUM(COALESCE(il.available_quantity, 0)), 0) AS available_stock
     FROM public.dim_inventory_items ii
-    JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-    JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
+    JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+    JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id AND il.record_status = 'ACTIVE'
     WHERE ii.seller_id = :shopId
       AND il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND ii.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how much stock you currently have available to sell, so you know what is ready to fulfill new orders."}',
     'KPI',
@@ -69,11 +71,12 @@ VALUES (
                BOOL_OR(COALESCE(il.available_quantity, 0)
                        <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
         FROM public.dim_inventory_items ii
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
+        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id AND il.record_status = 'ACTIVE'
         WHERE ii.seller_id = :shopId
           AND il.seller_id = :shopId
           AND il.is_active = TRUE
+          AND ii.record_status = 'ACTIVE'
         GROUP BY pv.id
     )
     SELECT COUNT(*) FILTER (WHERE available_quantity > 0 AND any_location_low) AS low_stock_skus
@@ -102,11 +105,12 @@ VALUES (
     WITH sku_inventory AS (
         SELECT SUM(COALESCE(il.available_quantity, 0)) AS available_quantity
         FROM public.dim_inventory_items ii
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
+        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id AND il.record_status = 'ACTIVE'
         WHERE ii.seller_id = :shopId
           AND il.seller_id = :shopId
           AND il.is_active = TRUE
+          AND ii.record_status = 'ACTIVE'
         GROUP BY pv.id
     )
     SELECT COUNT(*) FILTER (WHERE available_quantity <= 0) AS out_of_stock_skus
@@ -136,22 +140,24 @@ VALUES (
         SELECT pv.id AS variant_id,
                SUM(COALESCE(il.available_quantity, 0)) AS available_quantity
         FROM public.dim_inventory_items ii
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
+        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id AND il.record_status = 'ACTIVE'
         WHERE ii.seller_id = :shopId
           AND il.seller_id = :shopId
           AND il.is_active = TRUE
+          AND ii.record_status = 'ACTIVE'
         GROUP BY pv.id
     ),
     sales AS (
         SELECT li.product_variant_id,
                COALESCE(SUM(li.quantity), 0) AS units
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
         GROUP BY li.product_variant_id
     ),
     rolled AS (
@@ -187,10 +193,12 @@ VALUES (
     WITH period AS (
         SELECT GREATEST(COALESCE(:currentEndDate::date,
                                  (SELECT MAX(o.created_at::date) FROM public.fact_order_headers o
-                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))))
+                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+                                    AND o.record_status = 'ACTIVE'))
                       - COALESCE(:currentStartDate::date,
                                  (SELECT MIN(o.created_at::date) FROM public.fact_order_headers o
-                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT')))) + 1, 1) AS days
+                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+                                    AND o.record_status = 'ACTIVE')) + 1, 1) AS days
     ),
     sku_inventory AS (
         SELECT pv.id AS variant_id,
@@ -199,22 +207,24 @@ VALUES (
                BOOL_OR(COALESCE(il.available_quantity, 0)
                        <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
         FROM public.dim_inventory_items ii
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
+        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id AND il.record_status = 'ACTIVE'
         WHERE ii.seller_id = :shopId
           AND il.seller_id = :shopId
           AND il.is_active = TRUE
+          AND ii.record_status = 'ACTIVE'
         GROUP BY pv.id, pv.price
     ),
     sales AS (
         SELECT li.product_variant_id,
                COALESCE(SUM(li.quantity), 0) AS units
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
         GROUP BY li.product_variant_id
     ),
     velocity AS (
@@ -257,31 +267,35 @@ VALUES (
     WITH period AS (
         SELECT GREATEST(COALESCE(:currentEndDate::date,
                                  (SELECT MAX(o.created_at::date) FROM public.fact_order_headers o
-                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))))
+                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+                                    AND o.record_status = 'ACTIVE'))
                       - COALESCE(:currentStartDate::date,
                                  (SELECT MIN(o.created_at::date) FROM public.fact_order_headers o
-                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT')))) + 1, 1) AS days
+                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+                                    AND o.record_status = 'ACTIVE')) + 1, 1) AS days
     ),
     sku_inventory AS (
         SELECT pv.id AS variant_id,
                SUM(COALESCE(il.available_quantity, 0)) AS available_quantity
         FROM public.dim_inventory_items ii
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
+        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id AND il.record_status = 'ACTIVE'
         WHERE ii.seller_id = :shopId
           AND il.seller_id = :shopId
           AND il.is_active = TRUE
+          AND ii.record_status = 'ACTIVE'
         GROUP BY pv.id
     ),
     sales AS (
         SELECT li.product_variant_id,
                COALESCE(SUM(li.quantity), 0) AS units
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
         GROUP BY li.product_variant_id
     ),
     velocity AS (
@@ -316,11 +330,12 @@ VALUES (
     $$
     SELECT COALESCE(SUM(COALESCE(il.incoming_quantity, 0)), 0) AS incoming_stock
     FROM public.dim_inventory_items ii
-    JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-    JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
+    JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+    JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id AND il.record_status = 'ACTIVE'
     WHERE ii.seller_id = :shopId
       AND il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND ii.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many units are currently inbound across your inventory, so you know what replenishment is on the way."}',
     'KPI',
@@ -345,11 +360,12 @@ VALUES (
     SELECT ROUND(COALESCE(SUM(COALESCE(il.on_hand_quantity, 0)
                               * COALESCE(ii.unit_cost, 0)), 0), 2) AS inventory_value
     FROM public.dim_inventory_items ii
-    JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-    JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
+    JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+    JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id AND il.record_status = 'ACTIVE'
     WHERE ii.seller_id = :shopId
       AND il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND ii.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows the total value of inventory you are currently holding, so you know how much capital is tied up in stock now."}',
     'KPI',
@@ -376,22 +392,24 @@ VALUES (
                ii.unit_cost,
                SUM(COALESCE(il.on_hand_quantity, 0)) AS on_hand_quantity
         FROM public.dim_inventory_items ii
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
+        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id AND il.record_status = 'ACTIVE'
         WHERE ii.seller_id = :shopId
           AND il.seller_id = :shopId
           AND il.is_active = TRUE
+          AND ii.record_status = 'ACTIVE'
         GROUP BY pv.id, ii.unit_cost
     ),
     sales AS (
         SELECT li.product_variant_id,
                SUM(li.quantity) AS units
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
         GROUP BY li.product_variant_id
     )
     SELECT ROUND(COALESCE(SUM(si.on_hand_quantity * COALESCE(si.unit_cost, 0))
@@ -422,11 +440,12 @@ VALUES (
     SELECT ROUND(COALESCE(SUM(COALESCE(il.damaged_quantity, 0)
                               * COALESCE(ii.unit_cost, 0)), 0), 2) AS damaged_stock_value
     FROM public.dim_inventory_items ii
-    JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-    JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
+    JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+    JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id AND il.record_status = 'ACTIVE'
     WHERE ii.seller_id = :shopId
       AND il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND ii.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how much capital is tied up in damaged inventory, so you know how much value you are losing to damage."}',
     'KPI',
@@ -452,6 +471,7 @@ VALUES (
     FROM public.dim_inventory_levels il
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND il.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how much stock is committed to open orders, so you know how much of your inventory is already spoken for."}',
     'KPI',
@@ -477,6 +497,7 @@ VALUES (
     FROM public.dim_inventory_levels il
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND il.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how much stock is reserved and unavailable to sell, so you understand what is being held back from your sellable inventory."}',
     'KPI',
@@ -500,11 +521,12 @@ VALUES (
     $$
     SELECT COALESCE(SUM(COALESCE(li.unfulfilled_quantity, 0)), 0) AS unfulfilled_stock_demand
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many ordered units are still waiting to be fulfilled, so you know how much demand has not shipped yet. The % change compares this value with the previous matching period."}',
     'KPI',
@@ -530,10 +552,11 @@ VALUES (
     FROM (
         SELECT loc.id
         FROM public.dim_inventory_locations loc
-        JOIN public.dim_inventory_levels il ON il.inventory_location_id = loc.id
+        JOIN public.dim_inventory_levels il ON il.inventory_location_id = loc.id AND il.record_status = 'ACTIVE'
         WHERE loc.seller_id = :shopId
           AND loc.is_active = TRUE
           AND il.is_active = TRUE
+          AND loc.record_status = 'ACTIVE'
         GROUP BY loc.id
         HAVING SUM(COALESCE(il.available_quantity, 0)
                  + COALESCE(il.committed_quantity, 0)
@@ -568,11 +591,12 @@ VALUES (
         SELECT pv.id AS variant_id,
                SUM(COALESCE(il.available_quantity, 0)) AS available_quantity
         FROM public.dim_inventory_items ii
-        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id
+        JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+        JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id AND il.record_status = 'ACTIVE'
         WHERE ii.seller_id = :shopId
           AND il.seller_id = :shopId
           AND il.is_active = TRUE
+          AND ii.record_status = 'ACTIVE'
         GROUP BY pv.id
     ),
     sales AS (
@@ -587,9 +611,10 @@ VALUES (
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
         GROUP BY product_variant_id
@@ -629,9 +654,10 @@ VALUES (
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )

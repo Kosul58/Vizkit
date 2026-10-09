@@ -20,7 +20,9 @@ VALUES (
                ON il.inventory_location_id = loc.id
               AND il.seller_id = :shopId
               AND il.is_active = TRUE
+              AND il.record_status = 'ACTIVE'
         WHERE loc.seller_id = :shopId
+          AND loc.record_status = 'ACTIVE'
         GROUP BY loc.id, loc.name
     )
     SELECT ls.location_name AS location,
@@ -59,7 +61,9 @@ VALUES (
                ON il.inventory_location_id = loc.id
               AND il.seller_id = :shopId
               AND il.is_active = TRUE
+              AND il.record_status = 'ACTIVE'
         WHERE loc.seller_id = :shopId
+          AND loc.record_status = 'ACTIVE'
         GROUP BY loc.id, loc.name
     )
     SELECT ls.location_name AS location,
@@ -102,7 +106,9 @@ VALUES (
                ON il.inventory_location_id = loc.id
               AND il.seller_id = :shopId
               AND il.is_active = TRUE
+              AND il.record_status = 'ACTIVE'
         WHERE loc.seller_id = :shopId
+          AND loc.record_status = 'ACTIVE'
         GROUP BY loc.id, loc.name, loc.is_active, loc.address
     )
     SELECT ls.location_name AS location,
@@ -158,13 +164,14 @@ OFFSET COALESCE(:offset, 0)
                COALESCE(il.reserved_quantity, 0)     AS reserved_quantity,
                COALESCE(il.safety_stock_quantity, 0) AS safety_stock_quantity
         FROM public.dim_inventory_levels il
-        JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
-        LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        LEFT JOIN public.dim_products p ON p.id = pv.product_id
-        LEFT JOIN public.dim_inventory_locations loc ON loc.id = il.inventory_location_id
+        JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id AND ii.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_inventory_locations loc ON loc.id = il.inventory_location_id AND loc.record_status = 'ACTIVE'
         WHERE il.seller_id = :shopId
           AND ii.seller_id = :shopId
           AND il.is_active = TRUE
+          AND il.record_status = 'ACTIVE'
     )
     SELECT lr.location_name AS location,
            lr.sku AS sku,
@@ -238,7 +245,9 @@ VALUES (
                ON il.inventory_location_id = loc.id
               AND il.seller_id = :shopId
               AND il.is_active = TRUE
+              AND il.record_status = 'ACTIVE'
         WHERE loc.seller_id = :shopId
+          AND loc.record_status = 'ACTIVE'
         GROUP BY loc.id, loc.name
     )
     SELECT ls.location_name AS location,
@@ -270,10 +279,10 @@ VALUES (
 '019fff9a-1dfc-77e4-91ed-7ffbb2ad68bb',
         'Location Stock Health Matrix',
         'Inventory Location/Inventory Health by Location/PLOT/Location Stock Health Matrix',
-        '
+        $$
     WITH level_rows AS (
         SELECT loc.id AS location_id,
-               COALESCE(loc.name, ''Unknown'') AS location_name,
+               COALESCE(loc.name, 'Unknown') AS location_name,
                COALESCE(il.available_quantity, 0)    AS available_quantity,
                COALESCE(il.safety_stock_quantity, 0) AS safety_stock_quantity,
                COALESCE(il.damaged_quantity, 0)      AS damaged_quantity,
@@ -283,7 +292,9 @@ VALUES (
                ON il.inventory_location_id = loc.id
               AND il.seller_id = :shopId
               AND il.is_active = TRUE
+              AND il.record_status = 'ACTIVE'
         WHERE loc.seller_id = :shopId
+          AND loc.record_status = 'ACTIVE'
     )
     SELECT lr.location_name AS location,
            COUNT(*) FILTER (WHERE lr.available_quantity > 0
@@ -295,7 +306,7 @@ VALUES (
     FROM level_rows lr
     GROUP BY lr.location_id, lr.location_name
     ORDER BY lr.location_name, lr.location_id
-    ',
+    $$,
 '{"helperText": "Shows how many SKUs are low stock, out of stock, damaged, or reserved at each location, so you can spot which sites need the most attention."}',
         'PLOT',
         60,
@@ -325,8 +336,10 @@ VALUES (
                ON il.inventory_location_id = loc.id
               AND il.seller_id = :shopId
               AND il.is_active = TRUE
-        LEFT JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
+              AND il.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id AND ii.record_status = 'ACTIVE'
         WHERE loc.seller_id = :shopId
+          AND loc.record_status = 'ACTIVE'
         GROUP BY loc.id, loc.name
     )
     SELECT ld.location_name AS location,
@@ -364,15 +377,16 @@ VALUES (
                COALESCE(il.quality_control_quantity, 0) AS quality_control_quantity,
                COALESCE(ii.unit_cost, 0) AS unit_cost
         FROM public.dim_inventory_levels il
-        JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
-        LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        LEFT JOIN public.dim_products p ON p.id = pv.product_id
-        LEFT JOIN public.dim_inventory_locations loc ON loc.id = il.inventory_location_id
+        JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id AND ii.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_inventory_locations loc ON loc.id = il.inventory_location_id AND loc.record_status = 'ACTIVE'
         WHERE il.seller_id = :shopId
           AND ii.seller_id = :shopId
           AND il.is_active = TRUE
           AND (COALESCE(il.damaged_quantity, 0) > 0
             OR COALESCE(il.quality_control_quantity, 0) > 0)
+          AND il.record_status = 'ACTIVE'
     )
     SELECT lr.location_name AS location,
            lr.sku AS sku,
@@ -436,7 +450,9 @@ VALUES (
                ON il.inventory_location_id = loc.id
               AND il.seller_id = :shopId
               AND il.is_active = TRUE
+              AND il.record_status = 'ACTIVE'
         WHERE loc.seller_id = :shopId
+          AND loc.record_status = 'ACTIVE'
         GROUP BY loc.id, loc.name
     )
     SELECT lr.location_name AS location,
@@ -473,7 +489,9 @@ VALUES (
                ON il.inventory_location_id = loc.id
               AND il.seller_id = :shopId
               AND il.is_active = TRUE
+              AND il.record_status = 'ACTIVE'
         WHERE loc.seller_id = :shopId
+          AND loc.record_status = 'ACTIVE'
         GROUP BY loc.id, loc.name
     )
     SELECT lr.location_name AS location,
@@ -510,7 +528,9 @@ VALUES (
                ON il.inventory_location_id = loc.id
               AND il.seller_id = :shopId
               AND il.is_active = TRUE
+              AND il.record_status = 'ACTIVE'
         WHERE loc.seller_id = :shopId
+          AND loc.record_status = 'ACTIVE'
         GROUP BY loc.id, loc.name
     )
     SELECT ls.location_name AS location,
@@ -548,14 +568,15 @@ VALUES (
                COALESCE(il.safety_stock_quantity, 0) AS safety_stock_quantity,
                COALESCE(il.incoming_quantity, 0)     AS incoming_quantity
         FROM public.dim_inventory_levels il
-        JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
-        LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        LEFT JOIN public.dim_products p ON p.id = pv.product_id
-        LEFT JOIN public.dim_inventory_locations loc ON loc.id = il.inventory_location_id
+        JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id AND ii.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_inventory_locations loc ON loc.id = il.inventory_location_id AND loc.record_status = 'ACTIVE'
         WHERE il.seller_id = :shopId
           AND ii.seller_id = :shopId
           AND il.is_active = TRUE
           AND COALESCE(il.available_quantity, 0) <= COALESCE(il.safety_stock_quantity, 0)
+          AND il.record_status = 'ACTIVE'
     )
     SELECT lr.location_name AS location,
            lr.sku AS sku,
@@ -601,9 +622,10 @@ OFFSET COALESCE(:offset, 0)
         SELECT li.product_variant_id,
                MAX(o.created_at) AS last_sold_at
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND li.record_status = 'ACTIVE'
         GROUP BY li.product_variant_id
     ),
     level_rows AS (
@@ -616,15 +638,16 @@ OFFSET COALESCE(:offset, 0)
                COALESCE(il.available_quantity, 0) AS available_quantity,
                COALESCE(il.incoming_quantity, 0)  AS incoming_quantity
         FROM public.dim_inventory_levels il
-        JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
-        LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        LEFT JOIN public.dim_products p ON p.id = pv.product_id
-        LEFT JOIN public.dim_inventory_locations loc ON loc.id = il.inventory_location_id
+        JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id AND ii.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_inventory_locations loc ON loc.id = il.inventory_location_id AND loc.record_status = 'ACTIVE'
         LEFT JOIN last_sale ls ON ls.product_variant_id = pv.id
         WHERE il.seller_id = :shopId
           AND ii.seller_id = :shopId
           AND il.is_active = TRUE
           AND COALESCE(il.available_quantity, 0) = 0
+          AND il.record_status = 'ACTIVE'
     )
     SELECT lr.location_name AS location,
            lr.sku AS sku,
@@ -669,14 +692,15 @@ OFFSET COALESCE(:offset, 0)
                COALESCE(il.available_quantity, 0)    AS available_quantity,
                COALESCE(il.safety_stock_quantity, 0) AS safety_stock_quantity
         FROM public.dim_inventory_levels il
-        JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
-        LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        LEFT JOIN public.dim_products p ON p.id = pv.product_id
-        LEFT JOIN public.dim_inventory_locations loc ON loc.id = il.inventory_location_id
+        JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id AND ii.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_inventory_locations loc ON loc.id = il.inventory_location_id AND loc.record_status = 'ACTIVE'
         WHERE il.seller_id = :shopId
           AND ii.seller_id = :shopId
           AND il.is_active = TRUE
           AND COALESCE(il.incoming_quantity, 0) > 0
+          AND il.record_status = 'ACTIVE'
     )
     SELECT lr.location_name AS location,
            lr.sku AS sku,
@@ -743,7 +767,9 @@ VALUES (
                ON il.inventory_location_id = loc.id
               AND il.seller_id = :shopId
               AND il.is_active = TRUE
+              AND il.record_status = 'ACTIVE'
         WHERE loc.seller_id = :shopId
+          AND loc.record_status = 'ACTIVE'
         GROUP BY loc.id, loc.name
     )
     SELECT ls.location_name AS location,
@@ -781,14 +807,15 @@ VALUES (
                COALESCE(il.available_quantity, 0)    AS available_quantity,
                COALESCE(il.safety_stock_quantity, 0) AS safety_stock_quantity
         FROM public.dim_inventory_levels il
-        JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
-        LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        LEFT JOIN public.dim_products p ON p.id = pv.product_id
-        LEFT JOIN public.dim_inventory_locations loc ON loc.id = il.inventory_location_id
+        JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id AND ii.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_inventory_locations loc ON loc.id = il.inventory_location_id AND loc.record_status = 'ACTIVE'
         WHERE il.seller_id = :shopId
           AND ii.seller_id = :shopId
           AND il.is_active = TRUE
           AND COALESCE(il.committed_quantity, 0) > 0
+          AND il.record_status = 'ACTIVE'
     )
     SELECT lr.location_name AS location,
            lr.sku AS sku,
@@ -846,8 +873,10 @@ VALUES (
                ON il.inventory_location_id = loc.id
               AND il.seller_id = :shopId
               AND il.is_active = TRUE
-        LEFT JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
+              AND il.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id AND ii.record_status = 'ACTIVE'
         WHERE loc.seller_id = :shopId
+          AND loc.record_status = 'ACTIVE'
         GROUP BY loc.id, loc.name
     )
     SELECT lv.location_name AS location,
@@ -885,8 +914,10 @@ VALUES (
                ON il.inventory_location_id = loc.id
               AND il.seller_id = :shopId
               AND il.is_active = TRUE
-        LEFT JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
+              AND il.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id AND ii.record_status = 'ACTIVE'
         WHERE loc.seller_id = :shopId
+          AND loc.record_status = 'ACTIVE'
         GROUP BY loc.address #>> '{city}', loc.address #>> '{province}', loc.address #>> '{country}'
     )
     SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(44) || CHR(32), gv.city, gv.province, gv.country)) > 0
@@ -925,13 +956,14 @@ VALUES (
                COALESCE(il.on_hand_quantity, 0) AS on_hand_quantity,
                COALESCE(ii.unit_cost, 0) AS unit_cost
         FROM public.dim_inventory_levels il
-        JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
-        LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        LEFT JOIN public.dim_products p ON p.id = pv.product_id
-        LEFT JOIN public.dim_inventory_locations loc ON loc.id = il.inventory_location_id
+        JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id AND ii.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_inventory_locations loc ON loc.id = il.inventory_location_id AND loc.record_status = 'ACTIVE'
         WHERE il.seller_id = :shopId
           AND ii.seller_id = :shopId
           AND il.is_active = TRUE
+          AND il.record_status = 'ACTIVE'
     )
     SELECT lr.location_name AS location,
            lr.sku AS sku,
@@ -992,9 +1024,11 @@ VALUES (
         LEFT JOIN public.dim_inventory_levels il
                ON il.inventory_location_id = loc.id
               AND il.seller_id = :shopId
-        LEFT JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
+              AND il.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id AND ii.record_status = 'ACTIVE'
         WHERE loc.seller_id = :shopId
           AND NOT COALESCE(loc.is_active, TRUE)
+          AND loc.record_status = 'ACTIVE'
         GROUP BY loc.id, loc.name
     )
     SELECT i.location_name AS location,
@@ -1032,15 +1066,16 @@ VALUES (
                COALESCE(il.on_hand_quantity, 0) AS on_hand_quantity,
                COALESCE(ii.unit_cost, 0) AS unit_cost
         FROM public.dim_inventory_levels il
-        JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
-        LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id
-        LEFT JOIN public.dim_products p ON p.id = pv.product_id
-        JOIN public.dim_inventory_locations loc ON loc.id = il.inventory_location_id
+        JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id AND ii.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
+        JOIN public.dim_inventory_locations loc ON loc.id = il.inventory_location_id AND loc.record_status = 'ACTIVE'
         WHERE il.seller_id = :shopId
           AND ii.seller_id = :shopId
           AND loc.seller_id = :shopId
           AND NOT COALESCE(loc.is_active, TRUE)
           AND COALESCE(il.on_hand_quantity, 0) > 0
+          AND il.record_status = 'ACTIVE'
     )
     SELECT lr.location_name AS location,
            CASE WHEN lr.is_active THEN 'Active' ELSE 'Inactive' END AS active_status,
@@ -1089,8 +1124,10 @@ OFFSET COALESCE(:offset, 0)
                ON il.inventory_location_id = loc.id
               AND il.seller_id = :shopId
               AND il.is_active = TRUE
-        LEFT JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
+              AND il.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id AND ii.record_status = 'ACTIVE'
         WHERE loc.seller_id = :shopId
+          AND loc.record_status = 'ACTIVE'
         GROUP BY loc.id, loc.name, loc.is_fulfillment_service,
                  loc.fulfills_online_orders, loc.has_active_inventory
     )

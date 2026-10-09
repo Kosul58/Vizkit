@@ -15,7 +15,7 @@ VALUES (
     scoped_customers AS (
         SELECT DISTINCT c.id, date_trunc(LOWER(dp.g), c.created_at) AS bucket
         FROM public.dim_customers c
-        JOIN public.fact_order_headers o ON o.customer_id = c.id
+        JOIN public.fact_order_headers o ON o.customer_id = c.id AND o.record_status = 'ACTIVE'
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
@@ -23,6 +23,7 @@ VALUES (
           AND c.created_at IS NOT NULL
           AND c.created_at >= dp.start_bucket
           AND c.created_at < dp.end_bucket + dp.step
+          AND c.record_status = 'ACTIVE'
     ),
     daily_new AS (
         SELECT sc.bucket, COUNT(*) AS new_customers
@@ -84,6 +85,7 @@ ORDER BY df.bucket ASC
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND o.customer_id IS NOT NULL
       AND o.created_at < dp.end_bucket + dp.step
+      AND o.record_status = 'ACTIVE'
 ),
 guest_orders AS (
     SELECT
@@ -95,6 +97,7 @@ guest_orders AS (
       AND o.customer_id IS NULL
       AND o.created_at >= dp.start_bucket
       AND o.created_at < dp.end_bucket + dp.step
+      AND o.record_status = 'ACTIVE'
 ),
 daily AS (
     SELECT
@@ -169,7 +172,7 @@ $$,
     '019fff9a-1dfb-727b-b29d-9f6592bc4660',
     'Customer Detail Report',
     'Customer Retention/Customer Overview/TABLE/Customer Detail Report',
-    '
+    $$
     WITH filtered_orders AS (
         SELECT o.id,
                o.customer_id,
@@ -178,11 +181,12 @@ $$,
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     customer_totals AS (
         SELECT f.customer_id,
@@ -196,26 +200,27 @@ $$,
                CONCAT_WS(CHR(44) || CHR(32), ca.city, ca.province, ca.country) AS location
         FROM public.dim_customer_addresses ca
         WHERE ca.seller_id = :shopId
+          AND ca.record_status = 'ACTIVE'
         ORDER BY ca.customer_id, ca.id
     )
     SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
                 THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
-                ELSE COALESCE(c.email, ''Guest'') END AS customer,
+                ELSE COALESCE(c.email, 'Guest') END AS customer,
            c.email AS email,
            c.created_at::date::text AS created_date,
            t.orders AS orders,
            ROUND(t.amount_spent, 2) AS amount_spent,
            c.state AS state,
            COALESCE(c.taxExempt, FALSE) AS tax_exempt,
-           CASE WHEN LENGTH(l.location) > 0 THEN l.location ELSE ''Unknown'' END AS location,
+           CASE WHEN LENGTH(l.location) > 0 THEN l.location ELSE 'Unknown' END AS location,
            COUNT(*) OVER() AS total_records
     FROM customer_totals t
-    JOIN public.dim_customers c ON c.id = t.customer_id AND c.seller_id = :shopId
+    JOIN public.dim_customers c ON c.id = t.customer_id AND c.seller_id = :shopId AND c.record_status = 'ACTIVE'
     LEFT JOIN customer_location l ON l.customer_id = c.id
     ORDER BY t.amount_spent DESC, c.id
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{"helperText": "Shows every customer''s order count, total spend, tax status, and location, so you can audit your customer base in detail."}',
     'TABLE',
     60,
@@ -235,35 +240,37 @@ $$,
     '019fff9a-1dfb-7807-bf9d-7db4e9fb7900',
     'New vs Repeat Customer Report',
     'Customer Retention/Customer Overview/TABLE/New vs Repeat Customer Report',
-    '
+    $$
     WITH customer_order_ranks AS (
         SELECT o.id,
                o.created_at::date AS day,
                ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.created_at ASC, o.id ASC) AS order_rank
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     ),
     guest_orders AS (
         SELECT o.id,
                o.created_at::date AS day
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND o.customer_id IS NULL
+          AND o.record_status = 'ACTIVE'
     ),
     classified AS (
         SELECT r.id,
-               CASE WHEN r.order_rank = 1 THEN ''New'' ELSE ''Repeat'' END AS customer_type
+               CASE WHEN r.order_rank = 1 THEN 'New' ELSE 'Repeat' END AS customer_type
         FROM customer_order_ranks r
         WHERE (:currentStartDate IS NULL OR r.day >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR r.day <= :currentEndDate::date)
         UNION ALL
         SELECT g.id,
-               ''New'' AS customer_type
+               'New' AS customer_type
         FROM guest_orders g
         WHERE (:currentStartDate IS NULL OR g.day >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR g.day <= :currentEndDate::date)
@@ -275,14 +282,14 @@ $$,
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales,
                CASE
-                    WHEN o.financialstatus = ''VOIDED'' THEN 0
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
                     ELSE COALESCE(o.subtotal_price, 0)
                        + COALESCE(o.total_discounts_amount, 0)
                        + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
                        + COALESCE(o.total_shipping_price, 0)
                END AS gross_sales
         FROM classified cl
-        JOIN public.fact_order_headers o ON o.id = cl.id
+        JOIN public.fact_order_headers o ON o.id = cl.id AND o.record_status = 'ACTIVE'
     ),
     type_totals AS (
         SELECT m.customer_type,
@@ -297,10 +304,11 @@ $$,
                SUM(COALESCE(r.total_refunded_amount, 0)) AS refunded
         FROM public.fact_order_refunds r
         JOIN order_measures m ON m.id = r.order_id
+        WHERE r.record_status = 'ACTIVE'
         GROUP BY m.customer_type
     ),
     types(customer_type, sort_order) AS (
-        VALUES (''New'', 1), (''Repeat'', 2)
+        VALUES ('New', 1), ('Repeat', 2)
     )
     SELECT ty.customer_type AS customer_type,
            COALESCE(t.orders, 0) AS orders,
@@ -314,7 +322,7 @@ $$,
     ORDER BY ty.sort_order
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{"helperText": "Compares orders, revenue, AOV, and refund rate between new and repeat customers, so you can see how each group contributes to your business."}',
     'TABLE',
     60,
@@ -369,6 +377,7 @@ VALUES (
           AND o.customer_id IS NOT NULL
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
+          AND o.record_status = 'ACTIVE'
     ),
     guest_orders AS (
         SELECT date_trunc(LOWER(dp.g), o.created_at) AS bucket,
@@ -383,6 +392,7 @@ VALUES (
           AND o.customer_id IS NULL
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
+          AND o.record_status = 'ACTIVE'
     ),
     daily AS (
         SELECT r.bucket,
@@ -447,6 +457,7 @@ ORDER BY df.bucket ASC
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
         GROUP BY o.customer_id
     ),
     customer_span AS (
@@ -458,6 +469,7 @@ ORDER BY df.bucket ASC
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
         GROUP BY o.customer_id
     ),
     win AS (
@@ -526,6 +538,7 @@ ORDER BY df.bucket ASC
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
         GROUP BY o.customer_id
     )
     SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
@@ -533,7 +546,7 @@ ORDER BY df.bucket ASC
                 ELSE COALESCE(c.email, 'Guest') END AS customer,
            ROUND(p.revenue, 2) AS revenue
     FROM per_customer p
-    JOIN public.dim_customers c ON c.id = p.customer_id
+    JOIN public.dim_customers c ON c.id = p.customer_id AND c.record_status = 'ACTIVE'
     ORDER BY p.revenue DESC, c.id
     LIMIT 20
     $$,
@@ -554,7 +567,7 @@ ORDER BY df.bucket ASC
 '019fff9a-1dfb-718e-b555-8d50bbaff35c',
         'Customer Value Distribution',
         'Customer Retention/Customer Revenue & Value/PLOT/Customer Value Distribution',
-        '
+        $$
     WITH per_customer AS (
         SELECT o.customer_id,
                SUM(COALESCE(o.current_subtotal_price, 0)
@@ -562,11 +575,12 @@ ORDER BY df.bucket ASC
                    - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END) AS revenue
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
         GROUP BY o.customer_id
     ),
     bucket_defs(ord, lo, hi) AS (
@@ -580,7 +594,7 @@ ORDER BY df.bucket ASC
     LEFT JOIN per_customer p ON p.revenue >= b.lo AND (b.hi IS NULL OR p.revenue < b.hi)
     GROUP BY b.ord, b.lo, b.hi
     ORDER BY b.ord
-    ',
+    $$,
 '{"helperText": "Shows how many customers fall into each spending bracket, so you can understand the overall shape of your customer value."}',
         'PLOT',
         60,
@@ -598,7 +612,7 @@ ORDER BY df.bucket ASC
 '019fff9a-1dfb-76bb-bfd3-3eee427a2d97',
         'High-Value Customer Report',
         'Customer Retention/Customer Revenue & Value/TABLE/High-Value Customer Report',
-        '
+        $$
     WITH per_customer AS (
         SELECT o.customer_id,
                SUM(COALESCE(o.current_subtotal_price, 0)
@@ -608,11 +622,12 @@ ORDER BY df.bucket ASC
                MAX(o.created_at)::date AS last_order_date
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
         GROUP BY o.customer_id
     ),
     vip AS (
@@ -623,11 +638,12 @@ ORDER BY df.bucket ASC
         SELECT DISTINCT ON (ca.customer_id) ca.customer_id, ca.city, ca.country
         FROM public.dim_customer_addresses ca
         WHERE ca.seller_id = :shopId
+          AND ca.record_status = 'ACTIVE'
         ORDER BY ca.customer_id, ca.id
     )
     SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
                 THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
-                ELSE COALESCE(c.email, ''Guest'') END AS customer,
+                ELSE COALESCE(c.email, 'Guest') END AS customer,
            ROUND(p.revenue, 2) AS revenue,
            p.orders AS orders,
            ROUND(p.revenue / NULLIF(p.orders, 0), 2) AS aov,
@@ -637,13 +653,13 @@ ORDER BY df.bucket ASC
            COUNT(*) OVER() AS total_records
     FROM per_customer p
     CROSS JOIN vip v
-    JOIN public.dim_customers c ON c.id = p.customer_id AND c.seller_id = :shopId
+    JOIN public.dim_customers c ON c.id = p.customer_id AND c.seller_id = :shopId AND c.record_status = 'ACTIVE'
     LEFT JOIN customer_location l ON l.customer_id = p.customer_id
     WHERE v.vip_cut IS NOT NULL AND p.revenue >= v.vip_cut
     ORDER BY p.revenue DESC, c.id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{"helperText": "Shows your top VIP customers with revenue, orders, AOV, and last order date, so you know who to prioritize for retention."}',
         'TABLE',
         60,
@@ -679,16 +695,17 @@ VALUES (
 '019fff9a-1dfb-756f-bf31-02577fcf2164',
         'Orders per Customer Distribution',
         'Customer Retention/Customer Retention & Loyalty/PLOT/Orders per Customer Distribution',
-        '
+        $$
     WITH per_customer AS (
         SELECT o.customer_id, COUNT(*) AS order_count
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
         GROUP BY o.customer_id
     ),
     bucket_defs(ord, lo, hi) AS (
@@ -702,7 +719,7 @@ VALUES (
     LEFT JOIN per_customer p ON p.order_count >= b.lo AND (b.hi IS NULL OR p.order_count <= b.hi)
     GROUP BY b.ord, b.lo, b.hi
     ORDER BY b.ord
-    ',
+    $$,
 '{
     "helperText": "Shows how many customers have placed 1 order versus repeat customers with many orders — to gauge single-purchase drop-off and repeat purchase loyalty."
 }',
@@ -735,6 +752,7 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     ),
     first_order AS (
         SELECT customer_id, MIN(day) AS first_day FROM ranked GROUP BY customer_id
@@ -826,6 +844,7 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     ),
     first_order AS (
         SELECT customer_id, MIN(day) AS first_day FROM ranked GROUP BY customer_id
@@ -909,6 +928,7 @@ VALUES (
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND o.record_status = 'ACTIVE'
           
         GROUP BY o.customer_id
     ),
@@ -923,11 +943,13 @@ VALUES (
           
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     order_refunds AS (
         SELECT r.order_id, SUM(r.total_refunded_amount) AS refund_amount
         FROM public.fact_order_refunds r
         JOIN filtered_orders f ON f.id = r.order_id
+        WHERE r.record_status = 'ACTIVE'
         GROUP BY r.order_id
     ),
     segments(ord, segment) AS (
@@ -979,6 +1001,7 @@ VALUES (
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     order_refunds AS (
         SELECT s.id,
@@ -990,6 +1013,7 @@ VALUES (
         FROM scoped_orders s
         LEFT JOIN public.fact_order_refunds r ON r.order_id = s.id
         AND s.financialstatus != 'VOIDED'
+        AND r.record_status = 'ACTIVE'
         GROUP BY s.id, s.customer_id, s.gross
     ),
     per_customer AS (
@@ -1012,7 +1036,7 @@ VALUES (
            p.last_refund_date::text AS last_refund_date,
            COUNT(*) OVER() AS total_records
     FROM per_customer p
-    JOIN public.dim_customers c ON c.id = p.customer_id
+    JOIN public.dim_customers c ON c.id = p.customer_id AND c.record_status = 'ACTIVE'
     WHERE p.refunded > 0
     ORDER BY p.refunded DESC, c.id
     LIMIT COALESCE(:limit, 10)
@@ -1055,6 +1079,7 @@ VALUES (
           
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT country AS country,
            ROUND(SUM(net_sales), 2) AS revenue,
@@ -1096,6 +1121,7 @@ VALUES (
           
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT CONCAT_WS(CHR(44) || CHR(32), NULLIF(city, 'Unknown'), NULLIF(province, 'Unknown'), NULLIF(country, 'Unknown')) AS location,
            ROUND(SUM(net_sales), 2) AS revenue,
@@ -1137,6 +1163,7 @@ VALUES (
           
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT country AS country,
            province AS province,
@@ -1185,12 +1212,13 @@ VALUES (
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
-        JOIN public.dim_customers c ON c.id = o.customer_id
+        JOIN public.dim_customers c ON c.id = o.customer_id AND c.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     ),
     status_totals AS (
         SELECT status, SUM(net_sales) AS revenue
@@ -1230,6 +1258,7 @@ VALUES (
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     ),
     anchor AS (
         SELECT COALESCE(:currentEndDate::date, (SELECT MAX(day) FROM valid_orders)) AS anchor_day
@@ -1277,7 +1306,7 @@ VALUES (
     '019fff9a-1dfb-7e71-837c-54bae0ae10c2',
     'Inactive Customer Report',
     'Customer Retention/Customer Operations & Compliance/TABLE/Inactive Customer Report',
-    '
+    $$
     WITH valid_orders AS (
         SELECT o.customer_id,
                o.created_at::date AS day,
@@ -1286,9 +1315,10 @@ VALUES (
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND o.customer_id IS NOT NULL
+          AND o.record_status = 'ACTIVE'
     ),
     anchor AS (
         SELECT COALESCE(:currentEndDate::date, (SELECT MAX(day) FROM valid_orders)) AS anchor_day
@@ -1313,12 +1343,12 @@ VALUES (
            COUNT(*) OVER() AS total_records
     FROM lifetime l
     CROSS JOIN anchor a
-    JOIN public.dim_customers c ON c.id = l.customer_id
+    JOIN public.dim_customers c ON c.id = l.customer_id AND c.record_status = 'ACTIVE'
     WHERE (a.anchor_day - l.last_order_date) > 90
     ORDER BY (a.anchor_day - l.last_order_date) DESC, c.id
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{"helperText": "Shows customers who haven''t ordered in over 90 days, along with their last order date, spend, and order count, so you know who to target for re-engagement."}',
     'TABLE',
     60,
@@ -1338,7 +1368,7 @@ VALUES (
     '019fff9a-1dfb-7814-b98f-0bdf98266f9a',
     'Tax-Exempt Customer Report',
     'Customer Retention/Customer Operations & Compliance/TABLE/Tax-Exempt Customer Report',
-    '
+    $$
     WITH per_customer AS (
         SELECT o.customer_id,
                COUNT(*) AS orders,
@@ -1347,11 +1377,12 @@ VALUES (
                    - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END) AS revenue
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
         GROUP BY o.customer_id
     )
     SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
@@ -1365,12 +1396,12 @@ VALUES (
            p.orders AS orders,
            COUNT(*) OVER() AS total_records
     FROM per_customer p
-    JOIN public.dim_customers c ON c.id = p.customer_id
+    JOIN public.dim_customers c ON c.id = p.customer_id AND c.record_status = 'ACTIVE'
     WHERE COALESCE(c.taxExempt, FALSE) = TRUE
     ORDER BY p.revenue DESC, c.id
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{"helperText": "Shows your tax-exempt customers with their exemption details, revenue, and orders, so you can keep your tax records accurate."}',
     'TABLE',
     60,
@@ -1400,6 +1431,7 @@ VALUES (
           AND o.customer_id IS NOT NULL
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
                 THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
@@ -1421,7 +1453,7 @@ VALUES (
            COUNT(*) OVER() AS total_records
     FROM public.dim_customer_addresses ca
     JOIN scoped_customers s ON s.customer_id = ca.customer_id
-    JOIN public.dim_customers c ON c.id = ca.customer_id AND c.seller_id = :shopId
+    JOIN public.dim_customers c ON c.id = ca.customer_id AND c.seller_id = :shopId AND c.record_status = 'ACTIVE'
     WHERE ca.seller_id = :shopId
       AND (COALESCE(ca.coordinates_validated, FALSE) = FALSE
        OR COALESCE(LENGTH(TRIM(ca.address1)), 0) = 0
@@ -1429,6 +1461,7 @@ VALUES (
        OR COALESCE(LENGTH(TRIM(ca.province)), 0) = 0
        OR COALESCE(LENGTH(TRIM(ca.country)), 0) = 0
        OR COALESCE(LENGTH(TRIM(ca.zip)), 0) = 0)
+      AND ca.record_status = 'ACTIVE'
     ORDER BY c.id, ca.id
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)

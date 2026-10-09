@@ -19,13 +19,14 @@ VALUES (
         $$
     SELECT ROUND(COALESCE(SUM(COALESCE(r.total_refunded_amount, 0)), 0), 2) AS total_refunded_amount
     FROM public.fact_order_refunds r
-    JOIN public.fact_order_headers o ON o.id = r.order_id
+    JOIN public.fact_order_headers o ON o.id = r.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL
            OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date)
+      AND r.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows the total amount you have refunded in the selected period, so you know how much money is going back out. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -50,7 +51,7 @@ VALUES (
     WITH refund_totals AS (
         SELECT COALESCE(SUM(COALESCE(r.total_refunded_amount, 0)), 0) AS refunded
         FROM public.fact_order_refunds r
-        JOIN public.fact_order_headers o ON o.id = r.order_id
+        JOIN public.fact_order_headers o ON o.id = r.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.financialstatus != 'VOIDED'
@@ -58,16 +59,18 @@ VALUES (
                OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL
                OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date)
+          AND r.record_status = 'ACTIVE'
     ),
     gross_totals AS (
         SELECT COALESCE(SUM(COALESCE(li.original_total_amount,
                                      li.original_unit_price * li.quantity, 0)), 0) AS gross
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT ROUND(100 * rt.refunded / NULLIF(g.gross, 0), 2) AS refund_rate_by_value
     FROM refund_totals rt
@@ -95,7 +98,7 @@ VALUES (
         $$
     SELECT COUNT(DISTINCT r.order_id) AS refunded_orders
     FROM public.fact_order_refunds r
-    JOIN public.fact_order_headers o ON o.id = r.order_id
+    JOIN public.fact_order_headers o ON o.id = r.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND o.financialstatus != 'VOIDED'
@@ -103,6 +106,7 @@ VALUES (
            OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date)
+      AND r.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many distinct orders had at least one refund, so you can track how widespread refund activity is. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -127,7 +131,7 @@ VALUES (
     WITH refund_orders AS (
         SELECT COUNT(DISTINCT r.order_id) AS refunded_orders
         FROM public.fact_order_refunds r
-        JOIN public.fact_order_headers o ON o.id = r.order_id
+        JOIN public.fact_order_headers o ON o.id = r.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.financialstatus != 'VOIDED'
@@ -135,6 +139,7 @@ VALUES (
                OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL
                OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date)
+          AND r.record_status = 'ACTIVE'
     ),
     order_totals AS (
         SELECT COUNT(*) AS orders
@@ -143,6 +148,7 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND o.record_status = 'ACTIVE'
     )
     SELECT ROUND(100 * ro.refunded_orders::numeric / NULLIF(ot.orders, 0), 2) AS refunded_order_rate
     FROM refund_orders ro
@@ -171,7 +177,7 @@ VALUES (
     SELECT ROUND(COALESCE(SUM(COALESCE(r.total_refunded_amount, 0)), 0)
                  / NULLIF(COUNT(*), 0), 2) AS average_refund_value
     FROM public.fact_order_refunds r
-    JOIN public.fact_order_headers o ON o.id = r.order_id
+    JOIN public.fact_order_headers o ON o.id = r.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND o.financialstatus != 'VOIDED'
@@ -179,6 +185,7 @@ VALUES (
            OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL
            OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date)
+      AND r.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows the average dollar amount per refund, so you can gauge the typical size of a refund. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -207,6 +214,7 @@ VALUES (
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how much you have refunded in shipping charges, so you can track shipping-related refund costs. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -230,7 +238,7 @@ VALUES (
         $$
     SELECT ROUND(COALESCE(SUM(COALESCE(t.amount, 0)), 0), 2) AS refund_transaction_amount
     FROM public.fact_order_transactions t
-    JOIN public.fact_order_headers o ON o.id = t.order_id
+    JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
@@ -238,6 +246,7 @@ VALUES (
       AND t.status = 'SUCCESS'
       AND (:currentStartDate::date IS NULL OR t.processed_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR t.processed_at::date <= :currentEndDate::date)
+      AND t.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows the total value of successful refund transactions processed through your payment gateway, so you know how much has actually gone back to customers. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -263,11 +272,12 @@ VALUES (
                      * (li.quantity - COALESCE(li.refundable_quantity, li.quantity))::numeric
                      / NULLIF(li.quantity, 0)), 0), 2) AS refunded_discount_value
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how much discount value is tied to refunded units, so you can understand the discount impact of your refunds. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -296,6 +306,7 @@ VALUES (
       AND o.financialstatus = 'PARTIALLY_REFUNDED'
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many orders were partially refunded, so you can track orders with only some items or amounts returned. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -324,6 +335,7 @@ VALUES (
       AND o.financialstatus = 'REFUNDED'
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many orders were fully refunded, so you can track complete order returns. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -348,11 +360,12 @@ VALUES (
     SELECT COALESCE(SUM(li.quantity - COALESCE(li.current_quantity, li.quantity)), 0)
            AS refund_removed_quantity
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many units were removed from orders due to refunds, so you can track return volume at the item level. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -376,11 +389,12 @@ VALUES (
         $$
     SELECT COALESCE(SUM(COALESCE(li.refundable_quantity, 0)), 0) AS refundable_quantity
     FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id
+    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND li.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many units are still eligible for refund, so you can track your remaining refund exposure. The % change compares this value with the previous matching period."}',
         'KPI',
@@ -418,9 +432,10 @@ VALUES (
                     BETWEEN :priorStartDate::date AND :priorEndDate::date)                      AS is_prior,
                    COALESCE(r.total_refunded_amount, 0) AS amount
             FROM public.fact_order_refunds r
-            JOIN public.fact_order_headers o ON o.id = r.order_id
+            JOIN public.fact_order_headers o ON o.id = r.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND r.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -448,10 +463,11 @@ VALUES (
                     BETWEEN :priorStartDate::date AND :priorEndDate::date)                      AS is_prior,
                    COALESCE(r.total_refunded_amount, 0) AS amount
             FROM public.fact_order_refunds r
-            JOIN public.fact_order_headers o ON o.id = r.order_id
+            JOIN public.fact_order_headers o ON o.id = r.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus != 'VOIDED'
+              AND r.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -471,8 +487,9 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND o.record_status = 'ACTIVE'
         ) t
-        JOIN public.fact_order_line_items li ON li.order_id = t.id
+        JOIN public.fact_order_line_items li ON li.order_id = t.id AND li.record_status = 'ACTIVE'
         WHERE t.is_current OR t.is_prior
     ),
     computed AS (
@@ -505,10 +522,11 @@ VALUES (
                 AND COALESCE(r.processed_at, r.created_at)::date
                     BETWEEN :priorStartDate::date AND :priorEndDate::date)                      AS is_prior
             FROM public.fact_order_refunds r
-            JOIN public.fact_order_headers o ON o.id = r.order_id
+            JOIN public.fact_order_headers o ON o.id = r.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus != 'VOIDED'
+              AND r.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -536,10 +554,11 @@ VALUES (
                 AND COALESCE(r.processed_at, r.created_at)::date
                     BETWEEN :priorStartDate::date AND :priorEndDate::date)                      AS is_prior
             FROM public.fact_order_refunds r
-            JOIN public.fact_order_headers o ON o.id = r.order_id
+            JOIN public.fact_order_headers o ON o.id = r.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus != 'VOIDED'
+              AND r.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -554,6 +573,7 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -591,10 +611,11 @@ VALUES (
                     BETWEEN :priorStartDate::date AND :priorEndDate::date)                      AS is_prior,
                    COALESCE(r.total_refunded_amount, 0) AS amount
             FROM public.fact_order_refunds r
-            JOIN public.fact_order_headers o ON o.id = r.order_id
+            JOIN public.fact_order_headers o ON o.id = r.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus != 'VOIDED'
+              AND r.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -626,6 +647,7 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -650,12 +672,13 @@ VALUES (
                 AND t.processed_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
                    COALESCE(t.amount, 0) AS amount
             FROM public.fact_order_transactions t
-            JOIN public.fact_order_headers o ON o.id = t.order_id
+            JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND t.kind = 'REFUND'
               AND t.status = 'SUCCESS'
+              AND t.record_status = 'ACTIVE'
         ) x
         WHERE x.is_current OR x.is_prior
     )
@@ -686,8 +709,9 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND o.record_status = 'ACTIVE'
         ) t
-        JOIN public.fact_order_line_items li ON li.order_id = t.id
+        JOIN public.fact_order_line_items li ON li.order_id = t.id AND li.record_status = 'ACTIVE'
         WHERE t.is_current OR t.is_prior
     )
     SELECT ROUND(d.prv_value, 2) AS previous_value,
@@ -713,6 +737,7 @@ VALUES (
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus = 'PARTIALLY_REFUNDED'
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -739,6 +764,7 @@ VALUES (
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.financialstatus = 'REFUNDED'
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -763,9 +789,10 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
                    li.quantity - COALESCE(li.current_quantity, li.quantity) AS removed_units
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -790,9 +817,10 @@ VALUES (
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
                    COALESCE(li.refundable_quantity, 0) AS refundable_units
             FROM public.fact_order_line_items li
-            JOIN public.fact_order_headers o ON o.id = li.order_id
+            JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )

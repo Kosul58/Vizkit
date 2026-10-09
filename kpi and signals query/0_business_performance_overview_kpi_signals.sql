@@ -19,6 +19,7 @@ VALUES (
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows your total revenue in the selected period, so you know how much money is coming in overall. The % change compares this value with the previous matching period."}',
     'KPI',
@@ -48,6 +49,7 @@ VALUES (
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows your total net sales in the selected period, so you know what you are actually earning from orders after tax and duties. The % change compares this value with the previous matching period."}',
     'KPI',
@@ -78,6 +80,7 @@ VALUES (
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how much customers spend on average per order, so you can track whether order sizes are growing or shrinking. The % change compares this value with the previous matching period."}',
     'KPI',
@@ -105,6 +108,7 @@ VALUES (
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many orders came in in the selected period, so you can track overall order volume. The % change compares this value with the previous matching period."}',
     'KPI',
@@ -129,6 +133,7 @@ VALUES (
     SELECT COUNT(*) AS total_customers
     FROM public.dim_customers c
     WHERE c.seller_id = :shopId
+      AND c.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows your total number of customers, so you know the overall size of your customer base."}',
     'KPI',
@@ -153,10 +158,11 @@ VALUES (
     SELECT COALESCE(SUM(COALESCE(il.on_hand_quantity, 0)
                         * COALESCE(ii.unit_cost, 0)), 0) AS inventory_value
     FROM public.dim_inventory_levels il
-    JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
+    JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id AND ii.record_status = 'ACTIVE'
     WHERE il.seller_id = :shopId
       AND ii.seller_id = :shopId
       AND il.is_active = TRUE
+      AND il.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows the total value of inventory you are currently holding, so you know how much capital is tied up in stock now."}',
     'KPI',
@@ -200,6 +206,7 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -228,6 +235,7 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )
@@ -258,6 +266,7 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     ),
@@ -288,6 +297,7 @@ VALUES (
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND o.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
     )

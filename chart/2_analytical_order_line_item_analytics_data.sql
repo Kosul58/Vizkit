@@ -8,29 +8,30 @@ VALUES (
     '019fff82-e31b-723e-9094-490488aabe62',
     'Top Products by Units Sold',
     'Order Line Item Analytics/Sales Performance/PLOT/Top Products by Units Sold',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                li.quantity AS units,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT COALESCE(p.title, pv.sku, pv.id) AS product,
            SUM(f.units) AS units_sold,
            ROUND(SUM(f.net_sales), 2) AS net_sales
     FROM filtered_lines f
-    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
-    LEFT JOIN public.dim_products p ON p.id = pv.product_id
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
     GROUP BY COALESCE(p.title, pv.sku, pv.id)
     ORDER BY units_sold DESC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{
     "helperText": "Shows which products are selling the most units, so you know what is flying off the shelves."
 }',
@@ -92,12 +93,13 @@ OFFSET COALESCE(:offset, 0)
                li.quantity AS units,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
+          AND li.record_status = 'ACTIVE'
     ),
     daily AS (
         SELECT f.bucket,
@@ -141,28 +143,29 @@ OFFSET COALESCE(:offset, 0)
     '019fff82-e31b-753d-8e10-ec059dcda45d',
     'Top SKUs by Net Sales',
     'Order Line Item Analytics/Sales Performance/PLOT/Top SKUs by Net Sales',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                li.quantity AS units,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT COALESCE(pv.sku, pv.id) AS sku,
            ROUND(SUM(f.net_sales), 2) AS net_sales,
            SUM(f.units) AS units_sold
     FROM filtered_lines f
-    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
     GROUP BY COALESCE(pv.sku, pv.id)
     ORDER BY net_sales DESC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{
     "helperText": "Shows which SKUs are generating the most revenue, ranked from highest to lowest, so you can identify your primary revenue drivers."
 }',
@@ -193,11 +196,12 @@ OFFSET COALESCE(:offset, 0)
                COALESCE(li.discounted_total_amount, 0) AS net_sales,
                COALESCE(li.total_discount_amount, 0) AS discounts
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT p.id AS product_id,
            pv.sku AS sku,
@@ -211,8 +215,8 @@ OFFSET COALESCE(:offset, 0)
            SUM(f.unfulfilled_units) AS unfulfilled_quantity,
            COUNT(*) OVER() AS total_records
     FROM filtered_lines f
-    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
-    LEFT JOIN public.dim_products p ON p.id = pv.product_id
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
     GROUP BY pv.sku, pv.variant_title, p.id, p.title
     ORDER BY net_sales DESC
     LIMIT COALESCE(:limit, 10)
@@ -247,11 +251,12 @@ OFFSET COALESCE(:offset, 0)
                COALESCE(li.original_total_amount, 0) AS gross_sales,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     ),
     product_lines AS (
         SELECT p.id AS product_id,
@@ -264,9 +269,9 @@ OFFSET COALESCE(:offset, 0)
                f.gross_sales,
                f.net_sales
         FROM filtered_lines f
-        JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
-        LEFT JOIN public.dim_products p ON p.id = pv.product_id
-        LEFT JOIN public.dim_taxonomy_categories tc ON tc.id = p.category_id AND tc.seller_id = p.seller_id
+        JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_taxonomy_categories tc ON tc.id = p.category_id AND tc.seller_id = p.seller_id AND tc.record_status = 'ACTIVE'
     )
     SELECT  pl.product_id AS product_id,
            pl.product AS product,
@@ -311,26 +316,27 @@ VALUES (
     '019fff82-e31b-7c5d-ae47-dd60a34e7dc7',
     'Discount Leakage by SKU',
     'Order Line Item Analytics/Discount & Leakage/PLOT/Discount Leakage by SKU',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                COALESCE(li.total_discount_amount, 0) AS discounts
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT COALESCE(pv.sku, pv.id) AS sku,
            ROUND(SUM(f.discounts), 2) AS discount_amount
     FROM filtered_lines f
-    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
     GROUP BY COALESCE(pv.sku, pv.id)
     HAVING SUM(f.discounts) > 0
     ORDER BY discount_amount DESC
     LIMIT 20
-    ',
+    $$,
 '{
     "helperText": "Shows which SKUs have the most money given away in discounts, so you can spot where promotions are costing you the most."
 }',
@@ -359,12 +365,13 @@ VALUES (
                COALESCE(li.discounted_total_amount, 0) AS discounted_amount,
                COALESCE(li.total_discount_amount, 0) AS discount_amount
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND COALESCE(li.total_discount_amount, 0) > 0
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT p.id AS product_id,
            pv.sku AS sku,
@@ -376,8 +383,8 @@ VALUES (
            ROUND(100 * f.discount_amount / NULLIF(f.original_amount, 0), 2) AS discount_rate,
            COUNT(*) OVER() AS total_records
     FROM filtered_lines f
-    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
-    LEFT JOIN public.dim_products p ON p.id = pv.product_id
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
     ORDER BY f.discount_amount DESC, f.line_id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
@@ -408,27 +415,28 @@ VALUES (
     '019fff82-e31b-7ea2-96e7-94369d8d22a0',
     'Unfulfilled Quantity by SKU',
     'Order Line Item Analytics/Fulfillment & Backlog/PLOT/Unfulfilled Quantity by SKU',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                COALESCE(li.unfulfilled_quantity, 0) AS unfulfilled_units
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT COALESCE(pv.sku, pv.id) AS sku,
            SUM(f.unfulfilled_units) AS unfulfilled_quantity
     FROM filtered_lines f
-    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
     GROUP BY COALESCE(pv.sku, pv.id)
     HAVING SUM(f.unfulfilled_units) > 0
     ORDER BY unfulfilled_quantity DESC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{
     "helperText": "Shows which SKUs have the biggest fulfillment backlog, so you can prioritize what to ship next."
 }',
@@ -460,12 +468,13 @@ OFFSET COALESCE(:offset, 0)
                COALESCE(li.unfulfilled_quantity, 0) AS unfulfilled_units,
                COALESCE(li.unfulfilled_discounted_total_amount, 0) AS unfulfilled_value
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND COALESCE(li.unfulfilled_quantity, 0) > 0
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT f.order_id,
            p.id AS product_id,
@@ -477,8 +486,8 @@ OFFSET COALESCE(:offset, 0)
            f.fulfillment_status AS fulfillment_status,
            COUNT(*) OVER() AS total_records
     FROM filtered_lines f
-    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
-    LEFT JOIN public.dim_products p ON p.id = pv.product_id
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
     ORDER BY f.unfulfilled_value DESC, f.line_id
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
@@ -509,27 +518,28 @@ VALUES (
     '019fff82-e31b-7505-ba36-3c1dd912477f',
     'Refund / Removed Quantity by SKU',
     'Order Line Item Analytics/Returns & Refunds/PLOT/Refund / Removed Quantity by SKU',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                li.quantity - li.current_quantity AS removed_units
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT COALESCE(pv.sku, pv.id) AS sku,
            SUM(f.removed_units) AS refund_removed_quantity
     FROM filtered_lines f
-    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
     GROUP BY COALESCE(pv.sku, pv.id)
     HAVING SUM(f.removed_units) > 0
     ORDER BY refund_removed_quantity DESC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{
     "helperText": "Shows which SKUs have the most units refunded or removed from orders, to spot potential quality or fit issues."
 }',
@@ -559,11 +569,12 @@ OFFSET COALESCE(:offset, 0)
                li.quantity - li.current_quantity AS removed_units,
                COALESCE(li.refundable_quantity, 0) AS refundable_units
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT p.id AS product_id,
            pv.sku AS sku,
@@ -574,8 +585,8 @@ OFFSET COALESCE(:offset, 0)
            SUM(f.refundable_units) AS refundable_quantity,
            COUNT(*) OVER() AS total_records
     FROM filtered_lines f
-    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
-    LEFT JOIN public.dim_products p ON p.id = pv.product_id
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
     GROUP BY p.id, pv.sku, p.title
     HAVING SUM(f.removed_units) > 0
     ORDER BY refund_removed_quantity DESC, sku
@@ -613,18 +624,19 @@ VALUES (
         SELECT li.product_variant_id,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     ),
     product_sales AS (
         SELECT COALESCE(p.title, pv.sku, pv.id) AS product,
                SUM(f.net_sales) AS net_sales
         FROM filtered_lines f
-        JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
-        LEFT JOIN public.dim_products p ON p.id = pv.product_id
+        JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
+        LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
         GROUP BY COALESCE(p.title, pv.sku, pv.id)
         HAVING SUM(f.net_sales) > 0
     )
@@ -695,12 +707,13 @@ VALUES (
                li.quantity AS units,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
+          AND li.record_status = 'ACTIVE'
     ),
     daily AS (
         SELECT f.bucket,
@@ -747,18 +760,19 @@ VALUES (
         SELECT li.product_variant_id,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT COALESCE(tc.name, 'Uncategorized') AS category,
            ROUND(SUM(f.net_sales), 2) AS net_sales
     FROM filtered_lines f
-    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
-    LEFT JOIN public.dim_products p ON p.id = pv.product_id
-    LEFT JOIN public.dim_taxonomy_categories tc ON tc.id = p.category_id AND tc.seller_id = p.seller_id
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
+    LEFT JOIN public.dim_taxonomy_categories tc ON tc.id = p.category_id AND tc.seller_id = p.seller_id AND tc.record_status = 'ACTIVE'
     GROUP BY COALESCE(tc.name, 'Uncategorized')
     HAVING SUM(f.net_sales) > 0
     ORDER BY net_sales DESC
@@ -793,19 +807,20 @@ OFFSET COALESCE(:offset, 0)
                COALESCE(li.total_discount_amount, 0) AS discounts,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT COALESCE(p.title, pv.sku, pv.id) AS product,
            ROUND(SUM(f.gross_sales), 2) AS gross_sales,
            ROUND(SUM(f.discounts), 2) AS discounts,
            ROUND(SUM(f.net_sales), 2) AS net_sales
     FROM filtered_lines f
-    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
-    LEFT JOIN public.dim_products p ON p.id = pv.product_id
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
     GROUP BY COALESCE(p.title, pv.sku, pv.id)
     HAVING SUM(f.gross_sales) > 0
     ORDER BY net_sales DESC
@@ -832,18 +847,19 @@ OFFSET COALESCE(:offset, 0)
     '019fff82-e31b-7046-ab17-44ababdc75de',
     'Collection Performance Report',
     'Order Line Item Analytics/Vendor & Collection/TABLE/Collection Performance Report',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                li.quantity AS units,
                COALESCE(li.original_total_amount, 0) AS gross_sales,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     ),
     period_total AS (
         SELECT SUM(f.net_sales) AS total_net_sales
@@ -856,9 +872,9 @@ OFFSET COALESCE(:offset, 0)
                f.gross_sales,
                f.net_sales
         FROM filtered_lines f
-        JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
-        JOIN public.dim_collection_products cp ON cp.product_id = pv.product_id
-        JOIN public.dim_collections c ON c.id = cp.collection_id
+        JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
+        JOIN public.dim_collection_products cp ON cp.product_id = pv.product_id AND cp.record_status = 'ACTIVE'
+        JOIN public.dim_collections c ON c.id = cp.collection_id AND c.record_status = 'ACTIVE'
         WHERE c.seller_id = :shopId
     )
     SELECT cl.collection AS collection,
@@ -874,7 +890,7 @@ OFFSET COALESCE(:offset, 0)
     ORDER BY net_sales DESC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{
     "helperText": "Shows how each of your collections is performing across products, units sold, sales, share of total revenue, and discount rate."
 }',
@@ -901,31 +917,32 @@ VALUES (
     '019fff82-e31b-793a-8fcc-6877cfc039bf',
     'Sales by Vendor',
     'Order Line Item Analytics/Vendor & Collection/PLOT/Sales by Vendor',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                li.quantity AS units,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT COALESCE(p.vendor, pv.sku, pv.id) AS vendor,
            ROUND(SUM(f.net_sales), 2) AS net_sales,
            SUM(f.units) AS units_sold
     FROM filtered_lines f
-    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
-    LEFT JOIN public.dim_products p ON p.id = pv.product_id
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
     GROUP BY COALESCE(p.vendor, pv.sku, pv.id)
     HAVING SUM(f.net_sales) > 0
     ORDER BY net_sales DESC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{
     "helperText": "Shows which vendors are driving the most sales and units sold, so you know who your top suppliers are."
 }',
@@ -947,33 +964,34 @@ OFFSET COALESCE(:offset, 0)
     '019fff82-e31b-7e3a-a503-265f777d3aa1',
     'Sales by Collection',
     'Order Line Item Analytics/Vendor & Collection/PLOT/Sales by Collection',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                li.quantity AS units,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT c.title AS collection,
            ROUND(SUM(f.net_sales), 2) AS net_sales,
            SUM(f.units) AS units_sold
     FROM filtered_lines f
-    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
-    JOIN public.dim_collection_products cp ON cp.product_id = pv.product_id
-    JOIN public.dim_collections c ON c.id = cp.collection_id
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
+    JOIN public.dim_collection_products cp ON cp.product_id = pv.product_id AND cp.record_status = 'ACTIVE'
+    JOIN public.dim_collections c ON c.id = cp.collection_id AND c.record_status = 'ACTIVE'
     WHERE c.seller_id = :shopId
     GROUP BY c.title
     HAVING SUM(f.net_sales) > 0
     ORDER BY net_sales DESC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{
     "helperText": "Shows which of your collections are generating the most sales and units sold, so you can understand which curated groups resonate most with buyers."
 }',
@@ -995,17 +1013,18 @@ OFFSET COALESCE(:offset, 0)
     '019fff82-e31b-7b9d-b376-960a16cbf47a',
     'Gift Card vs Merchandise Sales',
     'Order Line Item Analytics/Vendor & Collection/PLOT/Gift Card vs Merchandise Sales',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT COALESCE(li.is_giftcard, FALSE) AS is_gift_card,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     ),
     segments AS (
         SELECT ROUND(COALESCE(SUM(f.net_sales) FILTER (WHERE f.is_gift_card), 0), 2)     AS "Gift Cards",
@@ -1017,7 +1036,7 @@ OFFSET COALESCE(:offset, 0)
     FROM segments s,
          json_each_text(row_to_json(s)) WITH ORDINALITY AS e(segment, amount, ord)
     ORDER BY e.ord
-    ',
+    $$,
 '{"helperText": "Shows how your revenue splits between gift cards and regular merchandise, useful for tracking prepaid revenue versus immediate product sales."}',
     'PLOT',
     60,
@@ -1035,7 +1054,7 @@ OFFSET COALESCE(:offset, 0)
     '019fff82-e31b-76e0-bf62-575b5d09b4da',
     'Vendor Sales Report',
     'Order Line Item Analytics/Vendor & Collection/TABLE/Vendor Sales Report',
-    '
+    $$
     WITH filtered_lines AS (
         SELECT li.product_variant_id,
                li.quantity AS units,
@@ -1043,11 +1062,12 @@ OFFSET COALESCE(:offset, 0)
                COALESCE(li.original_total_amount, 0) AS gross_sales,
                COALESCE(li.discounted_total_amount, 0) AS net_sales
         FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id
+        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> ''MERCHANT''))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
+          AND li.record_status = 'ACTIVE'
     )
     SELECT COALESCE(p.vendor, pv.sku, pv.id) AS vendor,
            COUNT(DISTINCT pv.product_id) AS products,
@@ -1059,13 +1079,13 @@ OFFSET COALESCE(:offset, 0)
            ROUND(100 * (SUM(f.gross_sales) - SUM(f.net_sales)) / NULLIF(SUM(f.gross_sales), 0), 2) AS discount_rate,
            COUNT(*) OVER() AS total_records
     FROM filtered_lines f
-    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id
-    LEFT JOIN public.dim_products p ON p.id = pv.product_id
+    JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
     GROUP BY COALESCE(p.vendor, pv.sku, pv.id)
     ORDER BY net_sales DESC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
-    ',
+    $$,
 '{
     "helperText": "Shows products, SKUs, units sold, refunded units, sales, and discount rate for each vendor, so you can compare how your suppliers perform."
 }',

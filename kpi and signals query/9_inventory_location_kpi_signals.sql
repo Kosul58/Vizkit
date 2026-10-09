@@ -20,6 +20,7 @@ VALUES (
     SELECT COUNT(*) FILTER (WHERE loc.is_active) AS active_locations
     FROM public.dim_inventory_locations loc
     WHERE loc.seller_id = :shopId
+      AND loc.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many of your locations are currently active, so you know the size of your live location network."}',
         'KPI',
@@ -44,6 +45,7 @@ VALUES (
     SELECT COUNT(*) FILTER (WHERE loc.has_active_inventory) AS locations_with_active_inventory
     FROM public.dim_inventory_locations loc
     WHERE loc.seller_id = :shopId
+      AND loc.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many locations are currently holding active inventory, so you know how many sites are actually stocked."}',
         'KPI',
@@ -69,6 +71,7 @@ VALUES (
     FROM public.dim_inventory_levels il
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND il.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows the total on-hand units held across all your locations, so you know your overall stock volume."}',
         'KPI',
@@ -94,6 +97,7 @@ VALUES (
     FROM public.dim_inventory_levels il
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND il.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many units are available to sell across all locations, so you know what''s ready for customers now."}',
         'KPI',
@@ -119,6 +123,7 @@ VALUES (
     FROM public.dim_inventory_levels il
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND il.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many units are committed to open orders across all locations, so you know how much stock is already spoken for."}',
         'KPI',
@@ -144,6 +149,7 @@ VALUES (
     FROM public.dim_inventory_levels il
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND il.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many units are reserved and unavailable to sell across all locations, so you understand what''s set aside."}',
         'KPI',
@@ -169,6 +175,7 @@ VALUES (
     FROM public.dim_inventory_levels il
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND il.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many units are marked damaged across all locations, so you can track losses from damaged inventory."}',
         'KPI',
@@ -195,6 +202,7 @@ VALUES (
     FROM public.dim_inventory_levels il
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND il.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many SKUs are at or below their safety stock threshold, so you know how many items need reordering soon."}',
         'KPI',
@@ -220,6 +228,7 @@ VALUES (
     FROM public.dim_inventory_levels il
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND il.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many SKUs currently have zero available stock, so you know how many items risk missed sales."}',
         'KPI',
@@ -245,6 +254,7 @@ VALUES (
     FROM public.dim_inventory_levels il
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND il.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many units are currently inbound across all locations, so you know what replenishment is on the way."}',
         'KPI',
@@ -269,6 +279,7 @@ VALUES (
     SELECT COUNT(*) FILTER (WHERE loc.has_unfulfilled_orders) AS fulfillment_risk_locations
     FROM public.dim_inventory_locations loc
     WHERE loc.seller_id = :shopId
+      AND loc.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many locations have pending unfulfilled orders, so you know where fulfillment delays might be building up."}',
         'KPI',
@@ -295,8 +306,10 @@ VALUES (
     FROM public.dim_inventory_levels il
     LEFT JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id
                                AND ii.seller_id = :shopId
+                               AND ii.record_status = 'ACTIVE'
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND il.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows the total value of your on-hand inventory at cost, so you know how much capital is tied up in stock."}',
         'KPI',
@@ -324,6 +337,7 @@ VALUES (
     FROM public.dim_inventory_levels il
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE
+      AND il.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many units are damaged, in quality control, or reserved — and therefore not sellable — so you understand how much stock isn''t contributing to revenue."}',
         'KPI',
@@ -353,7 +367,9 @@ VALUES (
         LEFT JOIN public.dim_inventory_levels il
                ON il.inventory_location_id = loc.id
               AND il.seller_id = :shopId
+              AND il.record_status = 'ACTIVE'
         WHERE loc.seller_id = :shopId
+          AND loc.record_status = 'ACTIVE'
         GROUP BY loc.id, loc.is_active
     )
     SELECT COUNT(*) FILTER (WHERE NOT ls.is_active AND ls.on_hand_quantity > 0)
@@ -384,6 +400,7 @@ VALUES (
            AS fulfillment_service_locations
     FROM public.dim_inventory_locations loc
     WHERE loc.seller_id = :shopId
+      AND loc.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how many of your locations operate as third-party fulfillment services, so you understand your fulfillment network setup."}',
         'KPI',
