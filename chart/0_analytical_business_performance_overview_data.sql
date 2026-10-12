@@ -159,7 +159,7 @@ VALUES (
 '{"helperText": "A breakdown of your inventory by status — In Stock, Low Stock, Out of Stock, and Overstock — so you can quickly spot items that need restocking or are piling up."}',
         'PLOT',
         60,
-        'Distribution of SKUs across stock status classifications (In Stock, Low Stock, Out of Stock, Overstock), measured against configured safety stock summed across active locations. Where a SKU has no safety stock configured, only Out of Stock and In Stock are determinable.',
+        'Distribution of SKUs by stock status (In Stock, Low Stock, Out of Stock, Overstock), measured against safety stock summed across active locations. SKUs without safety stock can only be In Stock or Out of Stock.',
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },

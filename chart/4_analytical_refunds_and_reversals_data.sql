@@ -1455,57 +1455,7 @@ INSERT INTO
         description,
         configuration
     )
-VALUES (
-'019fff82-e31d-7e78-99f7-d8efbb717b07',
-        'Refund Note Keyword Analysis',
-        'Refunds & Reversals/Staff & Audit Controls/TABLE/Refund Note Keyword Analysis',
-        $$
-    WITH scoped_refunds AS (
-        SELECT r.id,
-               COALESCE(r.total_refunded_amount, 0) AS amount,
-               r.note
-        FROM public.fact_order_refunds r
-        JOIN public.fact_order_headers o ON o.id = r.order_id AND o.record_status = 'ACTIVE'
-        WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-          AND r.total_refunded_amount > 0
-          AND r.note IS NOT NULL
-          AND (:currentStartDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
-          AND (:currentEndDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date)
-          AND r.record_status = 'ACTIVE'
-    ),
-    tokens AS (
-        SELECT DISTINCT s.id AS refund_id,
-               s.amount,
-               lexeme AS keyword
-        FROM scoped_refunds s,
-             LATERAL unnest(to_tsvector('english', COALESCE(s.note, ''))) AS lexeme
-    )
-    SELECT t.keyword AS keyword,
-           COUNT(*) AS refund_count,
-           ROUND(SUM(t.amount), 2) AS refunded_amount,
-           COUNT(*) OVER() AS total_records
-    FROM tokens t
-    GROUP BY t.keyword
-    ORDER BY refund_count DESC, refunded_amount DESC
-    LIMIT COALESCE(:limit, 10)
-OFFSET COALESCE(:offset, 0)
-    $$,
-'{"helperText": "Shows which keywords come up most often in your refund notes, along with how much they''ve cost in refunds, so you can spot recurring reasons customers ask for money back."}',
-        'TABLE',
-        360,
-        'Audit text analysis ranking recurring keywords found in refund notes.',
-        '{
-      "filterMappings": {
-        "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
-        "limit": { "source": "REQUEST_FILTER", "filterKey": "limit" },
-        "offset": { "source": "REQUEST_FILTER", "filterKey": "offset" },
-        "currentStartDate": { "source": "REQUEST_FILTER", "filterKey": "startDate" },
-        "currentEndDate":   { "source": "REQUEST_FILTER", "filterKey": "endDate" }
-      },
-      "excludeExtraParams": true
-    }'
-),
+VALUES 
     (
 '019fff82-e31d-78ee-b15c-582a98b59a1f',
         'Refund Detail Report',
@@ -1566,35 +1516,20 @@ OFFSET COALESCE(:offset, 0)
           AND (:currentStartDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(r.processed_at, r.created_at)::date <= :currentEndDate::date)
           AND r.record_status = 'ACTIVE'
-    ),
-    tokens AS (
-        SELECT DISTINCT s.id AS refund_id,
-               lexeme AS keyword
-        FROM scoped_refunds s,
-             LATERAL unnest(to_tsvector('english', COALESCE(s.note, ''))) AS lexeme
-    ),
-    refund_keywords AS (
-        SELECT t.refund_id,
-               string_agg(t.keyword, ', ' ORDER BY t.keyword) AS keywords
-        FROM tokens t
-        GROUP BY t.refund_id
     )
     SELECT s.id AS refund_id,
            s.note AS note,
-           rk.keywords AS keywords,
            ROUND(s.amount, 2) AS refunded_amount,
-           s.refund_date::text AS refund_date,
-           COUNT(*) OVER() AS total_records
+           s.refund_date::text AS refund_date
     FROM scoped_refunds s
-    LEFT JOIN refund_keywords rk ON rk.refund_id = s.id
     ORDER BY s.refund_date DESC, refunded_amount DESC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "Shows refund notes alongside extracted keywords for each transaction, so you can quickly review and audit why refunds were issued."}',
+'{"helperText": "Shows the refund note, amount, and date for each transaction, so you can quickly review and audit why refunds were issued."}',
         'TABLE',
         180,
-        'Tabular report of refund notes mapped to extracted search keywords for compliance audit.',
+        'Tabular report of refund notes with refunded amount and date for compliance audit.',
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
