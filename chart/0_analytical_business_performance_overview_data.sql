@@ -79,7 +79,10 @@ VALUES (
     WITH
     filtered_lines AS (
         SELECT li.product_variant_id,
-               COALESCE(li.discounted_total_amount, 0) AS net_sales
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(li.current_quantity, 0) * COALESCE(li.discounted_unit_price_after_all_discounts, 0)
+               END AS net_sales
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
@@ -174,7 +177,10 @@ VALUES (
     WITH
     filtered_lines AS (
         SELECT li.product_variant_id,
-               COALESCE(li.discounted_total_amount, 0) AS net_sales
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(li.current_quantity, 0) * COALESCE(li.discounted_unit_price_after_all_discounts, 0)
+               END AS net_sales
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId

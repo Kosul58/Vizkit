@@ -62,15 +62,19 @@ VALUES (
           AND r.record_status = 'ACTIVE'
     ),
     gross_totals AS (
-        SELECT COALESCE(SUM(COALESCE(li.original_total_amount,
-                                     li.original_unit_price * li.quantity, 0)), 0) AS gross
-        FROM public.fact_order_line_items li
-        JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
+        SELECT COALESCE(SUM(CASE
+                                WHEN o.financialstatus = 'VOIDED' THEN 0
+                                ELSE COALESCE(o.subtotal_price, 0)
+                                   + COALESCE(o.total_discounts_amount, 0)
+                                   + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                                   + COALESCE(o.total_shipping_price, 0)
+                            END), 0) AS gross
+        FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
-          AND li.record_status = 'ACTIVE'
+          AND o.record_status = 'ACTIVE'
     )
     SELECT ROUND(100 * rt.refunded / NULLIF(g.gross, 0), 2) AS refund_rate_by_value
     FROM refund_totals rt
@@ -79,7 +83,7 @@ VALUES (
 '{"helperText": "Shows what percentage of your gross sales value is being refunded, so you can track how much revenue you are losing to refunds. The % change compares this value with the previous matching period."}',
         'KPI',
         180,
-        'Refunded amount as a percentage of gross line item value for the selected period vs the prior period.',
+        'Refunded amount as a percentage of order gross sales for the selected period vs the prior period.',
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -268,21 +272,21 @@ VALUES (
         'Refunded Discount Value',
         'Refunds & Reversals/Revenue Impact/KPI/Refunded Discount Value',
         $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(li.total_discount_amount, 0)
-                     * (li.quantity - COALESCE(li.refundable_quantity, li.quantity))::numeric
-                     / NULLIF(li.quantity, 0)), 0), 2) AS refunded_discount_value
-    FROM public.fact_order_line_items li
-    JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
+    SELECT ROUND(COALESCE(SUM(CASE
+                                  WHEN o.financialstatus = 'VOIDED' THEN 0
+                                  ELSE COALESCE(o.total_discounts_amount, 0) - COALESCE(o.current_total_discounts, 0)
+                              END), 0), 2) AS refunded_discount_value
+    FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
-      AND li.record_status = 'ACTIVE'
+      AND o.record_status = 'ACTIVE'
     $$,
 '{"helperText": "Shows how much discount value is tied to refunded units, so you can understand the discount impact of your refunds. The % change compares this value with the previous matching period."}',
         'KPI',
         240,
-        'Discount value attributable to refunded units for the selected period vs the prior period.',
+        'Discount value removed from orders by refunds and removals for the selected period vs the prior period.',
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -472,24 +476,25 @@ VALUES (
         WHERE t.is_current OR t.is_prior
     ),
     gross_totals AS (
-        SELECT COALESCE(SUM(COALESCE(li.original_total_amount,
-                                     li.original_unit_price * li.quantity, 0))
-                        FILTER (WHERE t.is_current), 0) AS cur_gross,
-               COALESCE(SUM(COALESCE(li.original_total_amount,
-                                     li.original_unit_price * li.quantity, 0))
-                        FILTER (WHERE t.is_prior),   0) AS prv_gross
+        SELECT COALESCE(SUM(t.gross) FILTER (WHERE t.is_current), 0) AS cur_gross,
+               COALESCE(SUM(t.gross) FILTER (WHERE t.is_prior),   0) AS prv_gross
         FROM (
-            SELECT o.id,
-                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+            SELECT ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
+                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
+                   CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(o.subtotal_price, 0)
+                           + COALESCE(o.total_discounts_amount, 0)
+                           + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                           + COALESCE(o.total_shipping_price, 0)
+                   END AS gross
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.record_status = 'ACTIVE'
         ) t
-        JOIN public.fact_order_line_items li ON li.order_id = t.id AND li.record_status = 'ACTIVE'
         WHERE t.is_current OR t.is_prior
     ),
     computed AS (
@@ -694,24 +699,22 @@ VALUES (
     'refunded_discount_value',
     $$
     WITH discount_totals AS (
-        SELECT COALESCE(SUM(COALESCE(li.total_discount_amount, 0)
-                 * (li.quantity - COALESCE(li.refundable_quantity, li.quantity))::numeric
-                 / NULLIF(li.quantity, 0)) FILTER (WHERE t.is_current), 0) AS cur_value,
-               COALESCE(SUM(COALESCE(li.total_discount_amount, 0)
-                 * (li.quantity - COALESCE(li.refundable_quantity, li.quantity))::numeric
-                 / NULLIF(li.quantity, 0)) FILTER (WHERE t.is_prior),   0) AS prv_value
+        SELECT COALESCE(SUM(t.refunded_discounts) FILTER (WHERE t.is_current), 0) AS cur_value,
+               COALESCE(SUM(t.refunded_discounts) FILTER (WHERE t.is_prior),   0) AS prv_value
         FROM (
-            SELECT o.id,
-                   ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
+            SELECT ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
-                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior
+                AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
+                   CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(o.total_discounts_amount, 0) - COALESCE(o.current_total_discounts, 0)
+                   END AS refunded_discounts
             FROM public.fact_order_headers o
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
               AND o.record_status = 'ACTIVE'
         ) t
-        JOIN public.fact_order_line_items li ON li.order_id = t.id AND li.record_status = 'ACTIVE'
         WHERE t.is_current OR t.is_prior
     )
     SELECT ROUND(d.prv_value, 2) AS previous_value,

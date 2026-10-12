@@ -35,7 +35,7 @@ VALUES (
     'Line Item Net Sales',
     'Order Line Item Analytics/Sales Performance/KPI/Line Item Net Sales',
     $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(li.discounted_total_amount, 0)), 0), 2) AS line_item_net_sales
+    SELECT ROUND(COALESCE(SUM(CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(li.current_quantity, 0) * COALESCE(li.discounted_unit_price_after_all_discounts, 0) END), 0), 2) AS line_item_net_sales
     FROM public.fact_order_line_items li
     JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
@@ -64,7 +64,7 @@ VALUES (
     'Line Item Gross Sales',
     'Order Line Item Analytics/Sales Performance/KPI/Line Item Gross Sales',
     $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(li.original_total_amount, 0)), 0), 2) AS line_item_gross_sales
+    SELECT ROUND(COALESCE(SUM(CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(li.original_total_amount, 0) END), 0), 2) AS line_item_gross_sales
     FROM public.fact_order_line_items li
     JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
@@ -93,8 +93,8 @@ VALUES (
     'Average Unit Price',
     'Order Line Item Analytics/Sales Performance/KPI/Average Unit Price',
     $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(li.discounted_total_amount, 0)), 0)
-                 / NULLIF(COALESCE(SUM(li.quantity), 0), 0), 2) AS average_unit_price
+    SELECT ROUND(COALESCE(SUM(CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(li.current_quantity, 0) * COALESCE(li.discounted_unit_price_after_all_discounts, 0) END), 0)
+                 / NULLIF(COALESCE(SUM(CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(li.current_quantity, 0) END), 0), 0), 2) AS average_unit_price
     FROM public.fact_order_line_items li
     JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
@@ -123,7 +123,7 @@ VALUES (
     'Total Line Discounts',
     'Order Line Item Analytics/Discount & Leakage/KPI/Total Line Discounts',
     $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(li.total_discount_amount, 0)), 0), 2) AS total_line_discounts
+    SELECT ROUND(COALESCE(SUM(CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(li.original_total_amount, 0) - COALESCE(li.quantity, 0) * COALESCE(li.discounted_unit_price_after_all_discounts, li.original_unit_price, 0) END), 0), 2) AS total_line_discounts
     FROM public.fact_order_line_items li
     JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
@@ -152,8 +152,8 @@ VALUES (
     'Discount Rate',
     'Order Line Item Analytics/Discount & Leakage/KPI/Discount Rate',
     $$
-    SELECT ROUND(100 * COALESCE(SUM(COALESCE(li.total_discount_amount, 0)), 0)
-                 / NULLIF(COALESCE(SUM(COALESCE(li.original_total_amount, 0)), 0), 0), 2) AS discount_rate
+    SELECT ROUND(100 * COALESCE(SUM(CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(li.original_total_amount, 0) - COALESCE(li.quantity, 0) * COALESCE(li.discounted_unit_price_after_all_discounts, li.original_unit_price, 0) END), 0)
+                 / NULLIF(COALESCE(SUM(CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(li.original_total_amount, 0) END), 0), 0), 2) AS discount_rate
     FROM public.fact_order_line_items li
     JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
@@ -300,7 +300,7 @@ VALUES (
     'Order Line Item Analytics/Product Portfolio/KPI/Top SKU Contribution',
     $$
     WITH sku_sales AS (
-        SELECT COALESCE(SUM(COALESCE(li.discounted_total_amount, 0)), 0) AS net_sales
+        SELECT COALESCE(SUM(CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(li.current_quantity, 0) * COALESCE(li.discounted_unit_price_after_all_discounts, 0) END), 0) AS net_sales
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id AND pv.record_status = 'ACTIVE'
@@ -334,7 +334,7 @@ VALUES (
     'Gift Card Line Sales',
     'Order Line Item Analytics/Vendor & Collection/KPI/Gift Card Line Sales',
     $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(li.discounted_total_amount, 0))
+    SELECT ROUND(COALESCE(SUM(CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(li.current_quantity, 0) * COALESCE(li.discounted_unit_price_after_all_discounts, 0) END)
                           FILTER (WHERE COALESCE(li.is_giftcard, FALSE)), 0), 2) AS gift_card_line_sales
     FROM public.fact_order_line_items li
     JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
@@ -365,7 +365,7 @@ VALUES (
     'Order Line Item Analytics/Vendor & Collection/KPI/Top Vendor',
     $$
     WITH vendor_sales AS (
-        SELECT COALESCE(SUM(COALESCE(li.discounted_total_amount, 0)), 0) AS net_sales
+        SELECT COALESCE(SUM(CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(li.current_quantity, 0) * COALESCE(li.discounted_unit_price_after_all_discounts, 0) END), 0) AS net_sales
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id AND pv.record_status = 'ACTIVE'
@@ -432,7 +432,7 @@ VALUES (
     'Order Line Item Analytics/Vendor & Collection/KPI/Top Collection',
     $$
     WITH collection_sales AS (
-        SELECT COALESCE(SUM(COALESCE(li.discounted_total_amount, 0)), 0) AS net_sales
+        SELECT COALESCE(SUM(CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(li.current_quantity, 0) * COALESCE(li.discounted_unit_price_after_all_discounts, 0) END), 0) AS net_sales
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id AND pv.record_status = 'ACTIVE'
@@ -542,7 +542,10 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(li.discounted_total_amount, 0) AS net_sales
+                   CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(li.current_quantity, 0) * COALESCE(li.discounted_unit_price_after_all_discounts, 0)
+                   END AS net_sales
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
@@ -570,7 +573,7 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(li.original_total_amount, 0) AS gross_sales
+                   CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(li.original_total_amount, 0) END AS gross_sales
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
@@ -600,8 +603,11 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   li.quantity AS units,
-                   COALESCE(li.discounted_total_amount, 0) AS net_sales
+                   CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(li.current_quantity, 0) END AS units,
+                   CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(li.current_quantity, 0) * COALESCE(li.discounted_unit_price_after_all_discounts, 0)
+                   END AS net_sales
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
@@ -634,7 +640,11 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(li.total_discount_amount, 0) AS discounts
+                   CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(li.original_total_amount, 0)
+                           - COALESCE(li.quantity, 0) * COALESCE(li.discounted_unit_price_after_all_discounts, li.original_unit_price, 0)
+                   END AS discounts
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
@@ -664,8 +674,12 @@ VALUES (
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
-                   COALESCE(li.total_discount_amount, 0) AS discounts,
-                   COALESCE(li.original_total_amount, 0) AS original_amount
+                   CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(li.original_total_amount, 0)
+                           - COALESCE(li.quantity, 0) * COALESCE(li.discounted_unit_price_after_all_discounts, li.original_unit_price, 0)
+                   END AS discounts,
+                   CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(li.original_total_amount, 0) END AS original_amount
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
@@ -812,7 +826,10 @@ VALUES (
                    (:priorStartDate::date IS NOT NULL
                 AND o.created_at::date BETWEEN :priorStartDate::date AND :priorEndDate::date)         AS is_prior,
                    COALESCE(li.is_giftcard, FALSE) AS is_gift_card,
-                   COALESCE(li.discounted_total_amount, 0) AS net_sales
+                   CASE
+                        WHEN o.financialstatus = 'VOIDED' THEN 0
+                        ELSE COALESCE(li.current_quantity, 0) * COALESCE(li.discounted_unit_price_after_all_discounts, 0)
+                   END AS net_sales
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
