@@ -1025,6 +1025,14 @@ VALUES (
         SELECT o.id,
               o.attribution_displayname AS channel,
                COALESCE(o.source_name, 'unknown') AS source,
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales,
+               CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(o.total_discounts_amount, 0) END AS discounts,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
@@ -1038,20 +1046,12 @@ VALUES (
     channel_totals AS (
         SELECT source,
               channel,
+               SUM(gross_sales) AS gross_sales,
+               SUM(discounts) AS discounts,
                SUM(net_sales) AS net_sales,
                COUNT(*) AS orders
         FROM filtered_orders
         GROUP BY source, channel
-    ),
-    channel_lines AS (
-        SELECT f.source,
-                f.channel,
-               SUM(li.original_unit_price * li.quantity) AS gross_sales,
-               SUM(li.discounted_total_amount) AS discounted
-        FROM public.fact_order_line_items li
-        JOIN filtered_orders f ON f.id = li.order_id
-        WHERE li.record_status = 'ACTIVE'
-        GROUP BY f.channel, f.source
     ),
     channel_refunds AS (
         SELECT f.source,
@@ -1067,13 +1067,10 @@ VALUES (
            ct.orders AS orders,
            ROUND(ct.net_sales, 2) AS net_sales,
            ROUND(ct.net_sales / NULLIF(ct.orders, 0), 2) AS aov,
-           ROUND(100 * COALESCE(cr.refunded, 0) / NULLIF(cl.gross_sales, 0), 2) AS refund_rate,
-           ROUND(100 * (cl.gross_sales - COALESCE(cl.discounted, 0)) / NULLIF(cl.gross_sales, 0), 2) AS discount_rate,
+           ROUND(100 * COALESCE(cr.refunded, 0) / NULLIF(ct.gross_sales, 0), 2) AS refund_rate,
+           ROUND(100 * ct.discounts / NULLIF(ct.gross_sales, 0), 2) AS discount_rate,
            COUNT(*) OVER() AS total_records
     FROM channel_totals ct
-    LEFT JOIN channel_lines cl
-        ON cl.channel IS NOT DISTINCT FROM ct.channel
-        AND cl.source IS NOT DISTINCT FROM ct.source
     LEFT JOIN channel_refunds cr
         ON cr.channel IS NOT DISTINCT FROM ct.channel
         AND cr.source IS NOT DISTINCT FROM ct.source
@@ -1153,6 +1150,13 @@ VALUES (
                COALESCE(o.shipping_address #>> '{country}', 'Unknown') AS country,
                COALESCE(o.shipping_address #>> '{province}', 'Unknown') AS province,
                COALESCE(o.shipping_address #>> '{city}', 'Unknown') AS city,
+               CASE
+                    WHEN o.financialstatus = 'VOIDED' THEN 0
+                    ELSE COALESCE(o.subtotal_price, 0)
+                       + COALESCE(o.total_discounts_amount, 0)
+                       + CASE WHEN o.taxes_included THEN 0 ELSE COALESCE(o.total_tax, 0) END
+                       + COALESCE(o.total_shipping_price, 0)
+               END AS gross_sales,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
@@ -1165,18 +1169,11 @@ VALUES (
     ),
     geo_totals AS (
         SELECT country, province, city,
+               SUM(gross_sales) AS gross_sales,
                SUM(net_sales) AS net_sales,
                COUNT(*) AS orders
         FROM filtered_orders
         GROUP BY country, province, city
-    ),
-    geo_lines AS (
-        SELECT fo.country, fo.province, fo.city,
-               SUM(li.original_unit_price * li.quantity) AS gross_sales
-        FROM public.fact_order_line_items li
-        JOIN filtered_orders fo ON fo.id = li.order_id
-        WHERE li.record_status = 'ACTIVE'
-        GROUP BY fo.country, fo.province, fo.city
     ),
     geo_refunds AS (
         SELECT fo.country, fo.province, fo.city,
@@ -1190,15 +1187,11 @@ VALUES (
            gt.province AS province,
            gt.city AS city,
            gt.orders AS orders,
-           ROUND(gl.gross_sales, 2) AS sales,
+           ROUND(gt.gross_sales, 2) AS sales,
            ROUND(gt.net_sales / NULLIF(gt.orders, 0), 2) AS aov,
-           ROUND(100 * COALESCE(gr.refunded, 0) / NULLIF(gl.gross_sales, 0), 2) AS refund_rate,
+           ROUND(100 * COALESCE(gr.refunded, 0) / NULLIF(gt.gross_sales, 0), 2) AS refund_rate,
            COUNT(*) OVER() AS total_records
     FROM geo_totals gt
-    LEFT JOIN geo_lines gl
-        ON gl.country IS NOT DISTINCT FROM gt.country
-       AND gl.province IS NOT DISTINCT FROM gt.province
-       AND gl.city IS NOT DISTINCT FROM gt.city
     LEFT JOIN geo_refunds gr
         ON gr.country IS NOT DISTINCT FROM gt.country
        AND gr.province IS NOT DISTINCT FROM gt.province
