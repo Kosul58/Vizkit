@@ -25,7 +25,7 @@ VALUES (
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
           AND o.record_status = 'ACTIVE'
@@ -104,7 +104,7 @@ VALUES (
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
           AND o.record_status = 'ACTIVE'
@@ -126,7 +126,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = r.order_id AND o.record_status = 'ACTIVE'
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND r.created_at >= dp.start_bucket
           AND r.created_at < dp.end_bucket + dp.step
           AND r.record_status = 'ACTIVE'
@@ -212,7 +212,7 @@ VALUES (
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.financialstatus != 'VOIDED'
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
@@ -281,7 +281,7 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = r.order_id AND o.record_status = 'ACTIVE'
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.financialstatus != 'VOIDED'
           AND r.created_at >= dp.start_bucket
           AND r.created_at < dp.end_bucket + dp.step
@@ -350,7 +350,7 @@ VALUES (
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
           AND o.record_status = 'ACTIVE'
@@ -433,7 +433,7 @@ VALUES (
             COALESCE(o.total_outstanding_amount, 0) AS outstanding_amount
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-            AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+            AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
             AND (
                 :currentStartDate IS NULL
                 OR o.created_at::date >= :currentStartDate::date
@@ -596,7 +596,7 @@ VALUES (
                COALESCE(o.original_total_price, 0) AS order_value
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND o.record_status = 'ACTIVE'
@@ -640,7 +640,7 @@ VALUES (
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.cancelled_at IS NOT NULL
           AND o.cancelled_at >= dp.start_bucket
           AND o.cancelled_at < dp.end_bucket + dp.step
@@ -707,7 +707,7 @@ VALUES (
                COALESCE(o.original_total_price, 0) AS original_value
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.cancelled_at IS NOT NULL
           AND (:currentStartDate IS NULL OR o.cancelled_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.cancelled_at::date <= :currentEndDate::date)
@@ -758,7 +758,7 @@ VALUES (
                (COALESCE(:currentEndDate::date, CURRENT_DATE) - o.created_at::date) AS age_days
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.total_outstanding_amount > 0
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -801,7 +801,7 @@ VALUES (
         SELECT o.id
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND o.record_status = 'ACTIVE'
@@ -845,7 +845,7 @@ SELECT
 COALESCE(o.total_outstanding_amount, 0) AS outstanding_amount
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.total_outstanding_amount > 0
 AND (
 :currentStartDate IS NULL
@@ -986,7 +986,7 @@ VALUES (
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND o.record_status = 'ACTIVE'
@@ -1038,7 +1038,7 @@ VALUES (
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND o.record_status = 'ACTIVE'
@@ -1111,7 +1111,7 @@ VALUES (
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND o.record_status = 'ACTIVE'
@@ -1162,7 +1162,7 @@ VALUES (
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND o.record_status = 'ACTIVE'

@@ -215,7 +215,7 @@ WITH base AS (
     WHERE foh.seller_id = :shopId
       AND foh.created_at::date BETWEEN :createdAtStart::date
                                    AND :createdAtEnd::date
-      AND (foh.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+      AND (foh.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
       AND foh.record_status = 'ACTIVE'
 )
 SELECT
@@ -308,7 +308,7 @@ FROM public.fact_order_headers foh
 inner join  public.fact_order_line_items foli on foh.id = foli.order_id and foli.seller_id = foh.seller_id AND foli.record_status = 'ACTIVE'
 WHERE
     foh.seller_id = :shopId
-    AND (foh.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+    AND (foh.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
     and (foh.created_at::date between :createdAtStart::date and :createdAtEnd::date)
     AND foh.record_status = 'ACTIVE'
 )
@@ -515,7 +515,7 @@ LEFT JOIN public.dim_customers dc
 ON dc.id = foh.customer_id AND dc.record_status = 'ACTIVE'
 WHERE (foh.created_at::date between :createdAtStart::date and :createdAtEnd::date)
   AND foh.seller_id = :shopId
-  AND (foh.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+  AND (foh.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
   AND foh.record_status = 'ACTIVE'
 )
 SELECT
@@ -575,7 +575,7 @@ Select
 from public.fact_order_headers foh
 where foh.seller_id = :shopId
 and (foh.created_at::date between :createdAtStart::date and :createdAtEnd::date)
-and (foh.test = false OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+and (foh.test = false OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
 AND foh.record_status = 'ACTIVE'
 )
 SELECT
@@ -662,7 +662,7 @@ left join public.fact_order_line_items foli
 
 where fr.seller_id = :shopId
     and (fr.created_at::date between :createdAtStart::date and :createdAtEnd::date)
-    and (foh.test = false OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+    and (foh.test = false OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
     AND fr.record_status = 'ACTIVE'
 )
 SELECT

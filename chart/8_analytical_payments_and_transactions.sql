@@ -60,9 +60,9 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
-          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
           AND COALESCE(t.processed_at, t.created_at) < dp.end_bucket + dp.step
           AND t.record_status = 'ACTIVE'
@@ -113,7 +113,7 @@ VALUES (
         SELECT o.id
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND o.record_status = 'ACTIVE'
@@ -154,8 +154,8 @@ VALUES (
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND t.kind IN ('SALE', 'CAPTURE')
           AND t.status = 'SUCCESS'
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
@@ -202,9 +202,9 @@ VALUES (
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
-          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
           AND t.record_status = 'ACTIVE'
@@ -253,8 +253,8 @@ VALUES (
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
           AND t.record_status = 'ACTIVE'
@@ -364,9 +364,9 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
-          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND UPPER(t.kind) IN ('SALE', 'CAPTURE')
           AND UPPER(t.status) = 'SUCCESS'
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
@@ -424,9 +424,9 @@ VALUES (
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
-          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
           AND t.record_status = 'ACTIVE'
@@ -496,9 +496,9 @@ VALUES (
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
-          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
           AND t.record_status = 'ACTIVE'
@@ -541,9 +541,9 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
-          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
           AND COALESCE(t.processed_at, t.created_at) < dp.end_bucket + dp.step
           AND t.record_status = 'ACTIVE'
@@ -604,9 +604,9 @@ VALUES (
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
-          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND t.status IN ('FAILURE', 'ERROR', 'PENDING', 'AWAITING_RESPONSE')
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
@@ -705,7 +705,7 @@ VALUES (
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND o.created_at >= dp.start_bucket
           AND o.created_at < dp.end_bucket + dp.step
@@ -720,7 +720,7 @@ VALUES (
         SELECT f.bucket, SUM(COALESCE(t.amount, 0)) AS captured_payments
         FROM public.fact_order_transactions t
         JOIN filtered_orders f ON f.id = t.order_id
-        WHERE (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+        WHERE (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND UPPER(t.kind) IN ('SALE', 'CAPTURE')
           AND UPPER(t.status) = 'SUCCESS'
           AND t.record_status = 'ACTIVE'
@@ -802,9 +802,9 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
-          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND UPPER(t.kind) = 'REFUND'
           AND UPPER(t.status) = 'SUCCESS'
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
@@ -859,7 +859,7 @@ VALUES (
                COALESCE(o.net_payment, 0) AS net_payment
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND (:currentStartDate IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
@@ -876,7 +876,7 @@ VALUES (
                      AND UPPER(t.status) = 'SUCCESS'), 0) AS refunded_amount
         FROM public.fact_order_transactions t
         JOIN filtered_orders f ON f.id = t.order_id
-        WHERE (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+        WHERE (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND t.record_status = 'ACTIVE'
         GROUP BY t.order_id
     ),
@@ -937,9 +937,9 @@ VALUES (
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
-          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND t.kind = 'REFUND'
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
@@ -1007,9 +1007,9 @@ VALUES (
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
-          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
           AND t.record_status = 'ACTIVE'
@@ -1063,7 +1063,7 @@ VALUES (
             o.financialstatus AS financial_status
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (
               :currentStartDate IS NULL
               OR o.created_at::date >= :currentStartDate::date
@@ -1106,7 +1106,7 @@ VALUES (
         FROM public.fact_order_transactions t
         JOIN filtered_orders f
             ON f.id = t.order_id
-        WHERE (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+        WHERE (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND t.record_status = 'ACTIVE'
         GROUP BY t.order_id
     ),
@@ -1131,7 +1131,7 @@ VALUES (
             FROM public.fact_order_transactions t
             JOIN filtered_orders f
                 ON f.id = t.order_id
-            WHERE (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+            WHERE (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
               AND t.record_status = 'ACTIVE'
             GROUP BY
                 t.order_id,
@@ -1287,9 +1287,9 @@ VALUES (
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
-          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND UPPER(t.kind) IN ('SALE', 'CAPTURE')
           AND UPPER(t.status) = 'SUCCESS'
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
@@ -1330,9 +1330,9 @@ VALUES (
     JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
     JOIN public.dim_inventory_locations loc ON loc.id = t.location_id AND loc.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
-      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
       
-      AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+      AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
       AND UPPER(t.kind) IN ('SALE', 'CAPTURE')
       AND UPPER(t.status) = 'SUCCESS'
       AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
@@ -1365,8 +1365,8 @@ VALUES (
     FROM public.fact_tender_transactions tt
     JOIN public.fact_order_headers o ON o.id = tt.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
-      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
-      AND (tt.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
+      AND (tt.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
       AND tt.transaction_credit_card_company IS NOT NULL
       AND (:currentStartDate IS NULL OR tt.processed_at::date >= :currentStartDate::date)
       AND (:currentEndDate IS NULL OR tt.processed_at::date <= :currentEndDate::date)
@@ -1434,9 +1434,9 @@ VALUES (
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
-          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
           AND COALESCE(t.processed_at, t.created_at) < dp.end_bucket + dp.step
           AND t.record_status = 'ACTIVE'
@@ -1489,9 +1489,9 @@ VALUES (
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
-          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND t.manual_payment_gateway IS true
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
@@ -1532,7 +1532,7 @@ VALUES (
         SELECT o.id
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.record_status = 'ACTIVE'
           
     ),
@@ -1544,7 +1544,7 @@ VALUES (
         FROM public.fact_order_transactions t
         JOIN scoped_orders so ON so.id = t.order_id
         LEFT JOIN public.dim_inventory_locations loc ON loc.id = t.location_id AND loc.record_status = 'ACTIVE'
-        WHERE (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+        WHERE (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND t.kind IN ('SALE', 'CAPTURE')
           AND t.status = 'SUCCESS'
           AND (t.device_id IS NOT NULL
@@ -1559,7 +1559,7 @@ VALUES (
                SUM(COALESCE(tt.amount, 0)) AS amount
         FROM public.fact_tender_transactions tt
         JOIN scoped_orders so ON so.id = tt.order_id
-        WHERE (tt.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+        WHERE (tt.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND tt.record_status = 'ACTIVE'
         GROUP BY tt.order_id,
                  tt.payment_method
@@ -1574,7 +1574,7 @@ VALUES (
                SUM(COALESCE(t.amount, 0)) AS refunded
         FROM public.fact_order_transactions t
         JOIN scoped_orders so ON so.id = t.order_id
-        WHERE (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+        WHERE (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND t.kind = 'REFUND'
           AND t.status = 'SUCCESS'
           AND t.record_status = 'ACTIVE'
@@ -1624,7 +1624,7 @@ VALUES (
         SELECT o.id
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.record_status = 'ACTIVE'
           
     ),
@@ -1634,7 +1634,7 @@ VALUES (
                COALESCE(tt.amount, 0) AS amount
         FROM public.fact_tender_transactions tt
         JOIN scoped_orders so ON so.id = tt.order_id
-        WHERE (tt.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+        WHERE (tt.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND tt.transaction_credit_card_company IS NOT NULL
           AND (:currentStartDate IS NULL OR tt.processed_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR tt.processed_at::date <= :currentEndDate::date)
@@ -1666,7 +1666,7 @@ VALUES (
                COUNT(*) AS txn_count
         FROM public.fact_order_transactions t
         JOIN scoped_orders so ON so.id = t.order_id
-        WHERE (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+        WHERE (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND t.record_status = 'ACTIVE'
         GROUP BY t.order_id
     ),

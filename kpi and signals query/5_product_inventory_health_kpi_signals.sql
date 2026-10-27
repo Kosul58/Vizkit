@@ -154,7 +154,7 @@ VALUES (
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND li.record_status = 'ACTIVE'
@@ -193,11 +193,11 @@ VALUES (
     WITH period AS (
         SELECT GREATEST(COALESCE(:currentEndDate::date,
                                  (SELECT MAX(o.created_at::date) FROM public.fact_order_headers o
-                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
                                     AND o.record_status = 'ACTIVE'))
                       - COALESCE(:currentStartDate::date,
                                  (SELECT MIN(o.created_at::date) FROM public.fact_order_headers o
-                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
                                     AND o.record_status = 'ACTIVE')) + 1, 1) AS days
     ),
     sku_inventory AS (
@@ -221,7 +221,7 @@ VALUES (
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND li.record_status = 'ACTIVE'
@@ -267,11 +267,11 @@ VALUES (
     WITH period AS (
         SELECT GREATEST(COALESCE(:currentEndDate::date,
                                  (SELECT MAX(o.created_at::date) FROM public.fact_order_headers o
-                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
                                     AND o.record_status = 'ACTIVE'))
                       - COALESCE(:currentStartDate::date,
                                  (SELECT MIN(o.created_at::date) FROM public.fact_order_headers o
-                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+                                  WHERE o.seller_id = :shopId AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
                                     AND o.record_status = 'ACTIVE')) + 1, 1) AS days
     ),
     sku_inventory AS (
@@ -292,7 +292,7 @@ VALUES (
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND li.record_status = 'ACTIVE'
@@ -406,7 +406,7 @@ VALUES (
         FROM public.fact_order_line_items li
         JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
-          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND li.record_status = 'ACTIVE'
@@ -523,7 +523,7 @@ VALUES (
     FROM public.fact_order_line_items li
     JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
-      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+      AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
       AND li.record_status = 'ACTIVE'
@@ -613,7 +613,7 @@ VALUES (
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
-              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
               AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
@@ -656,7 +656,7 @@ VALUES (
             FROM public.fact_order_line_items li
             JOIN public.fact_order_headers o ON o.id = li.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
-              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.shop_id = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
               AND li.record_status = 'ACTIVE'
         ) t
         WHERE t.is_current OR t.is_prior
