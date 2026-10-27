@@ -453,9 +453,9 @@ VALUES (
         f.created_at::date::text AS order_date,
         CASE
             WHEN LENGTH(
-                CONCAT_WS(CHR(32), c.first_name, c.last_name)
+                CONCAT_WS(' ', c.first_name, c.last_name)
             ) > 0
-            THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
+            THEN CONCAT_WS(' ', c.first_name, c.last_name)
             ELSE COALESCE(c.email, 'Guest')
         END AS customer,
         COALESCE(
@@ -591,8 +591,8 @@ VALUES (
     'Order Reports/Orders & Fulfillment/PLOT/Orders by Status',
     $$
     WITH filtered_orders AS (
-        SELECT COALESCE(UPPER(o.fulfillmentStatus), 'UNFULFILLED') AS fulfillment_status,
-               UPPER(o.financialStatus) AS financial_status,
+        SELECT COALESCE(o.fulfillmentStatus, 'UNFULFILLED') AS fulfillment_status,
+               o.financialStatus AS financial_status,
                COALESCE(o.original_total_price, 0) AS order_value
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
@@ -716,8 +716,8 @@ VALUES (
     SELECT f.order_id,
            f.cancelled_at::date::text AS cancelled_date,
            ROUND(f.original_value, 2) AS original_value,
-           CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
-                THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
+           CASE WHEN LENGTH(CONCAT_WS(' ', c.first_name, c.last_name)) > 0
+                THEN CONCAT_WS(' ', c.first_name, c.last_name)
                 ELSE COALESCE(c.email, 'Guest') END AS customer,
            f.source_name AS source,
            COALESCE(f.attribution_displayname,f.source_name, 'unknown') AS channel,
@@ -863,13 +863,13 @@ AND (
         CASE
             WHEN LENGTH(
                 CONCAT_WS(
-                    CHR(32),
+                    ' ',
                     c.first_name,
                     c.last_name
                 )
             ) > 0
                 THEN CONCAT_WS(
-                    CHR(32),
+                    ' ',
                     c.first_name,
                     c.last_name
                 )
@@ -880,8 +880,7 @@ ROUND(f.outstanding_amount, 2) AS outstanding_amount,
 f.financial_status,
 COALESCE(
     t.gateway,
-    f.payment_gateway_names ->> 0,
-    ' unknown '
+    'Unknown'
 ) AS payment_gateway,
 (
     COALESCE(
@@ -892,10 +891,17 @@ COALESCE(
 COUNT(*) OVER () AS total_records
     FROM filtered_orders f
 LEFT JOIN public.dim_customers c ON c.id = f.customer_id AND c.record_status = 'ACTIVE'
-LEFT JOIN public.fact_order_transactions t ON t.order_id = f.id
-AND UPPER(t.kind) = ' SALE '
-AND UPPER(t.status) = ' SUCCESS '
-AND t.record_status = 'ACTIVE'
+-- One successful payment per order (largest first) so orders with several payments are not repeated.
+LEFT JOIN LATERAL (
+    SELECT t.gateway
+    FROM public.fact_order_transactions t
+    WHERE t.order_id = f.id
+      AND t.kind IN ('SALE', 'CAPTURE')
+      AND t.status = 'SUCCESS'
+      AND t.record_status = 'ACTIVE'
+    ORDER BY t.amount DESC NULLS LAST, t.gateway
+    LIMIT 1
+) t ON TRUE
     ORDER BY days_unpaid DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)

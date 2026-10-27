@@ -113,10 +113,10 @@ VALUES (
     )
     SELECT ls.location_name AS location,
            CASE WHEN ls.is_active THEN 'Active' ELSE 'Inactive' END AS active_status,
-           CASE WHEN LENGTH(CONCAT_WS(CHR(44) || CHR(32),
+           CASE WHEN LENGTH(CONCAT_WS(', ',
                          ls.address #>> '{address1}', ls.address #>> '{city}',
                          ls.address #>> '{province}', ls.address #>> '{country}')) > 0
-                THEN CONCAT_WS(CHR(44) || CHR(32),
+                THEN CONCAT_WS(', ',
                          ls.address #>> '{address1}', ls.address #>> '{city}',
                          ls.address #>> '{province}', ls.address #>> '{country}')
                 ELSE 'Unknown' END AS address,
@@ -920,8 +920,8 @@ VALUES (
           AND loc.record_status = 'ACTIVE'
         GROUP BY loc.address #>> '{city}', loc.address #>> '{province}', loc.address #>> '{country}'
     )
-    SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(44) || CHR(32), gv.city, gv.province, gv.country)) > 0
-                THEN CONCAT_WS(CHR(44) || CHR(32), gv.city, gv.province, gv.country)
+    SELECT CASE WHEN LENGTH(CONCAT_WS(', ', gv.city, gv.province, gv.country)) > 0
+                THEN CONCAT_WS(', ', gv.city, gv.province, gv.country)
                 ELSE 'Unknown' END AS region,
            ROUND(gv.inventory_value, 2) AS inventory_value
     FROM geo_value gv

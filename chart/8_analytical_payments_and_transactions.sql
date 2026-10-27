@@ -192,10 +192,9 @@ VALUES (
         SELECT t.id as transaction_gid,
                o.id as order_gid,
                COALESCE(t.processed_at, t.created_at) AS txn_at,
-               UPPER(t.kind) AS kind,
-               UPPER(t.status) AS status,
-               INITCAP(REPLACE(COALESCE(t.gateway, 'Unknown'),
-                               CHR(95), CHR(32))) AS gateway,
+               t.kind AS kind,
+               t.status AS status,
+               COALESCE(t.gateway, 'Unknown') AS gateway,
                COALESCE(t.amount, 0) AS amount,
                COALESCE(t.transaction_fee, 0) AS fee,
                t.location_id
@@ -367,8 +366,8 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
-          AND UPPER(t.kind) IN ('SALE', 'CAPTURE')
-          AND UPPER(t.status) = 'SUCCESS'
+          AND t.kind IN ('SALE', 'CAPTURE')
+          AND t.status = 'SUCCESS'
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
           AND COALESCE(t.processed_at, t.created_at) < dp.end_bucket + dp.step
           AND t.record_status = 'ACTIVE'
@@ -489,9 +488,9 @@ VALUES (
         'Payments & Transactions/Payment Health & Reliability/PLOT/Transaction Status Mix',
         $$
     WITH classified AS (
-        SELECT CASE WHEN UPPER(t.status) IN ('FAILURE', 'ERROR')             THEN 'Failed'
-                    WHEN UPPER(t.status) IN ('PENDING', 'AWAITING_RESPONSE') THEN 'Pending'
-                    WHEN UPPER(t.status) = 'SUCCESS'                           THEN 'Success'
+        SELECT CASE WHEN t.status IN ('FAILURE', 'ERROR')             THEN 'Failed'
+                    WHEN t.status IN ('PENDING', 'AWAITING_RESPONSE') THEN 'Pending'
+                    WHEN t.status = 'SUCCESS'                           THEN 'Success'
                     ELSE 'Other' END AS status
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
@@ -535,8 +534,8 @@ VALUES (
     /*date_granularity_cte*/
     scoped_txn AS (
         SELECT date_trunc(LOWER(dp.g), COALESCE(t.processed_at, t.created_at)) AS bucket,
-               (UPPER(t.status) IN ('FAILURE', 'ERROR'))             AS is_failed,
-               (UPPER(t.status) IN ('PENDING', 'AWAITING_RESPONSE')) AS is_pending
+               (t.status IN ('FAILURE', 'ERROR'))             AS is_failed,
+               (t.status IN ('PENDING', 'AWAITING_RESPONSE')) AS is_pending
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         CROSS JOIN date_params dp
@@ -618,8 +617,8 @@ VALUES (
            ROUND(s.amount, 2) AS amount,
            s.status AS status,
            s.txn_at::date::text AS processed_date,
-           CASE WHEN LENGTH(CONCAT_WS(CHR(32), cu.first_name, cu.last_name)) > 0
-                THEN CONCAT_WS(CHR(32), cu.first_name, cu.last_name)
+           CASE WHEN LENGTH(CONCAT_WS(' ', cu.first_name, cu.last_name)) > 0
+                THEN CONCAT_WS(' ', cu.first_name, cu.last_name)
                 ELSE COALESCE(cu.email, 'Guest') END AS customer,
            COUNT(*) OVER() AS total_records
     FROM scoped_txn s
@@ -721,8 +720,8 @@ VALUES (
         FROM public.fact_order_transactions t
         JOIN filtered_orders f ON f.id = t.order_id
         WHERE (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
-          AND UPPER(t.kind) IN ('SALE', 'CAPTURE')
-          AND UPPER(t.status) = 'SUCCESS'
+          AND t.kind IN ('SALE', 'CAPTURE')
+          AND t.status = 'SUCCESS'
           AND t.record_status = 'ACTIVE'
         GROUP BY f.bucket
     )
@@ -805,8 +804,8 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
-          AND UPPER(t.kind) = 'REFUND'
-          AND UPPER(t.status) = 'SUCCESS'
+          AND t.kind = 'REFUND'
+          AND t.status = 'SUCCESS'
           AND COALESCE(t.processed_at, t.created_at) >= dp.start_bucket
           AND COALESCE(t.processed_at, t.created_at) < dp.end_bucket + dp.step
           AND t.record_status = 'ACTIVE'
@@ -869,11 +868,11 @@ VALUES (
         SELECT t.order_id,
                SUM(COALESCE(t.amount, 0)) AS transaction_amount,
                COALESCE(SUM(COALESCE(t.amount, 0)) FILTER (
-                   WHERE UPPER(t.kind) IN ('SALE', 'CAPTURE')
-                     AND UPPER(t.status) = 'SUCCESS'), 0) AS captured_amount,
+                   WHERE t.kind IN ('SALE', 'CAPTURE')
+                     AND t.status = 'SUCCESS'), 0) AS captured_amount,
                COALESCE(SUM(COALESCE(t.amount, 0)) FILTER (
-                   WHERE UPPER(t.kind) = 'REFUND'
-                     AND UPPER(t.status) = 'SUCCESS'), 0) AS refunded_amount
+                   WHERE t.kind = 'REFUND'
+                     AND t.status = 'SUCCESS'), 0) AS refunded_amount
         FROM public.fact_order_transactions t
         JOIN filtered_orders f ON f.id = t.order_id
         WHERE (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
@@ -997,13 +996,12 @@ VALUES (
         $$
     WITH scoped_txn AS (
         SELECT t.order_id,
-               INITCAP(REPLACE(COALESCE(t.gateway, 'Unknown'),
-                               CHR(95), CHR(32))) AS gateway,
+               COALESCE(t.gateway, 'Unknown') AS gateway,
                COALESCE(t.amount, 0) AS amount,
-               (UPPER(t.kind) IN ('AUTHORIZATION', 'EMV_AUTHORIZATION')
-            AND UPPER(t.status) = 'SUCCESS') AS is_authorized,
-               (UPPER(t.kind) IN ('SALE', 'CAPTURE')
-            AND UPPER(t.status) = 'SUCCESS') AS is_captured
+               (t.kind IN ('AUTHORIZATION', 'EMV_AUTHORIZATION')
+            AND t.status = 'SUCCESS') AS is_authorized,
+               (t.kind IN ('SALE', 'CAPTURE')
+            AND t.status = 'SUCCESS') AS is_captured
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
@@ -1118,13 +1116,7 @@ VALUES (
         FROM (
             SELECT
                 t.order_id,
-                INITCAP(
-                    REPLACE(
-                        COALESCE(t.gateway, 'Unknown'),
-                        CHR(95),
-                        CHR(32)
-                    )
-                ) AS gateway,
+                COALESCE(t.gateway, 'Unknown') AS gateway,
                 SUM(
                     COALESCE(t.amount, 0)
                 ) AS amount
@@ -1135,13 +1127,7 @@ VALUES (
               AND t.record_status = 'ACTIVE'
             GROUP BY
                 t.order_id,
-                INITCAP(
-                    REPLACE(
-                        COALESCE(t.gateway, 'Unknown'),
-                        CHR(95),
-                        CHR(32)
-                    )
-                )
+                COALESCE(t.gateway, 'Unknown')
         ) g
         ORDER BY
             g.order_id,
@@ -1290,8 +1276,8 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
-          AND UPPER(t.kind) IN ('SALE', 'CAPTURE')
-          AND UPPER(t.status) = 'SUCCESS'
+          AND t.kind IN ('SALE', 'CAPTURE')
+          AND t.status = 'SUCCESS'
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
           AND t.record_status = 'ACTIVE'
@@ -1333,8 +1319,8 @@ VALUES (
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
       
       AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
-      AND UPPER(t.kind) IN ('SALE', 'CAPTURE')
-      AND UPPER(t.status) = 'SUCCESS'
+      AND t.kind IN ('SALE', 'CAPTURE')
+      AND t.status = 'SUCCESS'
       AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
       AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
       AND t.record_status = 'ACTIVE'
@@ -1589,7 +1575,7 @@ VALUES (
     SELECT b.location AS location,
            b.device AS device,
            ROUND(SUM(b.amount), 2) AS payment_amount,
-           COALESCE(string_agg(DISTINCT pm.method, CHR(44) || CHR(32)), 'Unknown') AS payment_method,
+           COALESCE(string_agg(DISTINCT pm.method, ', '), 'Unknown') AS payment_method,
            ROUND(COALESCE(SUM(orf.refunded), 0), 2) AS refund_amount,
            COUNT(*) OVER() AS total_records
     FROM pos_by_order b

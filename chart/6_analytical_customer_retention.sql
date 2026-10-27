@@ -197,14 +197,14 @@ $$,
     ),
     customer_location AS (
         SELECT DISTINCT ON (ca.customer_id) ca.customer_id,
-               CONCAT_WS(CHR(44) || CHR(32), ca.city, ca.province, ca.country) AS location
+               CONCAT_WS(', ', ca.city, ca.province, ca.country) AS location
         FROM public.dim_customer_addresses ca
         WHERE ca.seller_id = :shopId
           AND ca.record_status = 'ACTIVE'
         ORDER BY ca.customer_id, ca.id
     )
-    SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
-                THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
+    SELECT CASE WHEN LENGTH(CONCAT_WS(' ', c.first_name, c.last_name)) > 0
+                THEN CONCAT_WS(' ', c.first_name, c.last_name)
                 ELSE COALESCE(c.email, 'Guest') END AS customer,
            c.email AS email,
            c.created_at::date::text AS created_date,
@@ -541,8 +541,8 @@ ORDER BY df.bucket ASC
           AND o.record_status = 'ACTIVE'
         GROUP BY o.customer_id
     )
-    SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
-                THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
+    SELECT CASE WHEN LENGTH(CONCAT_WS(' ', c.first_name, c.last_name)) > 0
+                THEN CONCAT_WS(' ', c.first_name, c.last_name)
                 ELSE COALESCE(c.email, 'Guest') END AS customer,
            ROUND(p.revenue, 2) AS revenue
     FROM per_customer p
@@ -587,8 +587,8 @@ ORDER BY df.bucket ASC
         VALUES (1, 0, 250), (2, 250, 500), (3, 500, 1000), (4, 1000, 2500),
                (5, 2500, 5000), (6, 5000, 10000), (7, 10000, NULL::int)
     )
-    SELECT CASE WHEN b.hi IS NULL THEN b.lo::text || CHR(43)
-                ELSE b.lo::text || CHR(45) || b.hi::text END AS spend_bucket,
+    SELECT CASE WHEN b.hi IS NULL THEN b.lo::text || '+'
+                ELSE b.lo::text || '-' || b.hi::text END AS spend_bucket,
            COUNT(p.revenue) AS customer_count
     FROM bucket_defs b
     LEFT JOIN per_customer p ON p.revenue >= b.lo AND (b.hi IS NULL OR p.revenue < b.hi)
@@ -641,8 +641,8 @@ ORDER BY df.bucket ASC
           AND ca.record_status = 'ACTIVE'
         ORDER BY ca.customer_id, ca.id
     )
-    SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
-                THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
+    SELECT CASE WHEN LENGTH(CONCAT_WS(' ', c.first_name, c.last_name)) > 0
+                THEN CONCAT_WS(' ', c.first_name, c.last_name)
                 ELSE COALESCE(c.email, 'Guest') END AS customer,
            ROUND(p.revenue, 2) AS revenue,
            p.orders AS orders,
@@ -711,9 +711,9 @@ VALUES (
     bucket_defs(ord, lo, hi) AS (
         VALUES (1, 1, 1), (2, 2, 2), (3, 3, 5), (4, 6, 10), (5, 11, 20), (6, 21, NULL::int)
     )
-    SELECT CASE WHEN b.hi IS NULL THEN b.lo::text || CHR(43)
+    SELECT CASE WHEN b.hi IS NULL THEN b.lo::text || '+'
                 WHEN b.lo = b.hi  THEN b.lo::text
-                ELSE b.lo::text || CHR(45) || b.hi::text END AS order_bucket,
+                ELSE b.lo::text || '-' || b.hi::text END AS order_bucket,
            COUNT(p.order_count) AS customer_count
     FROM bucket_defs b
     LEFT JOIN per_customer p ON p.order_count >= b.lo AND (b.hi IS NULL OR p.order_count <= b.hi)
@@ -786,8 +786,8 @@ VALUES (
         FROM repeat_orders
         GROUP BY cohort_month, month_offset
     )
-    SELECT EXTRACT(YEAR FROM cl.cohort_month)::text || CHR(45)
-             || LPAD(EXTRACT(MONTH FROM cl.cohort_month)::text, 2, CHR(48)) AS cohort,
+    SELECT EXTRACT(YEAR FROM cl.cohort_month)::text || '-'
+             || LPAD(EXTRACT(MONTH FROM cl.cohort_month)::text, 2, '0') AS cohort,
            ROUND(COALESCE(SUM(ct.net_sales) FILTER (WHERE ct.month_offset = 0), 0), 2) AS month_0,
            CASE WHEN cl.cohort_month + INTERVAL '1 month'
                      <= date_trunc('month', CURRENT_DATE)
@@ -873,8 +873,8 @@ VALUES (
         WHERE r.order_rank > 1
         GROUP BY m.cohort_month
     )
-    SELECT EXTRACT(YEAR FROM s.cohort_month)::text || CHR(45)
-             || LPAD(EXTRACT(MONTH FROM s.cohort_month)::text, 2, CHR(48)) AS first_order_month,
+    SELECT EXTRACT(YEAR FROM s.cohort_month)::text || '-'
+             || LPAD(EXTRACT(MONTH FROM s.cohort_month)::text, 2, '0') AS first_order_month,
            s.active_customers AS active_customers,
            COALESCE(cr.repeat_orders, 0) AS repeat_orders,
            ROUND(COALESCE(cr.repeat_revenue, 0), 2) AS repeat_revenue,
@@ -1026,8 +1026,8 @@ VALUES (
         FROM order_refunds
         GROUP BY customer_id
     )
-    SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
-                THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
+    SELECT CASE WHEN LENGTH(CONCAT_WS(' ', c.first_name, c.last_name)) > 0
+                THEN CONCAT_WS(' ', c.first_name, c.last_name)
                 ELSE COALESCE(c.email, 'Guest') END AS customer,
            p.orders AS orders,
            p.refunded_orders AS refunded_orders,
@@ -1123,7 +1123,7 @@ VALUES (
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND o.record_status = 'ACTIVE'
     )
-    SELECT CONCAT_WS(CHR(44) || CHR(32), NULLIF(city, 'Unknown'), NULLIF(province, 'Unknown'), NULLIF(country, 'Unknown')) AS location,
+    SELECT CONCAT_WS(', ', NULLIF(city, 'Unknown'), NULLIF(province, 'Unknown'), NULLIF(country, 'Unknown')) AS location,
            ROUND(SUM(net_sales), 2) AS revenue,
            ROUND(SUM(net_sales) / NULLIF(COUNT(*), 0), 2) AS aov
     FROM located_orders
@@ -1281,8 +1281,8 @@ VALUES (
     bucket_defs(ord, lo, hi) AS (
         VALUES (1, 16, 30), (2, 31, 60), (3, 61, 90), (4, 91, 180), (5, 181, NULL::int)
     )
-    SELECT CASE WHEN b.hi IS NULL THEN b.lo::text || CHR(43)
-                ELSE b.lo::text || CHR(45) || b.hi::text END AS days_bucket,
+    SELECT CASE WHEN b.hi IS NULL THEN b.lo::text || '+'
+                ELSE b.lo::text || '-' || b.hi::text END AS days_bucket,
            COUNT(l.customer_id) AS customer_count
     FROM bucket_defs b
     LEFT JOIN last_order l ON l.days_inactive >= b.lo AND (b.hi IS NULL OR l.days_inactive <= b.hi)
@@ -1333,8 +1333,8 @@ VALUES (
         WHERE v.day <= a.anchor_day
         GROUP BY v.customer_id
     )
-    SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
-                THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
+    SELECT CASE WHEN LENGTH(CONCAT_WS(' ', c.first_name, c.last_name)) > 0
+                THEN CONCAT_WS(' ', c.first_name, c.last_name)
                 ELSE COALESCE(c.email, c.id::text) END AS customer,
            l.last_order_date::text AS last_order_date,
            (a.anchor_day - l.last_order_date) AS days_inactive,
@@ -1385,13 +1385,13 @@ VALUES (
           AND o.record_status = 'ACTIVE'
         GROUP BY o.customer_id
     )
-    SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
-                THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
+    SELECT CASE WHEN LENGTH(CONCAT_WS(' ', c.first_name, c.last_name)) > 0
+                THEN CONCAT_WS(' ', c.first_name, c.last_name)
                 ELSE COALESCE(c.email, c.id::text) END AS customer,
            COALESCE(c.taxExempt, FALSE) AS tax_exempt,
            CASE WHEN COALESCE(LENGTH(TRIM(c.taxExemptions::text)), 0) > 2
                 THEN c.taxExemptions::text
-                ELSE CHR(45) END AS exemptions,
+                ELSE '-' END AS exemptions,
            ROUND(p.revenue, 2) AS revenue,
            p.orders AS orders,
            COUNT(*) OVER() AS total_records
@@ -1433,15 +1433,15 @@ VALUES (
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND o.record_status = 'ACTIVE'
     )
-    SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32), c.first_name, c.last_name)) > 0
-                THEN CONCAT_WS(CHR(32), c.first_name, c.last_name)
+    SELECT CASE WHEN LENGTH(CONCAT_WS(' ', c.first_name, c.last_name)) > 0
+                THEN CONCAT_WS(' ', c.first_name, c.last_name)
                 ELSE COALESCE(c.email, c.id::text) END AS customer,
-           CONCAT_WS(CHR(32), ca.address1, ca.address2) AS address,
+           CONCAT_WS(' ', ca.address1, ca.address2) AS address,
            ca.city AS city,
            ca.province AS province,
            ca.country AS country,
            COALESCE(ca.coordinates_validated, FALSE) AS coordinates_validated,
-           CONCAT_WS(CHR(44) || CHR(32),
+           CONCAT_WS(', ',
                CASE WHEN COALESCE(ca.coordinates_validated, FALSE) = FALSE
                     THEN 'Unvalidated coordinates' END,
                CASE WHEN COALESCE(LENGTH(TRIM(ca.address1)), 0) = 0

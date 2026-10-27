@@ -90,9 +90,7 @@ VALUES (
           AND li.record_status = 'ACTIVE'
         GROUP BY li.product_variant_id
     )
-    SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32) || CHR(45) || CHR(32), si.product_title, si.sku)) > 0
-                THEN CONCAT_WS(CHR(32) || CHR(45) || CHR(32), si.product_title, si.sku)
-                ELSE si.variant_id::text END AS name,
+    SELECT COALESCE(NULLIF(si.product_title, ''), NULLIF(si.sku, ''), si.variant_id::text) AS name,
            ROUND(
                100.0 * s.units_sold
                  / NULLIF(si.available_quantity + s.units_sold, 0),
@@ -153,9 +151,7 @@ VALUES (
           AND li.record_status = 'ACTIVE'
         GROUP BY li.product_variant_id
     )
-    SELECT CASE WHEN LENGTH(CONCAT_WS(CHR(32) || CHR(45) || CHR(32), si.product_title, si.sku)) > 0
-                THEN CONCAT_WS(CHR(32) || CHR(45) || CHR(32), si.product_title, si.sku)
-                ELSE s.product_variant_id::text END AS name,
+    SELECT COALESCE(NULLIF(si.product_title, ''), NULLIF(si.sku, ''), s.product_variant_id::text) AS name,
            COALESCE(s.units_sold, 0) AS units_sold,
            COALESCE(si.available_quantity, 0) AS available_stock
     FROM sales s
@@ -713,7 +709,7 @@ VALUES (
     sku_stock AS (
         SELECT pv.id AS variant_id,
                COALESCE(pv.sku, ii.sku) AS sku,
-               STRING_AGG(DISTINCT loc.name, CHR(44) || CHR(32)) AS location
+               STRING_AGG(DISTINCT loc.name, ', ') AS location
         FROM public.dim_inventory_levels il
         JOIN public.dim_inventory_items ii ON ii.id = il.inventory_item_id AND ii.record_status = 'ACTIVE'
         JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'

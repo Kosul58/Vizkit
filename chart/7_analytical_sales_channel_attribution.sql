@@ -269,8 +269,8 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_
                SUM(f.gross_sales) AS gross_sales,
                SUM(f.discounts) AS discounts,
                SUM(f.net_sales) AS net_sales,
-               string_agg(DISTINCT f.source_name, CHR(44) || CHR(32)) AS source,
-               string_agg(DISTINCT f.app_name, CHR(44) || CHR(32)) AS app
+               string_agg(DISTINCT f.source_name, ', ') AS source,
+               string_agg(DISTINCT f.app_name, ', ') AS app
         FROM filtered_orders f
         GROUP BY f.channel
     ),
@@ -376,13 +376,13 @@ OFFSET COALESCE(:offset, 0)
         CASE
             WHEN LENGTH(
                 CONCAT_WS(
-                    CHR(32),
+                    ' ',
                     c.first_name,
                     c.last_name
                 )
             ) > 0
                 THEN CONCAT_WS(
-                    CHR(32),
+                    ' ',
                     c.first_name,
                     c.last_name
                 )
@@ -775,7 +775,7 @@ WHERE r.record_status = 'ACTIVE'
                SUM(f.discounts) AS discounts,
                SUM(f.outstanding) AS unpaid_amount,
                COUNT(*) FILTER (
-                   WHERE UPPER(f.fulfillment_status) IS DISTINCT FROM 'FULFILLED') AS fulfillment_pending
+                   WHERE f.fulfillment_status IS DISTINCT FROM 'FULFILLED') AS fulfillment_pending
         FROM filtered_orders f
         GROUP BY f.channel
     )
@@ -875,8 +875,8 @@ GROUP BY
     ),
     top_skus AS (
         SELECT channel,
-               string_agg(sku || CHR(32) || CHR(40) || units::text || CHR(41),
-                          CHR(44) || CHR(32) ORDER BY rn) AS top_refunded_skus
+               string_agg(sku || ' (' || units::text || ')',
+                          ', ' ORDER BY rn) AS top_refunded_skus
         FROM ranked_skus
         WHERE rn <= 3
         GROUP BY channel
@@ -989,7 +989,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_
           AND o.record_status = 'ACTIVE'
     ),
     labelled AS (
-        SELECT COALESCE(f.utm_source, 'unknown') || CHR(32) || CHR(47) || CHR(32)
+        SELECT COALESCE(f.utm_source, 'unknown') || ' / '
                  || COALESCE(f.utm_medium, 'unknown') AS source_medium,
                f.net_sales
         FROM filtered_orders f

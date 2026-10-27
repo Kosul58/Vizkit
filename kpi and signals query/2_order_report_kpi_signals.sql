@@ -332,7 +332,7 @@ VALUES (
     'Paid Order Rate',
     'Order Reports/Payments & Collections/KPI/Paid Order Rate',
     $$
-    SELECT ROUND(COALESCE(100.0 * COUNT(*) FILTER (WHERE UPPER(o.financialstatus) = 'PAID')
+    SELECT ROUND(COALESCE(100.0 * COUNT(*) FILTER (WHERE o.financialstatus = 'PAID')
                           / NULLIF(COUNT(*), 0), 0), 2) AS paid_order_rate
     FROM public.fact_order_headers o
     WHERE o.seller_id = :shopId
@@ -719,7 +719,7 @@ VALUES (
                ROUND(COALESCE(100.0 * COUNT(*) FILTER (WHERE is_prior AND financial_status = 'PAID')
                               / NULLIF(COUNT(*) FILTER (WHERE is_prior), 0), 0), 2) AS prv_rate
         FROM (
-            SELECT UPPER(o.financialstatus) AS financial_status,
+            SELECT o.financialstatus AS financial_status,
                    ((:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
                 AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)) AS is_current,
                    (:priorStartDate::date IS NOT NULL

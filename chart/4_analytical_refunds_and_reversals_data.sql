@@ -665,7 +665,7 @@ SELECT
             'unknown'
         ) AS channel,
         CONCAT_WS(
-            CHR(44) || CHR(32),
+            ', ',
             o.shipping_address #>> '{city}',
             o.shipping_address #>> '{province}',
             o.shipping_address #>> '{country}'
@@ -912,8 +912,8 @@ VALUES (
         VALUES (1, 0, 50), (2, 50, 100), (3, 100, 250), (4, 250, 500),
                (5, 500, 1000), (6, 1000, 2500), (7, 2500, NULL::int)
     )
-    SELECT CASE WHEN b.hi IS NULL THEN b.lo::text || CHR(43)
-                ELSE b.lo::text || CHR(45) || b.hi::text END AS refund_bucket,
+    SELECT CASE WHEN b.hi IS NULL THEN b.lo::text || '+'
+                ELSE b.lo::text || '-' || b.hi::text END AS refund_bucket,
            COUNT(s.amount) AS refund_count
     FROM bucket_defs b
     LEFT JOIN scoped_refunds s ON s.amount >= b.lo AND (b.hi IS NULL OR s.amount < b.hi)
