@@ -95,6 +95,7 @@ VALUES (
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
+      AND (t.status NOT IN ('PENDING', 'AWAITING_RESPONSE') OR o.financialstatus IN ('PENDING', 'PARTIALLY_PAID'))
       AND (:currentStartDate::date IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL
@@ -341,6 +342,7 @@ VALUES (
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
       AND t.status IN ('PENDING', 'AWAITING_RESPONSE')
+      AND o.financialstatus IN ('PENDING', 'PARTIALLY_PAID')
       AND (:currentStartDate::date IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL
@@ -367,13 +369,14 @@ VALUES (
         'Pending Amount',
         'Payments & Transactions/Payment Health & Reliability/KPI/Pending Amount',
         $$
-    SELECT ROUND(COALESCE(SUM(COALESCE(t.amount, 0)), 0), 2) AS pending_amount
+    SELECT ROUND(COALESCE(SUM(LEAST(COALESCE(t.amount, 0), o.total_outstanding_amount)), 0), 2) AS pending_amount
     FROM public.fact_order_transactions t
     JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
     WHERE o.seller_id = :shopId
       AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
       AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
       AND t.status IN ('PENDING', 'AWAITING_RESPONSE')
+      AND o.financialstatus IN ('PENDING', 'PARTIALLY_PAID')
       AND (:currentStartDate::date IS NULL
            OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
       AND (:currentEndDate::date   IS NULL
@@ -743,6 +746,7 @@ VALUES (
             WHERE o.seller_id = :shopId
               AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
               AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
+              AND (t.status NOT IN ('PENDING', 'AWAITING_RESPONSE') OR o.financialstatus IN ('PENDING', 'PARTIALLY_PAID'))
               AND t.record_status = 'ACTIVE'
         ) x
         WHERE x.is_current OR x.is_prior
@@ -910,7 +914,8 @@ VALUES (
                    (:priorStartDate::date IS NOT NULL
                 AND COALESCE(t.processed_at, t.created_at)::date
                     BETWEEN :priorStartDate::date AND :priorEndDate::date)                      AS is_prior,
-                   (t.status IN ('PENDING', 'AWAITING_RESPONSE')) AS is_pending
+                   (t.status IN ('PENDING', 'AWAITING_RESPONSE')
+                AND o.financialstatus IN ('PENDING', 'PARTIALLY_PAID')) AS is_pending
             FROM public.fact_order_transactions t
             JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId
@@ -942,8 +947,9 @@ VALUES (
                    (:priorStartDate::date IS NOT NULL
                 AND COALESCE(t.processed_at, t.created_at)::date
                     BETWEEN :priorStartDate::date AND :priorEndDate::date)                      AS is_prior,
-                   COALESCE(t.amount, 0) AS amount,
-                   (t.status IN ('PENDING', 'AWAITING_RESPONSE')) AS is_pending
+                   LEAST(COALESCE(t.amount, 0), o.total_outstanding_amount) AS amount,
+                   (t.status IN ('PENDING', 'AWAITING_RESPONSE')
+                AND o.financialstatus IN ('PENDING', 'PARTIALLY_PAID')) AS is_pending
             FROM public.fact_order_transactions t
             JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
             WHERE o.seller_id = :shopId

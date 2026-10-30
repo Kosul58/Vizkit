@@ -68,8 +68,9 @@ VALUES (
     $$
     WITH sku_inventory AS (
         SELECT SUM(COALESCE(il.available_quantity, 0)) AS available_quantity,
-               BOOL_OR(COALESCE(il.available_quantity, 0)
-                       <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
+               BOOL_OR(COALESCE(il.safety_stock_quantity, 0) > 0
+                       AND COALESCE(il.available_quantity, 0)
+                           <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
         FROM public.dim_inventory_items ii
         JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
         JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id AND il.record_status = 'ACTIVE'
@@ -204,8 +205,9 @@ VALUES (
         SELECT pv.id AS variant_id,
                pv.price,
                SUM(GREATEST(il.available_quantity, 0)) AS available_quantity,
-               BOOL_OR(COALESCE(il.available_quantity, 0)
-                       <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
+               BOOL_OR(COALESCE(il.safety_stock_quantity, 0) > 0
+                       AND COALESCE(il.available_quantity, 0)
+                           <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
         FROM public.dim_inventory_items ii
         JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
         JOIN public.dim_inventory_levels il ON il.inventory_item_id = ii.id AND il.record_status = 'ACTIVE'
@@ -237,7 +239,7 @@ VALUES (
         LEFT JOIN sales s ON s.product_variant_id = si.variant_id
     )
     SELECT ROUND(COALESCE(SUM(
-               CASE WHEN any_location_low
+               CASE WHEN any_location_low AND available_quantity > 0
                     THEN per_day
                          * GREATEST(14 - available_quantity / NULLIF(per_day, 0), 0)
                          * COALESCE(price, 0)

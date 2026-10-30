@@ -122,7 +122,7 @@ VALUES (
            ROUND(COALESCE(SUM(t.amount), 0), 2) AS payment_amount
     FROM public.fact_order_transactions t
     JOIN filtered_orders f ON f.id = t.order_id
-    WHERE t.kind = 'SALE'
+    WHERE t.kind IN ('SALE', 'CAPTURE')
       AND t.status = 'SUCCESS'
       AND t.record_status = 'ACTIVE'
     GROUP BY 1
@@ -488,22 +488,25 @@ VALUES (
         'Payments & Transactions/Payment Health & Reliability/PLOT/Transaction Status Mix',
         $$
     WITH classified AS (
-        SELECT CASE WHEN t.status IN ('FAILURE', 'ERROR')             THEN 'Failed'
-                    WHEN t.status IN ('PENDING', 'AWAITING_RESPONSE') THEN 'Pending'
-                    WHEN t.status = 'SUCCESS'                           THEN 'Success'
-                    ELSE 'Other' END AS status
+        SELECT CASE WHEN t.status = 'SUCCESS'           THEN 'Success'
+                    WHEN t.status = 'FAILURE'           THEN 'Failure'
+                    WHEN t.status = 'ERROR'             THEN 'Error'
+                    WHEN t.status = 'PENDING'           THEN 'Pending'
+                    WHEN t.status = 'AWAITING_RESPONSE' THEN 'Awaiting Response'
+                    ELSE 'Unknown' END AS status
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
-          
+
           AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
+          AND (t.status NOT IN ('PENDING', 'AWAITING_RESPONSE') OR o.financialstatus IN ('PENDING', 'PARTIALLY_PAID'))
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
           AND t.record_status = 'ACTIVE'
     ),
     bands(ord, status) AS (
-        VALUES (1, 'Success'), (2, 'Failed'), (3, 'Pending'), (4, 'Other')
+        VALUES (1, 'Success'), (2, 'Failure'), (3, 'Error'), (4, 'Pending'), (5, 'Awaiting Response'), (6, 'Unknown')
     )
     SELECT b.status AS status,
            COUNT(c.status) AS transaction_count
@@ -512,10 +515,10 @@ VALUES (
     GROUP BY b.ord, b.status
     ORDER BY b.ord
     $$,
-'{"helperText": "Shows how your transactions break down by status — successful, failed, pending, or other — so you can gauge overall payment health."}',
+'{"helperText": "Shows how your transactions break down by status — success, failure, error, pending, awaiting response, or unknown — so you can gauge overall payment health."}',
         'PLOT',
         30,
-        'Transaction status distribution breakdown (Success, Failed, Pending, Other).',
+        'Transaction status distribution breakdown (Success, Failure, Error, Pending, Awaiting Response, Unknown).',
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },
@@ -535,7 +538,8 @@ VALUES (
     scoped_txn AS (
         SELECT date_trunc(LOWER(dp.g), COALESCE(t.processed_at, t.created_at)) AS bucket,
                (t.status IN ('FAILURE', 'ERROR'))             AS is_failed,
-               (t.status IN ('PENDING', 'AWAITING_RESPONSE')) AS is_pending
+               (t.status IN ('PENDING', 'AWAITING_RESPONSE')
+            AND o.financialstatus IN ('PENDING', 'PARTIALLY_PAID')) AS is_pending
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
         CROSS JOIN date_params dp
@@ -606,7 +610,9 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
-          AND t.status IN ('FAILURE', 'ERROR', 'PENDING', 'AWAITING_RESPONSE')
+          AND (t.status IN ('FAILURE', 'ERROR')
+               OR (t.status IN ('PENDING', 'AWAITING_RESPONSE')
+                   AND o.financialstatus IN ('PENDING', 'PARTIALLY_PAID')))
           AND (:currentStartDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR COALESCE(t.processed_at, t.created_at)::date <= :currentEndDate::date)
           AND t.record_status = 'ACTIVE'
@@ -700,7 +706,7 @@ VALUES (
     filtered_orders AS (
         SELECT o.id,
                date_trunc(LOWER(dp.g), o.created_at) AS bucket,
-               COALESCE(o.total_price, 0) AS order_total
+               CASE WHEN o.financialstatus = 'VOIDED' THEN 0 ELSE COALESCE(o.total_price, 0) END AS order_total
         FROM public.fact_order_headers o
         CROSS JOIN date_params dp
         WHERE o.seller_id = :shopId
@@ -866,7 +872,6 @@ VALUES (
     ),
     order_txn AS (
         SELECT t.order_id,
-               SUM(COALESCE(t.amount, 0)) AS transaction_amount,
                COALESCE(SUM(COALESCE(t.amount, 0)) FILTER (
                    WHERE t.kind IN ('SALE', 'CAPTURE')
                      AND t.status = 'SUCCESS'), 0) AS captured_amount,
@@ -884,7 +889,8 @@ VALUES (
                f.created_at,
                f.order_total,
                f.net_payment,
-               COALESCE(ot.transaction_amount, 0) AS transaction_amount,
+               COALESCE(ot.captured_amount, 0)
+                 - COALESCE(ot.refunded_amount, 0) AS transaction_amount,
                COALESCE(ot.captured_amount, 0) AS captured_amount,
                COALESCE(ot.refunded_amount, 0) AS refunded_amount,
                COALESCE(ot.captured_amount, 0)
@@ -1000,7 +1006,7 @@ VALUES (
                COALESCE(t.amount, 0) AS amount,
                (t.kind IN ('AUTHORIZATION', 'EMV_AUTHORIZATION')
             AND t.status = 'SUCCESS') AS is_authorized,
-               (t.kind IN ('SALE', 'CAPTURE')
+               (t.kind = 'CAPTURE'
             AND t.status = 'SUCCESS') AS is_captured
         FROM public.fact_order_transactions t
         JOIN public.fact_order_headers o ON o.id = t.order_id AND o.record_status = 'ACTIVE'
@@ -1027,6 +1033,7 @@ VALUES (
                SUM(GREATEST(p.authorized_amount - p.captured_amount, 0)) AS uncaptured_amount
         FROM per_order_gateway p
         GROUP BY p.gateway
+        HAVING SUM(p.authorized_amount) > 0 OR SUM(p.captured_amount) > 0
     )
     SELECT gt.gateway AS gateway,
            ROUND(gt.authorized_amount, 2) AS authorized_amount,

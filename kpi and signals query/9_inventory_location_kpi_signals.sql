@@ -197,8 +197,9 @@ VALUES (
         'Low Stock SKUs',
         'Inventory Location/Replenishment & Stock Risk/KPI/Low Stock SKUs',
         $$
-    SELECT COUNT(*) FILTER (WHERE COALESCE(il.available_quantity, 0)
-                                 <= COALESCE(il.safety_stock_quantity, 0)) AS low_stock_skus
+    SELECT COUNT(*) FILTER (WHERE COALESCE(il.available_quantity, 0) > 0
+                              AND COALESCE(il.safety_stock_quantity, 0) > 0
+                              AND il.available_quantity <= il.safety_stock_quantity) AS low_stock_skus
     FROM public.dim_inventory_levels il
     WHERE il.seller_id = :shopId
       AND il.is_active = TRUE

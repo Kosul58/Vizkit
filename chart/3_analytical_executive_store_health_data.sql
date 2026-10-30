@@ -991,7 +991,7 @@ VALUES (
            ROUND(COALESCE(SUM(t.amount), 0), 2) AS "Order Value"
     FROM public.fact_order_transactions t
     JOIN filtered_orders f ON f.id = t.order_id
-    WHERE t.kind = 'SALE'
+    WHERE t.kind IN ('SALE', 'CAPTURE')
       AND t.status = 'SUCCESS'
       AND t.record_status = 'ACTIVE'
     GROUP BY 1
@@ -1029,7 +1029,7 @@ VALUES (
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           
           AND (t.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
-          AND t.kind = 'SALE'
+          AND t.kind IN ('SALE', 'CAPTURE')
           AND t.status = 'SUCCESS'
           AND (:currentStartDate IS NULL OR t.processed_at::date >= :currentStartDate::date)
           AND (:currentEndDate IS NULL OR t.processed_at::date <= :currentEndDate::date)

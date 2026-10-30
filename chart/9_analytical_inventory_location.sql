@@ -443,8 +443,9 @@ VALUES (
     WITH location_rows AS (
         SELECT loc.id AS location_id,
                COALESCE(loc.name, 'Unknown') AS location_name,
-               COUNT(il.id) FILTER (WHERE COALESCE(il.available_quantity, 0)
-                                        <= COALESCE(il.safety_stock_quantity, 0)) AS low_stock_skus
+               COUNT(il.id) FILTER (WHERE COALESCE(il.available_quantity, 0) > 0
+                                     AND COALESCE(il.safety_stock_quantity, 0) > 0
+                                     AND il.available_quantity <= il.safety_stock_quantity) AS low_stock_skus
         FROM public.dim_inventory_locations loc
         LEFT JOIN public.dim_inventory_levels il
                ON il.inventory_location_id = loc.id
@@ -575,6 +576,7 @@ VALUES (
         WHERE il.seller_id = :shopId
           AND ii.seller_id = :shopId
           AND il.is_active = TRUE
+          AND COALESCE(il.safety_stock_quantity, 0) > 0
           AND COALESCE(il.available_quantity, 0) <= COALESCE(il.safety_stock_quantity, 0)
           AND il.record_status = 'ACTIVE'
     )

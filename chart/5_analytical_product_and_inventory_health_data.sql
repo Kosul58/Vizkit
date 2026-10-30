@@ -364,8 +364,9 @@ VALUES (
                p.title AS product_title,
                pv.price,
                SUM(GREATEST(il.available_quantity, 0)) AS available_quantity,
-               BOOL_OR(COALESCE(il.available_quantity, 0)
-                       <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
+               BOOL_OR(COALESCE(il.safety_stock_quantity, 0) > 0
+                       AND COALESCE(il.available_quantity, 0)
+                           <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
         FROM public.dim_inventory_items ii
         JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
         JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
@@ -601,8 +602,9 @@ VALUES (
                pv.price,
                SUM(GREATEST(il.available_quantity, 0)) AS available_quantity,
                MAX(GREATEST(il.safety_stock_quantity, 0)) AS safety_stock_quantity,
-               BOOL_OR(COALESCE(il.available_quantity, 0)
-                       <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
+               BOOL_OR(COALESCE(il.safety_stock_quantity, 0) > 0
+                       AND COALESCE(il.available_quantity, 0)
+                           <= COALESCE(il.safety_stock_quantity, 0)) AS any_location_low
         FROM public.dim_inventory_items ii
         JOIN public.dim_product_variants pv ON pv.inventory_item_id = ii.id AND pv.record_status = 'ACTIVE'
         JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
