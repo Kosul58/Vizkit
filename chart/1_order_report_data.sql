@@ -835,73 +835,41 @@ VALUES (
     'Order Reports/Payments & Collections/TABLE/Unpaid Orders Queue',
 $$
     WITH filtered_orders AS (
-SELECT
-    o.id,
-    o.id AS order_id,
-    o.created_at,
-    o.customer_id,
-    o.financialStatus AS financial_status,
-    o.payment_gateway_names,
-COALESCE(o.total_outstanding_amount, 0) AS outstanding_amount
+    SELECT
+      o.id,
+      o.id AS order_id,
+      o.created_at,
+      o.customer_id,
+      o.financialStatus AS financial_status,
+      o.payment_gateway_names,
+      COALESCE(o.total_outstanding_amount, 0) AS outstanding_amount
         FROM public.fact_order_headers o
         WHERE o.seller_id = :shopId
           AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_identifier = :shopId AND sl.store_type <> 'MERCHANT'))
           AND o.total_outstanding_amount > 0
-AND (
-:currentStartDate IS NULL
-    OR o.created_at::date >=:currentStartDate::date
-)
-AND (
-              :currentEndDate IS NULL
-              OR o.created_at::date <= :currentEndDate::date
-          )
+          AND ( :currentStartDate IS NULL OR o.created_at::date >=:currentStartDate::date)
+          AND ( :currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND o.record_status = 'ACTIVE'
           /*financial_status_filter*/
     )
     SELECT
         f.order_id,
-        CASE
-            WHEN LENGTH(
-                CONCAT_WS(
-                    ' ',
-                    c.first_name,
-                    c.last_name
-                )
-            ) > 0
-                THEN CONCAT_WS(
-                    ' ',
-                    c.first_name,
-                    c.last_name
-                )
+        CASE WHEN LENGTH(CONCAT_WS(' ',c.first_name,c.last_name)) > 0
+                THEN CONCAT_WS(' ',c.first_name,c.last_name)
             ELSE COALESCE(c.email, 'Guest')
         END AS customer,
         f.created_at::date::text AS order_date,
-ROUND(f.outstanding_amount, 2) AS outstanding_amount,
-f.financial_status,
-COALESCE(
-    t.gateway,
-    'Unknown'
-) AS payment_gateway,
-(
-    COALESCE(
-:currentEndDate::date,
-        CURRENT_DATE
-    ) - f.created_at::date
-) AS days_unpaid,
-COUNT(*) OVER () AS total_records
+        ROUND(f.outstanding_amount, 2) AS outstanding_amount,
+        f.financial_status,
+        COALESCE(t.gateway,'Unknown') AS payment_gateway,
+        (COALESCE(:currentEndDate::date, CURRENT_DATE) - f.created_at::date) AS days_unpaid,
+        COUNT(*) OVER () AS total_records
     FROM filtered_orders f
-LEFT JOIN public.dim_customers c ON c.id = f.customer_id AND c.record_status = 'ACTIVE'
--- One successful payment per order (largest first) so orders with several payments are not repeated.
-LEFT JOIN LATERAL (
-    SELECT t.gateway
-    FROM public.fact_order_transactions t
-    WHERE t.order_id = f.id
+    LEFT JOIN public.dim_customers c ON c.id = f.customer_id AND c.record_status = 'ACTIVE'
+    LEFT JOIN public.fact_order_transactions t ON t.order_id = f.id
       AND t.kind IN ('SALE', 'CAPTURE')
-      AND t.status = 'SUCCESS'
+      AND t.status IN ('PENDING', 'SUCCESS')
       AND t.record_status = 'ACTIVE'
-    ORDER BY t.amount DESC NULLS LAST, t.gateway
-    LIMIT 1
-) t ON TRUE
     ORDER BY days_unpaid DESC
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
