@@ -1075,9 +1075,7 @@ VALUES (
     WITH filtered_orders AS (
         SELECT o.id,
                COALESCE(
-                   o.shipping_address #>> '{country}',
-                   o.shipping_address #>> '{province}',
-                   o.shipping_address #>> '{city}',
+                   COALESCE(NULLIF(o.shipping_address, 'null'::jsonb), o.billing_address) #>> '{country}',
                    'Unknown'
                ) AS geography,
                COALESCE(o.current_subtotal_price, 0)
@@ -1099,10 +1097,10 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "Shows which countries or regions your orders and net sales come from, so you can find your strongest markets."}',
+'{"helperText": "Shows which countries your orders and net sales come from, so you can find your strongest markets."}',
     'PLOT',
     60,
-    'Distribution of order volume and net sales grouped by customer destination country, province, or city.',
+    'Order volume and net sales by country, using the billing address when an order has no shipping address.',
     '{
       "filterMappings": {
         "shopId":           { "source": "AUTH_CONTEXT",   "contextKey": "shopGid"   },
@@ -1121,9 +1119,9 @@ VALUES (
     $$
     WITH filtered_orders AS (
         SELECT o.id,
-               COALESCE(o.shipping_address #>> '{country}', 'Unknown') AS country,
-               COALESCE(o.shipping_address #>> '{province}', 'Unknown') AS province,
-               COALESCE(o.shipping_address #>> '{city}', 'Unknown') AS city,
+               COALESCE(COALESCE(NULLIF(o.shipping_address, 'null'::jsonb), o.billing_address) #>> '{country}', 'Unknown') AS country,
+               COALESCE(COALESCE(NULLIF(o.shipping_address, 'null'::jsonb), o.billing_address) #>> '{province}', 'Unknown') AS province,
+               COALESCE(COALESCE(NULLIF(o.shipping_address, 'null'::jsonb), o.billing_address) #>> '{city}', 'Unknown') AS city,
                CASE
                     WHEN o.financialstatus = 'VOIDED' THEN 0
                     ELSE COALESCE(o.subtotal_price, 0)

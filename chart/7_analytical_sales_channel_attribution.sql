@@ -856,16 +856,17 @@ WHERE r.record_status = 'ACTIVE'
     ),
     sku_returns AS (
         SELECT co.channel,
-COALESCE(pv.sku, pv.id) AS sku,
+COALESCE(pv.sku, p.title, pv.id) AS sku,
                SUM(GREATEST(COALESCE(li.quantity, 0)
                             - COALESCE(li.refundable_quantity, li.quantity), 0)) AS units
 FROM public.fact_order_line_items li
         JOIN channel_orders co ON co.id = li.order_id
 JOIN public.dim_product_variants pv ON pv.id = li.product_variant_id
+LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
 WHERE li.record_status = 'ACTIVE' AND pv.record_status = 'ACTIVE'
 GROUP BY
     co.channel,
-    COALESCE(pv.sku, pv.id)
+    COALESCE(pv.sku, p.title, pv.id)
     ),
     ranked_skus AS (
         SELECT channel, sku, units,
@@ -1070,6 +1071,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_
         $$
     WITH filtered_orders AS (
 SELECT LOWER(NULLIF(TRIM(o.customer_journey_summary #>> '{lastVisit,utmParameters,medium}'), '')) AS utm_medium,
+               o.customer_journey_summary #>> '{lastVisit,referrerUrl}' AS referring_site,
                CASE
                     WHEN o.financialstatus = 'VOIDED' THEN 0
                     ELSE COALESCE(o.subtotal_price, 0)
@@ -1095,6 +1097,7 @@ AND (o.test = FALSE OR EXISTS (SELECT 1 FROM public.seller sl WHERE sl.platform_
                     WHEN f.utm_medium IN ('social', 'social_media', 'social-media',
                                           'socialmedia', 'sm', 'facebook', 'instagram',
                                           'twitter', 'tiktok', 'pinterest', 'linkedin') THEN 5
+                    WHEN f.referring_site IS NOT NULL                                  THEN 3
                     ELSE 6 END AS medium_group,
                f.gross_sales
         FROM filtered_orders f
@@ -1637,9 +1640,7 @@ WHERE li.record_status = 'ACTIVE'
                     ELSE 4 END AS channel_bucket
         FROM (
             SELECT COALESCE(
-                       o.shipping_address #>> '{country}',
-                       o.shipping_address #>> '{province}',
-                       o.shipping_address #>> '{city}',
+                       COALESCE(NULLIF(o.shipping_address, 'null'::jsonb), o.billing_address) #>> '{country}',
                        'Unknown'
                    ) AS country,
                    COALESCE(NULLIF(TRIM(o.attribution_displayname), ''),
@@ -1672,11 +1673,11 @@ WHERE li.record_status = 'ACTIVE'
     LIMIT 20
     $$,
 '{
-      "helperText": "Shows how revenue from each channel breaks down by destination country, so you can understand where your channel sales are shipping to."
+      "helperText": "Shows how revenue from each channel breaks down by destination country, so you can understand where your channel sales come from."
     }',
         'PLOT',
         360,
-        'Revenue breakdown per destination country across sales channels, taken from the order attribution display name. Other Channels holds any named channel outside the first three, and Unattributed holds orders carrying no channel information at all.',
+        'Revenue per country across sales channels, using the shipping address or the billing address when there is none. Other Channels holds named channels outside the first three; Unattributed holds orders with no channel information.',
         '{
       "filterMappings": {
         "shopId": { "source": "AUTH_CONTEXT", "contextKey": "shopGid" },

@@ -823,8 +823,7 @@ WHERE f.country IS NOT NULL
       AND f.province IS NOT NULL  
     GROUP BY f.country, f.province
 )
-SELECT s.country,
-       s.province AS state_province,
+SELECT s.country || ' > ' || s.province AS label,
        ROUND(s.revenue, 2) AS revenue
 FROM segments s
 ORDER BY s.revenue DESC

@@ -966,11 +966,12 @@ VALUES (
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND li.record_status = 'ACTIVE'
     )
-    SELECT COALESCE(pv.sku, pv.id) AS sku,
+    SELECT COALESCE(pv.sku, p.title, pv.id) AS sku,
            SUM(f.removed_units) AS refund_removed_quantity
     FROM filtered_lines f
     JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
-    GROUP BY COALESCE(pv.sku, pv.id)
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
+    GROUP BY COALESCE(pv.sku, p.title, pv.id)
     HAVING SUM(f.removed_units) > 0
     ORDER BY refund_removed_quantity DESC
     LIMIT COALESCE(:limit, 10)
@@ -1168,11 +1169,7 @@ VALUES (
     WITH filtered_orders AS (
         SELECT
             o.id,
-            COALESCE(
-                o.shipping_address #>> '{country}',
-                o.shipping_address #>> '{province}',
-                o.shipping_address #>> '{city}'
-            ) AS country,
+            COALESCE(NULLIF(o.shipping_address, 'null'::jsonb), o.billing_address) #>> '{country}' AS country,
             CASE
                  WHEN o.financialstatus = 'VOIDED' THEN 0
                  ELSE COALESCE(o.subtotal_price, 0)
@@ -1226,10 +1223,10 @@ VALUES (
     LIMIT COALESCE(:limit, 10)
     OFFSET COALESCE(:offset, 0)
     $$,
-'{"helperText": "Shows how refunds vary by region, so you can spot geographic patterns in refund amounts and rates."}',
+'{"helperText": "Shows how refunds vary by country, so you can spot geographic patterns in refund amounts and rates."}',
     'PLOT',
     60,
-    'Geographic breakdown of total refunded amounts and refund rate % per region.',
+    'Refunded amounts and refund rate % per country, using the billing address when an order has no shipping address.',
     '{
         "filterMappings": {
             "shopId": {

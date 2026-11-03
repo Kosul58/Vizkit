@@ -165,12 +165,13 @@ OFFSET COALESCE(:offset, 0)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND li.record_status = 'ACTIVE'
     )
-    SELECT COALESCE(pv.sku, pv.id) AS sku,
+    SELECT COALESCE(pv.sku, p.title, pv.id) AS sku,
            ROUND(SUM(f.net_sales), 2) AS net_sales,
            SUM(f.units) AS units_sold
     FROM filtered_lines f
     JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
-    GROUP BY COALESCE(pv.sku, pv.id)
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
+    GROUP BY COALESCE(pv.sku, p.title, pv.id)
     ORDER BY net_sales DESC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)
@@ -358,11 +359,12 @@ VALUES (
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND li.record_status = 'ACTIVE'
     )
-    SELECT COALESCE(pv.sku, pv.id) AS sku,
+    SELECT COALESCE(pv.sku, p.title, pv.id) AS sku,
            ROUND(SUM(f.discounts), 2) AS discount_amount
     FROM filtered_lines f
     JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
-    GROUP BY COALESCE(pv.sku, pv.id)
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
+    GROUP BY COALESCE(pv.sku, p.title, pv.id)
     HAVING SUM(f.discounts) > 0
     ORDER BY discount_amount DESC
     LIMIT 20
@@ -466,11 +468,12 @@ VALUES (
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND li.record_status = 'ACTIVE'
     )
-    SELECT COALESCE(pv.sku, pv.id) AS sku,
+    SELECT COALESCE(pv.sku, p.title, pv.id) AS sku,
            SUM(f.unfulfilled_units) AS unfulfilled_quantity
     FROM filtered_lines f
     JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
-    GROUP BY COALESCE(pv.sku, pv.id)
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
+    GROUP BY COALESCE(pv.sku, p.title, pv.id)
     HAVING SUM(f.unfulfilled_units) > 0
     ORDER BY unfulfilled_quantity DESC
     LIMIT COALESCE(:limit, 10)
@@ -569,11 +572,12 @@ VALUES (
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND li.record_status = 'ACTIVE'
     )
-    SELECT COALESCE(pv.sku, pv.id) AS sku,
+    SELECT COALESCE(pv.sku, p.title, pv.id) AS sku,
            SUM(f.removed_units) AS refund_removed_quantity
     FROM filtered_lines f
     JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
-    GROUP BY COALESCE(pv.sku, pv.id)
+    LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
+    GROUP BY COALESCE(pv.sku, p.title, pv.id)
     HAVING SUM(f.removed_units) > 0
     ORDER BY refund_removed_quantity DESC
     LIMIT COALESCE(:limit, 10)
@@ -998,13 +1002,13 @@ VALUES (
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND li.record_status = 'ACTIVE'
     )
-    SELECT COALESCE(p.vendor, pv.sku, pv.id) AS vendor,
+    SELECT COALESCE(p.vendor, 'Unknown vendor') AS vendor,
            ROUND(SUM(f.net_sales), 2) AS net_sales,
            SUM(f.units) AS units_sold
     FROM filtered_lines f
     JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
     LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
-    GROUP BY COALESCE(p.vendor, pv.sku, pv.id)
+    GROUP BY COALESCE(p.vendor, 'Unknown vendor')
     HAVING SUM(f.net_sales) > 0
     ORDER BY net_sales DESC
     LIMIT COALESCE(:limit, 10)
@@ -1150,7 +1154,7 @@ OFFSET COALESCE(:offset, 0)
           AND (:currentEndDate IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND li.record_status = 'ACTIVE'
     )
-    SELECT COALESCE(p.vendor, pv.sku, pv.id) AS vendor,
+    SELECT COALESCE(p.vendor, 'Unknown vendor') AS vendor,
            COUNT(DISTINCT pv.product_id) AS products,
            COUNT(DISTINCT pv.id) AS skus,
            SUM(f.units) AS units_sold,
@@ -1162,7 +1166,7 @@ OFFSET COALESCE(:offset, 0)
     FROM filtered_lines f
     JOIN public.dim_product_variants pv ON pv.id = f.product_variant_id AND pv.record_status = 'ACTIVE'
     LEFT JOIN public.dim_products p ON p.id = pv.product_id AND p.record_status = 'ACTIVE'
-    GROUP BY COALESCE(p.vendor, pv.sku, pv.id)
+    GROUP BY COALESCE(p.vendor, 'Unknown vendor')
     ORDER BY net_sales DESC
     LIMIT COALESCE(:limit, 10)
 OFFSET COALESCE(:offset, 0)

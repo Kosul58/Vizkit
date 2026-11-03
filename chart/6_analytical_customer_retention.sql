@@ -1068,7 +1068,7 @@ VALUES (
     'Customer Retention/Customer Geography & Segmentation/PLOT/Customer Geography',
     $$
     WITH located_orders AS (
-        SELECT COALESCE(o.shipping_address #>> '{country}', 'Unknown') AS country,
+        SELECT COALESCE(COALESCE(NULLIF(o.shipping_address, 'null'::jsonb), o.billing_address) #>> '{country}', 'Unknown') AS country,
                o.customer_id,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
@@ -1109,9 +1109,9 @@ VALUES (
     'Customer Retention/Customer Geography & Segmentation/PLOT/Customer Location Revenue Ranking',
     $$
     WITH located_orders AS (
-        SELECT COALESCE(o.shipping_address #>> '{city}', 'Unknown') AS city,
-               COALESCE(o.shipping_address #>> '{province}', 'Unknown') AS province,
-               COALESCE(o.shipping_address #>> '{country}', 'Unknown') AS country,
+        SELECT COALESCE(COALESCE(NULLIF(o.shipping_address, 'null'::jsonb), o.billing_address) #>> '{city}', 'Unknown') AS city,
+               COALESCE(COALESCE(NULLIF(o.shipping_address, 'null'::jsonb), o.billing_address) #>> '{province}', 'Unknown') AS province,
+               COALESCE(COALESCE(NULLIF(o.shipping_address, 'null'::jsonb), o.billing_address) #>> '{country}', 'Unknown') AS country,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END
                  - CASE WHEN o.duties_included THEN COALESCE(o.current_total_duties, 0) ELSE 0 END AS net_sales
@@ -1150,9 +1150,9 @@ VALUES (
     'Customer Retention/Customer Geography & Segmentation/TABLE/Customer Geography Report',
     $$
     WITH located_orders AS (
-        SELECT COALESCE(o.shipping_address #>> '{country}', 'Unknown') AS country,
-               COALESCE(o.shipping_address #>> '{province}', 'Unknown') AS province,
-               COALESCE(o.shipping_address #>> '{city}', 'Unknown') AS city,
+        SELECT COALESCE(COALESCE(NULLIF(o.shipping_address, 'null'::jsonb), o.billing_address) #>> '{country}', 'Unknown') AS country,
+               COALESCE(COALESCE(NULLIF(o.shipping_address, 'null'::jsonb), o.billing_address) #>> '{province}', 'Unknown') AS province,
+               COALESCE(COALESCE(NULLIF(o.shipping_address, 'null'::jsonb), o.billing_address) #>> '{city}', 'Unknown') AS city,
                o.customer_id,
                COALESCE(o.current_subtotal_price, 0)
                  - CASE WHEN o.taxes_included  THEN COALESCE(o.current_total_tax, 0)    ELSE 0 END

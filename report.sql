@@ -456,9 +456,12 @@ SELECT
     foh.attribution_displayname                 AS sales_channel,
     foh.source_name                             AS order_source,
     foh.payment_gateway_names ->> 0                AS payment_method,
-    CASE
-        WHEN foh.fullypaid THEN 'FULLY PAID'
-        WHEN foh.total_received_amount > 0 THEN 'PARTIALLY PAID'
+    CASE foh.financialstatus
+        WHEN 'PAID'               THEN 'FULLY PAID'
+        WHEN 'PARTIALLY_PAID'     THEN 'PARTIALLY PAID'
+        WHEN 'REFUNDED'           THEN 'REFUNDED'
+        WHEN 'PARTIALLY_REFUNDED' THEN 'PARTIALLY REFUNDED'
+        WHEN 'VOIDED'             THEN 'VOIDED'
         ELSE 'UNPAID'
         END                                     AS payment_status,
 

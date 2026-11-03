@@ -375,7 +375,8 @@ VALUES (
           AND (:currentStartDate::date IS NULL OR o.created_at::date >= :currentStartDate::date)
           AND (:currentEndDate::date   IS NULL OR o.created_at::date <= :currentEndDate::date)
           AND li.record_status = 'ACTIVE'
-        GROUP BY COALESCE(p.vendor, pv.sku, pv.id)
+          AND p.vendor IS NOT NULL
+        GROUP BY p.vendor
     )
     SELECT ROUND(COALESCE(MAX(net_sales), 0), 2) AS top_vendor
     FROM vendor_sales
